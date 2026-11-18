@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "935060866023",
+    "project_id": "zoyra-3fb86",
+    "storage_bucket": "zoyra-3fb86.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:935060866023:android:f99c464ac69f044368f342",
+        "android_client_info": {
+          "package_name": "com.zoyra.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAP61WY6-iwKFQypRaYB8MmExwifLyvGaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

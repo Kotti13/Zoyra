@@ -1,0 +1,81 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "destination": "/api/aasa"
+    },
+    {
+      "source": "/apple-app-site-association",
+      "destination": "/api/aasa"
+    },
+    {
+      "source": "/.well-known/assetlinks.json",
+      "destination": "/api/assetlinks"
+    },
+    {
+      "source": "/",
+      "destination": "/api/share?kind=home"
+    },
+    {
+      "source": "/t/:id",
+      "destination": "/api/share?kind=t&id=:id"
+    },
+    {
+      "source": "/l/:id",
+      "destination": "/api/share?kind=l&id=:id"
+    },
+    {
+      "source": "/p/:id",
+      "destination": "/api/share?kind=p&id=:id"
+    },
+    {
+      "source": "/a/:id",
+      "destination": "/api/share?kind=a&id=:id"
+    },
+    {
+      "source": "/ar/:id",
+      "destination": "/api/share?kind=ar&id=:id"
+    },
+    {
+      "source": "/u/:id",
+      "destination": "/api/share?kind=u&id=:id"
+    },
+    {
+      "source": "/s/:id",
+      "destination": "/api/share?kind=s&id=:id"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/share"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/(og-default|icon|apple-touch-icon|favicon).png",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=604800, immutable"
+        }
+      ]
+    }
+  ]
+}

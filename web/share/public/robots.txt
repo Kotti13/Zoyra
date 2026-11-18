@@ -1,0 +1,4 @@
+# Link-preview bots (Twitterbot, Slackbot…) honour robots.txt, so nothing is disallowed.
+# Profile / user-playlist pages carry <meta name="robots" content="noindex"> instead.
+User-agent: *
+Allow: /

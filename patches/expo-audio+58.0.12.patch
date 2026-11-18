@@ -1,0 +1,342 @@
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
+index 6c81fce..e8e3290 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioModule.kt
+@@ -35,6 +35,8 @@ import expo.modules.kotlin.functions.Coroutine
+ import expo.modules.kotlin.functions.Queues
+ import expo.modules.kotlin.modules.Module
+ import expo.modules.kotlin.modules.ModuleDefinition
++import expo.modules.audio.service.LockScreenButtonsOptions
++import expo.modules.audio.service.ZoyraLockScreenButtons
+ import kotlinx.coroutines.DelicateCoroutinesApi
+ import kotlinx.coroutines.Dispatchers
+ import kotlinx.coroutines.GlobalScope
+@@ -63,6 +65,11 @@ class AudioModule : Module() {
+   private var allowsBackgroundRecording = false
+   private var playsInSilentMode = true
+ 
++  // Zoyra patch: forwards like / shuffle taps on the system media card to JS.
++  private val lockScreenActionListener: (String) -> Unit = { action ->
++    sendEvent("onLockScreenAction", mapOf("action" to action))
++  }
++
+   private val allPlayables: Sequence<Playable>
+     get() = players.values.asSequence() + playlists.values.asSequence()
+ 
+@@ -390,9 +397,18 @@ class AudioModule : Module() {
+   override fun definition() = ModuleDefinition {
+     Name("ExpoAudio")
+ 
++    // Zoyra patch: like / shuffle taps from the media notification and lock screen.
++    Events("onLockScreenAction")
++
+     OnCreate {
+       audioManager = appContext.reactContext?.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+       context.registerReceiver(ringerModeReceiver, IntentFilter(AudioManager.RINGER_MODE_CHANGED_ACTION))
++      ZoyraLockScreenButtons.actionListener = lockScreenActionListener
++    }
++
++    // Zoyra patch: state + visibility of the like / shuffle buttons; refreshes the card immediately.
++    Function("setLockScreenButtons") { options: LockScreenButtonsOptions ->
++      ZoyraLockScreenButtons.update(options)
+     }
+ 
+     AsyncFunction("setAudioModeAsync") { mode: AudioMode ->
+@@ -521,6 +537,9 @@ class AudioModule : Module() {
+     }
+ 
+     OnDestroy {
++      if (ZoyraLockScreenButtons.actionListener === lockScreenActionListener) {
++        ZoyraLockScreenButtons.actionListener = null
++      }
+       context.unregisterReceiver(ringerModeReceiver)
+       GlobalScope.launch(Dispatchers.Main) {
+         audioSessionActivityKeepers.clear()
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+index 53c36f7..ecfea9b 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioControlsService.kt
+@@ -94,6 +94,8 @@ class AudioControlsService : MediaSessionService() {
+         ACTION_SEEK_BACKWARD -> seekBackward()
+         ACTION_NEXT_TRACK -> nextTrack()
+         ACTION_PREVIOUS_TRACK -> previousTrack()
++        ZoyraLockScreenButtons.ACTION_TOGGLE_LIKE -> ZoyraLockScreenButtons.emit("like")
++        ZoyraLockScreenButtons.ACTION_TOGGLE_SHUFFLE -> ZoyraLockScreenButtons.emit("shuffle")
+       }
+     }
+ 
+@@ -134,6 +136,7 @@ class AudioControlsService : MediaSessionService() {
+     super.onCreate()
+     audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+     createNotificationChannelIfNeeded()
++    ZoyraLockScreenButtons.attach(this)
+   }
+ 
+   private fun shouldPlayInSilentMode(): Boolean {
+@@ -196,6 +199,21 @@ class AudioControlsService : MediaSessionService() {
+       val compactViewIndices = mutableListOf<Int>()
+       var currentIndex = 0
+ 
++      if (ZoyraLockScreenButtons.showShuffle) {
++        builder.addAction(
++          NotificationCompat.Action(
++            if (ZoyraLockScreenButtons.shuffle) {
++              androidx.media3.session.R.drawable.media3_icon_shuffle_on
++            } else {
++              androidx.media3.session.R.drawable.media3_icon_shuffle_off
++            },
++            if (ZoyraLockScreenButtons.shuffle) "Shuffle on" else "Shuffle off",
++            buildActionPendingIntent(ZoyraLockScreenButtons.ACTION_TOGGLE_SHUFFLE)
++          )
++        )
++        currentIndex++
++      }
++
+       if (currentOptions?.showPreviousTrack == true && currentPlayable?.supportsPreviousTrack == true) {
+         builder.addAction(
+           NotificationCompat.Action(
+@@ -262,6 +280,20 @@ class AudioControlsService : MediaSessionService() {
+         compactViewIndices.add(currentIndex)
+       }
+ 
++      if (ZoyraLockScreenButtons.showLike) {
++        builder.addAction(
++          NotificationCompat.Action(
++            if (ZoyraLockScreenButtons.liked) {
++              androidx.media3.session.R.drawable.media3_icon_heart_filled
++            } else {
++              androidx.media3.session.R.drawable.media3_icon_heart_unfilled
++            },
++            if (ZoyraLockScreenButtons.liked) "Unlike" else "Like",
++            buildActionPendingIntent(ZoyraLockScreenButtons.ACTION_TOGGLE_LIKE)
++          )
++        )
++      }
++
+       style.setShowActionsInCompactView(*compactViewIndices.toIntArray())
+     }
+ 
+@@ -354,10 +386,43 @@ class AudioControlsService : MediaSessionService() {
+       )
+     }
+ 
++    // Zoyra: overflow buttons become the two extra actions on the Android 13+ media card
++    // (shown after previous / play / next). Order matters: Shuffle first, then Like.
++    if (ZoyraLockScreenButtons.showShuffle) {
++      val on = ZoyraLockScreenButtons.shuffle
++      mediaButtons.add(
++        CommandButton.Builder(if (on) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF)
++          .setDisplayName(if (on) "Shuffle on" else "Shuffle off")
++          .setEnabled(true)
++          .setSessionCommand(SessionCommand(ZoyraLockScreenButtons.ACTION_TOGGLE_SHUFFLE, Bundle.EMPTY))
++          .setSlots(CommandButton.SLOT_OVERFLOW)
++          .build()
++      )
++    }
++    if (ZoyraLockScreenButtons.showLike) {
++      val liked = ZoyraLockScreenButtons.liked
++      mediaButtons.add(
++        CommandButton.Builder(if (liked) CommandButton.ICON_HEART_FILLED else CommandButton.ICON_HEART_UNFILLED)
++          .setDisplayName(if (liked) "Unlike" else "Like")
++          .setEnabled(true)
++          .setSessionCommand(SessionCommand(ZoyraLockScreenButtons.ACTION_TOGGLE_LIKE, Bundle.EMPTY))
++          .setSlots(CommandButton.SLOT_OVERFLOW)
++          .build()
++      )
++    }
++
+     session.setCustomLayout(mediaButtons)
+     session.setMediaButtonPreferences(mediaButtons)
+   }
+ 
++  /** Zoyra: re-applies the button layout and icons after JS changed like/shuffle state. Main thread. */
++  fun refreshZoyraButtons() {
++    val player = currentPlayable?.player ?: return
++    if (mediaSession == null) return
++    updateSessionCustomLayout(player.isPlaying)
++    postOrStartForegroundNotification(startInForeground = false)
++  }
++
+   private fun postOrStartForegroundNotification(startInForeground: Boolean) {
+     if (startInForeground) {
+       postOrStartForegroundNotificationNow(startInForeground = true)
+@@ -645,6 +710,7 @@ class AudioControlsService : MediaSessionService() {
+ 
+   override fun onDestroy() {
+     super.onDestroy()
++    ZoyraLockScreenButtons.detach(this)
+ 
+     removePlayerListener()
+     clearArtwork()
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
+index ee83be1..1efb4e4 100644
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/AudioMediaSessionCallback.kt
+@@ -38,6 +38,9 @@ class AudioMediaSessionCallback(
+       val availableSessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
+         .add(SessionCommand(AudioControlsService.ACTION_SEEK_BACKWARD, Bundle.EMPTY))
+         .add(SessionCommand(AudioControlsService.ACTION_SEEK_FORWARD, Bundle.EMPTY))
++        // Zoyra: always granted; visibility is controlled by the button layout.
++        .add(SessionCommand(ZoyraLockScreenButtons.ACTION_TOGGLE_LIKE, Bundle.EMPTY))
++        .add(SessionCommand(ZoyraLockScreenButtons.ACTION_TOGGLE_SHUFFLE, Bundle.EMPTY))
+         .apply {
+           if (service.supportsPreviousTrack()) {
+             add(SessionCommand(AudioControlsService.ACTION_PREVIOUS_TRACK, Bundle.EMPTY))
+@@ -80,6 +83,14 @@ class AudioMediaSessionCallback(
+         service.previousTrack()
+         Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+       }
++      ZoyraLockScreenButtons.ACTION_TOGGLE_LIKE -> {
++        ZoyraLockScreenButtons.emit("like")
++        Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
++      }
++      ZoyraLockScreenButtons.ACTION_TOGGLE_SHUFFLE -> {
++        ZoyraLockScreenButtons.emit("shuffle")
++        Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
++      }
+       else -> super.onCustomCommand(session, controller, command, args)
+     }
+   }
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/ZoyraLockScreenButtons.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/ZoyraLockScreenButtons.kt
+new file mode 100644
+index 0000000..51d37b9
+--- /dev/null
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/service/ZoyraLockScreenButtons.kt
+@@ -0,0 +1,72 @@
++package expo.modules.audio.service
++
++import android.os.Handler
++import android.os.Looper
++import expo.modules.kotlin.records.Field
++import expo.modules.kotlin.records.Record
++import java.lang.ref.WeakReference
++
++/**
++ * Zoyra patch: Like and Shuffle buttons on the media notification / lock screen card.
++ *
++ * Holds the button state pushed from JS (`setLockScreenButtons`) and forwards taps back to JS
++ * (`onLockScreenAction`). The state lives here, not on the session, because expo-audio rebuilds the
++ * MediaSession whenever lock-screen options change.
++ */
++object ZoyraLockScreenButtons {
++  const val ACTION_TOGGLE_LIKE = "zoyra.TOGGLE_LIKE"
++  const val ACTION_TOGGLE_SHUFFLE = "zoyra.TOGGLE_SHUFFLE"
++
++  @Volatile var liked: Boolean = false
++  @Volatile var shuffle: Boolean = false
++
++  // Hidden until JS opts in, so the stock behaviour is unchanged for callers that never set them.
++  @Volatile var showLike: Boolean = false
++  @Volatile var showShuffle: Boolean = false
++
++  /** Set by AudioModule; emits `onLockScreenAction` to JS. */
++  @Volatile var actionListener: ((String) -> Unit)? = null
++
++  private var serviceRef: WeakReference<AudioControlsService>? = null
++  private val mainHandler = Handler(Looper.getMainLooper())
++
++  fun attach(service: AudioControlsService) {
++    serviceRef = WeakReference(service)
++  }
++
++  fun detach(service: AudioControlsService) {
++    if (serviceRef?.get() === service) {
++      serviceRef = null
++    }
++  }
++
++  fun update(options: LockScreenButtonsOptions) {
++    liked = options.liked
++    shuffle = options.shuffle
++    showLike = options.showLike
++    showShuffle = options.showShuffle
++    mainHandler.post {
++      serviceRef?.get()?.refreshZoyraButtons()
++    }
++  }
++
++  /** Called for taps from the notification, lock screen, Bluetooth/Auto/Wear controllers. */
++  fun emit(action: String) {
++    val listener = actionListener ?: return
++    try {
++      listener(action)
++    } catch (_: Throwable) {
++      // Never crash the playback service because JS is gone.
++    }
++  }
++}
++
++class LockScreenButtonsOptions : Record {
++  @Field val liked: Boolean = false
++
++  @Field val shuffle: Boolean = false
++
++  @Field val showLike: Boolean = false
++
++  @Field val showShuffle: Boolean = false
++}
+diff --git a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlaylist.kt b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlaylist.kt
+--- a/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlaylist.kt
++++ b/node_modules/expo-audio/android/src/main/java/expo/modules/audio/AudioPlaylist.kt
+@@ -55,7 +55,22 @@
+ 
+   init {
+     installPlayerListeners()
++    // Zoyra patch: after a playback error ExoPlayer drops to STATE_IDLE and stays there; nothing in the
++    // stock playlist calls prepare() again, so every later add/skipTo/play is silently ignored (0:00,
++    // no sound). Re-prepare when the user asks to play again.
++    ref.addListener(object : Player.Listener {
++      override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
++        if (playWhenReady) ensurePrepared()
++      }
++    })
+     startUpdating()
++  }
++
++  /** Zoyra patch: recover from STATE_IDLE (after an error) when there is something to play. */
++  fun ensurePrepared() {
++    if (ref.playbackState == Player.STATE_IDLE && ref.mediaItemCount > 0) {
++      ref.prepare()
++    }
+   }
+ 
+   fun setMediaItemCreator(creator: (AudioSource) -> MediaItem?) {
+@@ -118,6 +133,7 @@
+   }
+ 
+   fun next() {
++    ensurePrepared()
+     if (ref.hasNextMediaItem()) {
+       ref.seekToNextMediaItem()
+     } else if (loopMode == LoopMode.ALL && trackCount > 0) {
+@@ -126,6 +142,7 @@
+   }
+ 
+   fun previous() {
++    ensurePrepared()
+     if (ref.hasPreviousMediaItem()) {
+       ref.seekToPreviousMediaItem()
+     } else if (loopMode == LoopMode.ALL && trackCount > 0) {
+@@ -146,12 +163,14 @@
+       return
+     }
+     ref.seekToDefaultPosition(index)
++    ensurePrepared()
+   }
+ 
+   fun add(source: AudioSource) {
+     val mediaItem = createMediaItemForSource?.invoke(source) ?: return
+     sources.add(source)
+     ref.addMediaItem(mediaItem)
++    ensurePrepared()
+     sendStatusUpdate(mapOf("trackCount" to trackCount))
+   }
+ 
+@@ -162,6 +181,7 @@
+     val mediaItem = createMediaItemForSource?.invoke(source) ?: return
+     sources.add(index, source)
+     ref.addMediaItem(index, mediaItem)
++    ensurePrepared()
+     sendStatusUpdate(mapOf("trackCount" to trackCount))
+   }
+ 
