@@ -1,0 +1,15 @@
+{
+  "name": "zoyra-share",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rich share links for Zoyra: Open Graph previews, landing pages, Universal Links / App Links files.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check-og": "node scripts/check-og.mjs",
+    "deploy": "vercel --prod"
+  }
+}

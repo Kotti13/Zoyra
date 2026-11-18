@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+.env
+.env*.local
+
+# Firebase: google-services.json is client config and must ship with EAS builds.
+# Never commit the FCM *service account* key (the private one uploaded to EAS):
+*firebase-adminsdk*.json
+*service-account*.json
