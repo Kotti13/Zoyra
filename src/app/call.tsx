@@ -42,7 +42,7 @@ import { colors, withAlpha } from '../theme/tokens';
 
 const ON_GREEN = '#05140D';
 const MINT = '#7EF2C2';
-const LINK_RED = '#FF6B73';
+const LINK_RED = '#FF7A8C';
 const PIP_W = 108;
 const PIP_H = 156;
 /** Where the picture-in-picture rests (kept across minimize / return; one call at a time). */
@@ -337,7 +337,7 @@ function PulseAvatar({ peer, size, rings }: { peer: ChatPerson | null; size: num
             />
           ))
         : null}
-      <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderColor: withAlpha(colors.white, 0.18), overflow: 'hidden', shadowColor: '#E50914', shadowOpacity: 0.35, shadowRadius: 30, shadowOffset: { width: 0, height: 20 } }}>
+      <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderColor: withAlpha(colors.white, 0.18), overflow: 'hidden', shadowColor: '#FA2D48', shadowOpacity: 0.35, shadowRadius: 30, shadowOffset: { width: 0, height: 20 } }}>
         <ChatAvatar person={peer} size={size - 6} radius={(size - 6) / 2} />
       </View>
     </View>
@@ -719,7 +719,7 @@ function SharedSongCard({ callId }: { callId: string }) {
   const playing = current && player.playing;
   return (
     <View style={{ marginTop: 28, width: '100%', borderRadius: 26, borderWidth: 1, borderColor: withAlpha(colors.white, 0.16), overflow: 'hidden' }}>
-      <LinearGradient colors={[withAlpha(colors.white, 0.14), withAlpha(colors.white, 0.04), 'rgba(229,9,20,0.05)']} locations={[0, 0.6, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[withAlpha(colors.white, 0.14), withAlpha(colors.white, 0.04), 'rgba(250,45,72,0.05)']} locations={[0, 0.6, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <View style={{ paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Cover artwork={shared.artwork} id={shared.id} size={48} radius={14} />
         <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
@@ -1176,7 +1176,7 @@ function ListenedTogether({ songs, name }: { songs: CatalogTrack[]; name: string
 
   return (
     <View style={{ width: '100%', borderRadius: 26, borderWidth: 1, borderColor: withAlpha(colors.white, 0.16), overflow: 'hidden' }}>
-      <LinearGradient colors={[withAlpha(colors.white, 0.14), withAlpha(colors.white, 0.04), 'rgba(229,9,20,0.05)']} locations={[0, 0.6, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[withAlpha(colors.white, 0.14), withAlpha(colors.white, 0.04), 'rgba(250,45,72,0.05)']} locations={[0, 0.6, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <View style={{ paddingTop: 14, paddingHorizontal: 8, paddingBottom: 8, gap: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, gap: 8 }}>
           <T size={13} weight={600} style={{ flexShrink: 1 }} accessibilityRole="header">

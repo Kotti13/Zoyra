@@ -89,9 +89,9 @@ export default function ShareSheet() {
   };
 
   const targets: { label: string; icon: IconName; bg: string | readonly [string, string]; onPress: () => void }[] = [
-    { label: 'Lyrics card', icon: 'image', bg: ['#FF8A3D', '#E50914'], onPress: () => router.push('/lyrics-share') },
+    { label: 'Lyrics card', icon: 'image', bg: ['#FF6F91', '#FA2D48'], onPress: () => router.push('/lyrics-share') },
     { label: 'WhatsApp', icon: 'chat', bg: '#1FBF8F', onPress: () => void openOr(`whatsapp://send?text=${encodeURIComponent(`${text}\n${url}`)}`) },
-    { label: 'X', icon: 'share', bg: ['#8A4BFF', '#E50914'], onPress: () => void openOr(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`) },
+    { label: 'X', icon: 'share', bg: ['#8A4BFF', '#FA2D48'], onPress: () => void openOr(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`) },
     { label: 'Messages', icon: 'mail', bg: '#2B6BFF', onPress: () => void openOr(`sms:${Platform.OS === 'ios' ? '&' : '?'}body=${encodeURIComponent(`${text} ${url}`)}`) },
     {
       label: 'Copy link',

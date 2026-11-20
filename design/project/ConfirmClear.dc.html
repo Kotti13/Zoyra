@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Zoyra Clear chat confirmation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif}
+a{color:inherit;text-decoration:none}
+@keyframes zScreen{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes zItem{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes zSheetUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes zOrb{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-18px,22px) scale(1.12)}}
+.z-screen{animation:zScreen .3s cubic-bezier(.25,.1,.25,1) both}
+.z-stag>*{animation:zItem .4s cubic-bezier(0,0,.2,1) both;flex-shrink:0}
+.z-stag>*:nth-child(2){animation-delay:.05s}.z-stag>*:nth-child(3){animation-delay:.1s}.z-stag>*:nth-child(4){animation-delay:.15s}.z-stag>*:nth-child(n+5){animation-delay:.2s}
+.z-sheet{animation:zSheetUp .3s cubic-bezier(0,0,.2,1) both}
+svg[data-i]{filter:drop-shadow(0 0 4px color-mix(in srgb,currentColor 30%,transparent))}
+input::placeholder{color:#A3A3A3}
+@keyframes zPop{0%{opacity:0;transform:scale(.9)}100%{opacity:1;transform:none}}.z-pop{animation:zPop .28s cubic-bezier(.2,.9,.3,1.15) both}@keyframes zCheck{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.z-screen,.z-stag>*,.z-sheet,.z-orb{animation:none!important}}
+</style>
+</helmet>
+<div class="z-screen" style="width:390px;height:844px;box-sizing:border-box;background:#050505;color:#F5F5F5;display:flex;flex-direction:column;overflow:hidden;position:relative;font-family:'Inter',system-ui,sans-serif"><div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;opacity:.5;background:radial-gradient(rgba(255,255,255,.08) 1px,transparent 1px) 0 0/16px 16px,radial-gradient(ellipse at 90% 0%,rgba(255,138,61,.38),transparent 55%),radial-gradient(ellipse at 0% 40%,rgba(229,9,20,.2),transparent 55%)"></div><div aria-hidden="true" class="z-orb" style="position:absolute;top:-70px;right:-90px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,{{accent}}66,transparent 70%);filter:blur(34px);pointer-events:none;animation:zOrb 9s ease-in-out infinite"></div><div aria-hidden="true" class="z-orb" style="position:absolute;bottom:80px;right:-80px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(185,28,28,0.45),transparent 70%);filter:blur(36px);pointer-events:none;animation:zOrb 10s ease-in-out infinite"></div><div aria-hidden="true" style="position:absolute;top:0;left:0;right:0;bottom:0;padding:56px 16px;display:flex;flex-direction:column;align-items:center;gap:14px;filter:blur(6px);opacity:.6"><div style="width:96px;height:96px;border-radius:32px;background:linear-gradient(135deg,#FF6B81,#5A1B3A)"></div><div style="width:150px;height:22px;border-radius:11px;background:#2B2B2B"></div><div style="width:100%;display:flex;gap:10px"><div style="flex:1;height:64px;border-radius:32px;background:#1C1C1C"></div><div style="flex:1;height:64px;border-radius:32px;background:#1C1C1C"></div><div style="flex:1;height:64px;border-radius:32px;background:#1C1C1C"></div><div style="flex:1;height:64px;border-radius:32px;background:#1C1C1C"></div></div><div style="width:100%;height:300px;border-radius:36px;background:#151515"></div></div><a href="ChatInfo.dc.html" aria-label="Close" tabindex="-1" style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6)"></a><div role="alertdialog" aria-modal="true" aria-labelledby="dlg-title" class="z-pop" style="position:absolute;left:20px;right:20px;top:50%;transform:translateY(-50%);padding:24px 20px 20px;border-radius:32px;background:rgba(28,28,28,0.97);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,0.14);box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 30px 70px rgba(0,0,0,0.7);display:flex;flex-direction:column;gap:16px;box-sizing:border-box"><span style="align-self:center;width:64px;height:64px;border-radius:32px;background:rgba(229,72,77,0.16);color:#FF8A8A;display:flex;align-items:center;justify-content:center"><svg data-i="2" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path><path d="M10 11v6M14 11v6"></path></svg></span><div style="display:flex;flex-direction:column;align-items:center;gap:8px"><h1 id="dlg-title" style="margin:0;font-size:22px;font-weight:600;text-align:center">Clear this chat?</h1><p style="margin:0;font-size:14px;color:#A3A3A3;text-align:center;line-height:1.45">All 248 messages will be removed from your phone. Priya will still see her copy.</p></div><div style="display:flex;flex-direction:column;gap:8px"><label for="media" style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 14px;border-radius:18px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);cursor:pointer"><input id="media" type="checkbox" checked="" style="position:absolute;opacity:0;width:1px;height:1px"><span style="width:24px;height:24px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;background:#E5484D;color:#fff"><svg data-i="2" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">Also delete shared media</span><span style="font-size:12px;color:#A3A3A3">12 photos, 3 voice notes</span></span></label><label for="keep" style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 14px;border-radius:18px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);cursor:pointer"><input id="keep" type="checkbox" style="position:absolute;opacity:0;width:1px;height:1px"><span style="width:24px;height:24px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.35);box-sizing:border-box"></span><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font-size:14px;font-weight:600">Keep starred messages</span><span style="font-size:12px;color:#A3A3A3">4 starred</span></span></label></div><div style="display:flex;gap:10px"><div style="flex:1"><a href="ChatInfo.dc.html" style="height:52px;border-radius:26px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);color:#F5F5F5;font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;box-sizing:border-box">Cancel</a></div><div style="flex:1"><a href="ChatPro.dc.html" style="height:52px;border-radius:26px;background:#E5484D;color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center">Clear chat</a></div></div></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#E50914","options":["#E50914","#FF8A3D","#B91C1C","#FFB020"]}}'>
+class Component extends DCLogic {
+renderVals() {
+  return { accent: this.props.accent ?? '#E50914' };
+}
+}
+</script>
+</body>
+</html>

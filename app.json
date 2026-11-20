@@ -23,7 +23,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png",
-        "backgroundColor": "#E50914"
+        "backgroundColor": "#FA2D48"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.zoyra.app",
@@ -94,7 +94,7 @@
       [
         "expo-notifications",
         {
-          "color": "#E50914",
+          "color": "#FA2D48",
           "sounds": [
             "./assets/sounds/zoyra_chime.wav",
             "./assets/sounds/zoyra_ring.wav",

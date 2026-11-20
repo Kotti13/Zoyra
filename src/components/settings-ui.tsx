@@ -30,7 +30,7 @@ export function SectionLabel({ children, size = 12, tracking = 0.5, color = colo
   );
 }
 
-/** Round (or rounded-square) tinted icon chip: rgba(229,9,20,.18) + #FF6B73 glyph. */
+/** Round (or rounded-square) tinted icon chip: rgba(250,45,72,.18) + #FF7A8C glyph. */
 export function IconChip({ icon, size = 40, radius, tint = colors.accent, alpha = 0.18, color = colors.accentLight, filled, bg }: { icon: IconName; size?: number; radius?: number; tint?: string; alpha?: number; color?: string; filled?: boolean; bg?: string }) {
   return (
     <View style={{ width: size, height: size, borderRadius: radius ?? size / 2, backgroundColor: bg ?? withAlpha(tint, alpha), alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

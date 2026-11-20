@@ -108,7 +108,7 @@ export default function MoodScan() {
           accessibilityLabel={scan.state === 'camera' ? 'Front camera preview' : 'Camera off'}
           style={{ width: 260, height: 260, borderRadius: 130, borderWidth: 4, borderColor: colors.accent, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}
         >
-          <LinearGradient colors={['#3A0B10', '#0A0A0A']} start={{ x: 0.33, y: 0 }} end={{ x: 0.67, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['#3A0B16', '#0A0A0A']} start={{ x: 0.33, y: 0 }} end={{ x: 0.67, y: 1 }} style={StyleSheet.absoluteFill} />
           {scan.state === 'camera' ? (
             <CameraView
               ref={camera}

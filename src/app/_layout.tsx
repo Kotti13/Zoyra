@@ -274,7 +274,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
           {String(error?.stack ?? '').split('\n').slice(0, 8).join('\n')}
         </Text>
       </ScrollView>
-      <Pressable accessibilityRole="button" accessibilityLabel="Try again" onPress={() => void retry()} style={{ marginTop: 20, height: 48, borderRadius: 24, backgroundColor: '#E50914', alignItems: 'center', justifyContent: 'center' }}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Try again" onPress={() => void retry()} style={{ marginTop: 20, height: 48, borderRadius: 24, backgroundColor: '#FA2D48', alignItems: 'center', justifyContent: 'center' }}>
         <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>Try again</Text>
       </Pressable>
     </View>

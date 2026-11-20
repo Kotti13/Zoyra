@@ -27,16 +27,16 @@ export const FOREVER_MIN_MESSAGES = 10;
 /** Days a "Pause Forever" removal request runs before the pair ends. */
 export const FOREVER_REMOVAL_DAYS = 30;
 
-/** Gold palette (designs: #FFD36A → #FF8A3D gradient, #FFB020 ring, #1A1206 ink on gold, #E5D3A8 / #FFE2A6 text). */
+/** Gold palette (designs: #FFD36A → #FF6F91 gradient, #FFB020 ring, #1A1206 ink on gold, #E5D3A8 / #FFE2A6 text). */
 export const GOLD = {
   light: '#FFD36A',
   mid: '#FFB020',
-  deep: '#FF8A3D',
+  deep: '#FF6F91',
   ink: '#1A1206',
   inkBg: '#1A1206',
   text: '#E5D3A8',
   textBright: '#FFE2A6',
-  gradient: ['#FFD36A', '#FF8A3D'] as const,
+  gradient: ['#FFD36A', '#FF6F91'] as const,
 } as const;
 
 /** Bundled ringtones (assets/sounds, also in app.json expo-notifications `sounds`). */
