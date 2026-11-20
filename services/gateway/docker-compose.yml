@@ -1,0 +1,12 @@
+# Local dev: gateway + Redis.   docker compose up --build   →   http://localhost:8080/healthz
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+  gateway:
+    build: .
+    ports: ["8080:8080"]
+    env_file: [.env]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on: [redis]
