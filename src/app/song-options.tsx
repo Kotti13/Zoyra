@@ -30,9 +30,9 @@ function Tile({ label, icon, on, onPress, busy }: { label: string; icon: IconNam
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        backgroundColor: on ? 'rgba(229,9,20,0.18)' : 'rgba(255,255,255,0.07)',
+        backgroundColor: on ? 'rgba(250,45,72,0.18)' : 'rgba(255,255,255,0.07)',
         borderWidth: 1,
-        borderColor: on ? 'rgba(229,9,20,0.5)' : 'rgba(255,255,255,0.12)',
+        borderColor: on ? 'rgba(250,45,72,0.5)' : 'rgba(255,255,255,0.12)',
       }}
     >
       {busy ? (

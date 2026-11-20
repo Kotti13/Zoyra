@@ -114,7 +114,7 @@ export default function ChatExtras() {
       title: busy === 'blend' ? 'Mixing…' : 'Blend',
       body: 'Mix your tastes into one list',
       icon: 'library',
-      color: '#FF8A3D',
+      color: '#FF6F91',
       disabled: ctx.data?.group,
       onPress: () =>
         void run('blend', async () => {
@@ -127,7 +127,7 @@ export default function ChatExtras() {
       title: 'Mood theme',
       body: mood === 'auto' ? 'On · follows the song playing' : 'Off · tap to colour the chat',
       icon: 'music',
-      color: '#FF6B73',
+      color: '#FF7A8C',
       onPress: () => {
         const next = mood === 'auto' ? 'off' : 'auto';
         setMood(next);

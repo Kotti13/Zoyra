@@ -1048,7 +1048,7 @@ function ChatProScreen() {
         >
           <Gradient colors={[withAlpha(colors.white, 0.12), withAlpha(colors.white, 0.03)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
           <View style={{ width: 56, height: 56 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <Gradient colors={[colors.accent, '#3A0B10']} style={{ position: 'absolute', left: 0, top: 8, width: 40, height: 40, borderRadius: 20, opacity: 0.9 }} />
+            <Gradient colors={[colors.accent, '#3A0B16']} style={{ position: 'absolute', left: 0, top: 8, width: 40, height: 40, borderRadius: 20, opacity: 0.9 }} />
             <Gradient colors={[colors.rose, '#5A1B3A']} style={{ position: 'absolute', right: 0, top: 8, width: 40, height: 40, borderRadius: 20, opacity: 0.85 }} />
           </View>
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>

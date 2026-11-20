@@ -8,7 +8,7 @@ import { Tap } from '../controls';
 import { useReduceMotion } from '../motion';
 import { T } from '../primitives';
 
-/** Shared gold pieces of the Forever designs (gradient #FFD36A → #FF8A3D, ink #1A1206). */
+/** Shared gold pieces of the Forever designs (gradient #FFD36A → #FF6F91, ink #1A1206). */
 
 export const goldTint = (a: number) => withAlpha(GOLD.mid, a);
 

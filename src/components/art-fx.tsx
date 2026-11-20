@@ -149,7 +149,7 @@ export function GlowBackdrop({ active = true, plain = false }: { active?: boolea
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <LinearGradient colors={[withAlpha(colors.accent, 0.3), '#0A0A0A', '#0A0A0A']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
-      <DriftOrb size={380} color={withAlpha('#FF8A3D', 0.5)} style={{ left: -110, top: -40 }} periodMs={10_000} active={active} />
+      <DriftOrb size={380} color={withAlpha('#FF6F91', 0.5)} style={{ left: -110, top: -40 }} periodMs={10_000} active={active} />
       <DriftOrb size={400} color={withAlpha(colors.accent, 0.55)} style={{ right: -130, top: 320 }} periodMs={13_000} reverse active={active} />
       <Sparks active={active} />
     </View>

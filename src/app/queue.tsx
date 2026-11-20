@@ -97,7 +97,7 @@ export default function Queue() {
         </View>
         {upNext.length ? (
           <Tap onPress={clearUpNext} accessibilityLabel="Clear up next" style={{ paddingHorizontal: 6, minHeight: 44, justifyContent: 'center' }}>
-            <T size={14} weight={700} color="#FF6B73">
+            <T size={14} weight={700} color="#FF7A8C">
               Clear
             </T>
           </Tap>

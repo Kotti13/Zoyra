@@ -57,7 +57,7 @@ export default function Games() {
 
       {/* Featured: Beat Rush */}
       <Tap href="/beat-game" accessibilityLabel={`Play Beat Rush${beatBest ? `, your best is ${fmt(beatBest.score)}` : ''}`}>
-        <Gradient colors={['#3A0B10', '#050505']} angle={180} style={{ borderRadius: 32, height: 190, padding: 18, justifyContent: 'flex-end', overflow: 'hidden' }}>
+        <Gradient colors={['#3A0B16', '#050505']} angle={180} style={{ borderRadius: 32, height: 190, padding: 18, justifyContent: 'flex-end', overflow: 'hidden' }}>
           <View style={{ position: 'absolute', right: -40, top: 12, width: 230, height: 230, borderRadius: 115, borderWidth: 1, borderColor: withAlpha(colors.white, 0.18) }} />
           <View style={{ position: 'absolute', right: 24, top: 26, width: 110, height: 110, borderRadius: 55, backgroundColor: withAlpha(colors.rose, 0.4) }} />
           <View style={{ position: 'absolute', right: 52, top: 52, width: 54, height: 54, borderRadius: 27, backgroundColor: withAlpha(colors.white, 0.22) }} />

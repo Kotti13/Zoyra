@@ -38,7 +38,7 @@ object ZoyraCallNotifier {
   private const val ANSWER_TTL_MS = 120_000L
   const val ACTION_DECLINE = "__PACKAGE__.zoyracall.DECLINE"
   private const val RING_TIMEOUT_MS = 65_000L
-  private const val ACCENT = 0xFFE50914.toInt()
+  private const val ACCENT = 0xFFFA2D48.toInt()
 
   fun ensureChannel(context: Context) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return

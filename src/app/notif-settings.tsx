@@ -121,7 +121,7 @@ export default function NotifSettings() {
         accessibilityLabel="Message alerts. Reply from notification, previews"
         style={{ borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.white, 0.16) }}
       >
-        <LinearGradient colors={['rgba(229,9,20,0.32)', 'rgba(20,20,20,0.55)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 }}>
+        <LinearGradient colors={['rgba(250,45,72,0.32)', 'rgba(20,20,20,0.55)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 }}>
           <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="mail" size={20} color={colors.white} glow={false} />
           </View>

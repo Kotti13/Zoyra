@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Zoyra Forever received</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;font-family:'Inter',system-ui,sans-serif}
+a{color:inherit;text-decoration:none}
+@keyframes zEq{0%,100%{transform:scaleY(.22)}50%{transform:scaleY(1)}}
+@keyframes zPulse2{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:.95;transform:scale(1.12)}}
+@keyframes zScan{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
+@keyframes zBlink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes zBar{from{width:0}to{width:100%}}
+@keyframes zRingP{from{stroke-dashoffset:176}to{stroke-dashoffset:0}}
+@keyframes zSpinR{to{transform:rotate(360deg)}}
+@keyframes zRipple{0%{transform:scale(.6);opacity:.5}100%{transform:scale(2.6);opacity:0}}
+@keyframes zPitch{from{stroke-dashoffset:600}to{stroke-dashoffset:0}}
+@property --zs{syntax:'<integer>';initial-value:24;inherits:false}
+@keyframes zSec{from{--zs:24}to{--zs:48}}
+.zt::after{counter-reset:zc var(--zs);content:'01:' counter(zc,decimal-leading-zero);font-family:'JetBrains Mono',monospace}
+@media (prefers-reduced-motion:reduce){[style*="animation"]{animation:none!important}}
+@keyframes zMeetL{0%{transform:translateX(-90px) scale(.8);opacity:0}30%{opacity:1}100%{transform:translateX(0) scale(1)}}
+@keyframes zMeetR{0%{transform:translateX(90px) scale(.8);opacity:0}30%{opacity:1}100%{transform:translateX(0) scale(1)}}
+@keyframes zInfPop{0%,45%{transform:scale(0) rotate(-40deg);opacity:0}70%{transform:scale(1.35) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes zGoldRing{0%,40%{transform:scale(.4);opacity:0}50%{opacity:.8}100%{transform:scale(3.4);opacity:0}}
+@keyframes zFallS{0%{transform:translateY(-40px) rotate(0);opacity:0}15%{opacity:1}100%{transform:translateY(560px) rotate(300deg);opacity:0}}
+@keyframes zUp{0%,55%{transform:translateY(24px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes zShine{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes zHb{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes zDraw{0%,50%{stroke-dashoffset:260}100%{stroke-dashoffset:0}}
+.zshine{background:linear-gradient(100deg,#FFD36A 30%,#fff 50%,#FFD36A 70%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:zShine 2.6s linear infinite}
+@keyframes zScreen{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes zItem{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes zSheetUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes zFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes zPopIn{0%{opacity:0;transform:scale(.85)}60%{opacity:1;transform:scale(1.03)}100%{opacity:1;transform:none}}
+@keyframes zMorph{0%{opacity:.4;transform:scale(.4) translateY(180px) rotate(-8deg)}60%{opacity:1}100%{opacity:1;transform:none}}
+.z-screen{animation:zScreen .3s cubic-bezier(.25,.1,.25,1) both}
+.z-stag>*{animation:zItem .4s cubic-bezier(0,0,.2,1) both}
+.z-stag>*:nth-child(1){animation-delay:.04s}.z-stag>*:nth-child(2){animation-delay:.08s}.z-stag>*:nth-child(3){animation-delay:.12s}.z-stag>*:nth-child(4){animation-delay:.16s}.z-stag>*:nth-child(5){animation-delay:.2s}.z-stag>*:nth-child(6){animation-delay:.24s}.z-stag>*:nth-child(7){animation-delay:.28s}.z-stag>*:nth-child(n+8){animation-delay:.32s}
+.z-sheet{animation:zSheetUp .3s cubic-bezier(0,0,.2,1) both}
+.z-fade{animation:zFadeIn .3s ease-out both}
+.z-pop{animation:zPopIn .4s cubic-bezier(.2,.9,.3,1.2) both}
+.z-morph{animation:zMorph .5s cubic-bezier(.2,.8,.2,1) .08s both}
+@media (prefers-reduced-motion:reduce){.z-screen,.z-stag>*,.z-sheet,.z-fade,.z-pop,.z-morph{animation:none!important}}
+/*zGlass2*/@keyframes zOrb{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-18px,22px) scale(1.12)}}
+svg[data-i]{filter:drop-shadow(0 0 5px color-mix(in srgb,currentColor 50%,transparent))}
+@media (prefers-reduced-motion:reduce){.z-orb{animation:none!important}}
+.z-stag>*{flex-shrink:0}/*zFix*/
+/*zCine*/svg[data-i]{filter:drop-shadow(0 0 4px color-mix(in srgb,currentColor 30%,transparent))}
+/*zDim*//*zban*/@keyframes zBanEq{0%,100%{transform:scaleY(.2)}50%{transform:scaleY(1)}}
+@keyframes zBanShine{0%,55%{transform:translateX(-140%) skewX(-18deg)}100%{transform:translateX(320%) skewX(-18deg)}}
+@keyframes zBanHalo{0%,100%{opacity:.4;transform:scale(.97)}50%{opacity:.75;transform:scale(1.03)}}
+@keyframes zKenA{0%{transform:translate(-6%,-4%) scale(1.05)}100%{transform:translate(6%,5%) scale(1.2)}}
+@keyframes zKenB{0%{transform:translate(5%,6%) scale(1.15)}100%{transform:translate(-6%,-5%) scale(1)}}
+/*zliquid*/[style*="backdrop-filter"]{-webkit-backdrop-filter:blur(30px) saturate(190%)!important;backdrop-filter:blur(30px) saturate(190%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.30),inset 0 -1px 0 rgba(255,255,255,0.06),0 10px 32px rgba(0,0,0,0.30)!important;border-color:rgba(255,255,255,0.16)!important}
+</style>
+</helmet>
+<div class="z-screen" style="width:390px;height:844px;box-sizing:border-box;background:#050505;color:#F5F5F5;display:flex;flex-direction:column;overflow:hidden;position:relative;font-family:'Inter',system-ui,sans-serif"><div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(255,176,32,0.3),transparent 60%),linear-gradient(180deg,#2A1A06,#050505 75%)"></div><div style="position:relative;flex:1;display:flex;flex-direction:column;align-items:center;padding:60px 24px 40px;box-sizing:border-box;text-align:center;gap:10px"><div style="display:flex;align-items:center;gap:6px;justify-content:center"><span style="height:6px;width:14px;border-radius:3px;background:#FFB020"></span><span style="height:6px;width:34px;border-radius:3px;background:#FFB020"></span><span style="height:6px;width:14px;border-radius:3px;background:rgba(255,255,255,0.2)"></span></div><span style="font-size:11px;letter-spacing:1px;color:#E5D3A8;margin-top:-6px">1 ASK · 2 PRIYA ACCEPTS · 3 FOREVER</span><div style="position:relative;display:flex;align-items:center;margin-top:46px"><span style="position:absolute;left:50%;top:50%;width:100px;height:100px;margin:-50px;border-radius:50%;border:2px solid #FFB020;animation:zRipple 2.6s ease-out infinite;animation-delay:0.0s"></span><span style="position:absolute;left:50%;top:50%;width:100px;height:100px;margin:-50px;border-radius:50%;border:2px solid #FFB020;animation:zRipple 2.6s ease-out infinite;animation-delay:0.8s"></span><span style="position:absolute;left:50%;top:50%;width:100px;height:100px;margin:-50px;border-radius:50%;border:2px solid #FFB020;animation:zRipple 2.6s ease-out infinite;animation-delay:1.6s"></span><div style="position:relative;flex:none"><span style="position:absolute;inset:-4px;border-radius:31px;border:2px solid #FFB020;box-shadow:0 0 14px rgba(255,176,32,0.5)"></span><div style="position:relative;width:92px;height:92px;flex:none"><div style="width:92px;height:92px;border-radius:31px;background:linear-gradient(135deg,#FA2D48,#3A0B16);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:30px;color:#fff;">K</div></div><span style="position:absolute;right:-6px;top:-6px;height:20px;padding:0 5px;border-radius:10px;background:#1A1206;border:1px solid #FFB020;display:flex;align-items:center"><span style="font-size:12px;font-weight:800;line-height:1;background:linear-gradient(135deg,#FFD36A,#FF8A3D);-webkit-background-clip:text;background-clip:text;color:transparent">∞</span></span></div><span style="margin:0 -8px;width:48px;height:48px;border-radius:32px;background:linear-gradient(135deg,#FFD36A,#FF8A3D);display:flex;align-items:center;justify-content:center;z-index:2;font-size:26px;font-weight:800;color:#1A1206;animation:zPulse2 2.4s ease-in-out infinite">∞</span><span style="opacity:1"><div style="position:relative;flex:none"><span style="position:absolute;inset:-4px;border-radius:31px;border:2px solid #FFB020;box-shadow:0 0 14px rgba(255,176,32,0.5)"></span><div style="position:relative;width:92px;height:92px;flex:none"><div style="width:92px;height:92px;border-radius:31px;background:linear-gradient(135deg,#FF6B81,#5A1B3A);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:30px;color:#fff;">P</div></div><span style="position:absolute;right:-6px;top:-6px;height:20px;padding:0 5px;border-radius:10px;background:#1A1206;border:1px solid #FFB020;display:flex;align-items:center"><span style="font-size:12px;font-weight:800;line-height:1;background:linear-gradient(135deg,#FFD36A,#FF8A3D);-webkit-background-clip:text;background-clip:text;color:transparent">∞</span></span></div></span></div><h1 style="margin:30px 0 0;font-size:30px;font-weight:300;letter-spacing:-.6px;line-height:1.15">Priya wants you as her <b style="font-weight:800">Forever</b></h1><span style="font-size:14px;color:#E5D3A8;line-height:1.5;max-width:300px">Forever friends can never be blocked and always get through. It cannot be removed for 30 days.</span><div style="flex:1"></div><div style="width:100%;display:flex;flex-direction:column;gap:10px"><a href="MsgForeverDone.dc.html" style="height:52px;border-radius:26px;background:linear-gradient(135deg,#FFD36A,#FF8A3D);color:#1A1206;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;box-shadow:0 0 26px rgba(255,176,32,0.45)">∞ Accept Forever</a><a href="MsgHome.dc.html" style="height:48px;border-radius:32px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-weight:600">Not now</a></div></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#FA2D48","options":["#FA2D48","#FF6F91","#C8203A","#FFB020"]}}'>
+class Component extends DCLogic {
+renderVals() {
+  const c = ['linear-gradient(135deg,#FA2D48,#3A0B16)','linear-gradient(135deg,#FF6F91,#4A0D14)','linear-gradient(135deg,#FF6B81,#5A1B3A)','linear-gradient(135deg,#FDCB6E,#5C3A12)','linear-gradient(135deg,#74B9FF,#16305F)','linear-gradient(135deg,#00B894,#0F4A3A)'];
+  return Object.assign({ accent: this.props.accent ?? '#FA2D48' }, {});
+}
+}
+</script>
+</body>
+</html>

@@ -24,24 +24,24 @@ export const colors = {
   surface4: '#2B2B2B',
   playerBg: '#0A0A0A',
 
-  accent: '#E50914',
-  accentLight: '#FF6B73',
+  accent: '#FA2D48',
+  accentLight: '#FF7A8C',
   accentDark: '#8E0B14',
-  accentTint: 'rgba(229,9,20,0.18)',
-  red: '#E50914',
-  orange: '#FF8A3D',
+  accentTint: 'rgba(250,45,72,0.18)',
+  red: '#FA2D48',
+  orange: '#FF6F91',
   gold: '#FFB020',
   amber: '#FDCB6E',
   rose: '#FF6B81',
   /** Pale neutral used for player timestamps and soft highlights. */
   peach: '#E5E5E5',
   /** Legacy "violet" companion now maps to the cinematic orange. */
-  violet: '#FF8A3D',
+  violet: '#FF6F91',
   violetLight: '#FFB27A',
   violetDeep: '#7F1D1D',
   /** Legacy "indigo" companion now maps to deep red. */
-  indigo: '#B91C1C',
-  indigoLight: '#FF6B73',
+  indigo: '#C8203A',
+  indigoLight: '#FF7A8C',
   /** Legacy "sky" companion now maps to gold. */
   sky: '#FFB020',
   mint: '#34D399',
@@ -78,7 +78,7 @@ export const colors = {
   glassStrong: 'rgba(20,20,20,0.88)',
   glassTop: 'rgba(255,255,255,0.14)',
   glassMid: 'rgba(255,255,255,0.04)',
-  glassTint: 'rgba(229,9,20,0.05)',
+  glassTint: 'rgba(250,45,72,0.05)',
   glassHighlight: 'rgba(255,255,255,0.28)',
   /** Frosted panel over artwork (stat widgets, frosted sheets). */
   frost: 'rgba(20,20,20,0.6)',
@@ -98,21 +98,21 @@ export const colors = {
 /** Two-stop 135deg gradients used for album art, avatars and tiles. */
 export const art = {
   /** Kept for compatibility: now the red gradient. */
-  coral: ['#E50914', '#3A0B10'],
+  coral: ['#FA2D48', '#3A0B16'],
   /** Kept for compatibility: now the red gradient. */
-  cyan: ['#E50914', '#3A0B10'],
-  red: ['#E50914', '#3A0B10'],
+  cyan: ['#FA2D48', '#3A0B16'],
+  red: ['#FA2D48', '#3A0B16'],
   /** Kept for compatibility: now the orange gradient. */
-  violet: ['#FF8A3D', '#4A0D14'],
-  orange: ['#FF8A3D', '#4A0D14'],
+  violet: ['#FF6F91', '#4A0D14'],
+  orange: ['#FF6F91', '#4A0D14'],
   amber: ['#FDCB6E', '#5C3A12'],
   rose: ['#FF6B81', '#5A1B3A'],
   blue: ['#74B9FF', '#16305F'],
   green: ['#00B894', '#0F4A3A'],
   /** Logo tile and brand highlights. */
-  sunrise: ['#E50914', '#FF8A3D'],
-  hot: ['#FF8A3D', '#FF6B81'],
-  logo: ['#E50914', '#FF8A3D'],
+  sunrise: ['#FA2D48', '#FF6F91'],
+  hot: ['#FF6F91', '#FF6B81'],
+  logo: ['#FA2D48', '#FF6F91'],
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type ArtName = keyof typeof art;
@@ -120,13 +120,13 @@ export const artCycle: ArtName[] = ['red', 'orange', 'rose', 'amber', 'blue', 'g
 
 /** Multi-stop vertical backgrounds (player, lyrics, vinyl). */
 export const gradients = {
-  player: ['#3A0B10', '#2A080C', '#0A0A0A'],
-  lyrics: ['#3A0B10', '#1A0508', '#0A0A0A'],
+  player: ['#3A0B16', '#2A080C', '#0A0A0A'],
+  lyrics: ['#3A0B16', '#1A0508', '#0A0A0A'],
   /** Vinyl groove wedge colours (dark, light, highlight). */
   vinyl: ['#1A1A1A', '#2B2B2B', '#3A3A3A'],
-  wrapped: ['#B91C1C', '#FF6B81', '#FDCB6E'],
+  wrapped: ['#C8203A', '#FF6B81', '#FDCB6E'],
   /** Poster hero: dark red → near-black (165deg) under red / rose glows. */
-  poster: ['#3A0B10', '#050505'],
+  poster: ['#3A0B16', '#050505'],
 } as const;
 
 /** Solid genre tile colors (Search › Browse all, genre picker). */
