@@ -1,7 +1,8 @@
 import { useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 
-import { Button, Glass, ListGroup, Overline, Row, Screen, ScreenHeader, Segmented, Sticker, T, Toast } from '../components';
+import { Button, Glass, Row, Screen, ScreenHeader, Segmented, Sticker, T, Toast } from '../components';
+import { SectionLabel } from '../components/settings-ui';
 import { formatBytes } from '../lib/downloads';
 import { useDevicePref } from '../lib/network';
 import { STREAM_KBPS, monthKey, streamedBytes, usage, type MonthUsage } from '../lib/usage';
@@ -81,7 +82,7 @@ export default function DataUsage() {
   };
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'coral' }}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'lines', mesh: 'amberRose' }}>
       <ScreenHeader title="Data usage" />
       <Segmented options={[...FILTERS]} initial={0} onChange={(i) => setFilter(FILTERS[i])} />
 
@@ -140,7 +141,9 @@ export default function DataUsage() {
         </View>
       </Glass>
 
-      <ListGroup title="WHERE IT WENT">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>Where it went</SectionLabel>
+        <Glass padding={4}>
         <View style={{ padding: 12, gap: 14 }}>
           {where.map((w) => (
             <View key={w.label} style={{ gap: 6 }}>
@@ -159,10 +162,11 @@ export default function DataUsage() {
             </View>
           ))}
         </View>
-      </ListGroup>
+      </Glass>
+      </View>
 
       <View style={{ gap: 8 }}>
-        <Overline color={colors.textSecondary}>MONTHLY MOBILE PLAN</Overline>
+        <SectionLabel>MONTHLY MOBILE PLAN</SectionLabel>
         <Segmented
           key={limitLoaded ? 'ready' : 'loading'}
           options={LIMITS.map((g) => (g ? `${g} GB` : 'Off'))}
@@ -174,7 +178,9 @@ export default function DataUsage() {
         </T>
       </View>
 
-      <ListGroup title="DATA PER HOUR OF MUSIC">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>Data per hour of music</SectionLabel>
+        <Glass padding={4}>
         {PER_HOUR.map((q, i) => {
           const current = q.kbps === STREAM_KBPS;
           return (
@@ -196,10 +202,13 @@ export default function DataUsage() {
             </Row>
           );
         })}
-      </ListGroup>
+      </Glass>
+      </View>
 
       {past.length ? (
-        <ListGroup title="EARLIER MONTHS">
+        <View style={{ gap: 8 }}>
+        <SectionLabel>Earlier months</SectionLabel>
+        <Glass padding={4}>
           {past.map((k, i) => (
             <Row key={k} style={[{ minHeight: 48, paddingHorizontal: 12, justifyContent: 'space-between' }, i > 0 && { borderTopWidth: 1, borderTopColor: colors.divider }]}>
               <T size={15}>{monthName(k)}</T>
@@ -208,7 +217,8 @@ export default function DataUsage() {
               </T>
             </Row>
           ))}
-        </ListGroup>
+        </Glass>
+      </View>
       ) : null}
 
       <T size={12} color={colors.textSecondary} lineHeight={18}>

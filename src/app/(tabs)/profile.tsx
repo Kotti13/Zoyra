@@ -33,7 +33,7 @@ export default function Profile() {
     return () => clearTimeout(t);
   }, [note]);
   const uid = user?.id;
-  const stats = useAsync(() => (uid ? loadOverview(uid) : Promise.reject(new Error('Not signed in'))), [uid]);
+  const stats = useAsync(() => (uid ? loadOverview(uid) : Promise.reject(new Error('Not signed in'))), [uid], 'app/(tabs)/profile:36');
   const progress = useProgress(uid);
   const { custom } = useProfileCustom();
 
@@ -132,7 +132,7 @@ export default function Profile() {
 
       {/* Identity */}
       <View style={{ gap: 6, paddingLeft: 4 }}>
-        <T size={26} weight={700} tracking={-0.4} accessibilityRole="header">
+        <T size={26} weight={300} tracking={-0.4} accessibilityRole="header">
           {name}
         </T>
         <T size={14} color={colors.textSecondary} numberOfLines={2}>

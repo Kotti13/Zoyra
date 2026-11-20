@@ -56,7 +56,7 @@ function BandSlider({ label, value, onChange, disabled }: { label: string; value
       >
         <View style={{ position: 'absolute', top: 0, bottom: 0, width: 4, borderRadius: 2, backgroundColor: colors.track }} />
         <LinearGradient
-          colors={[colors.amber, colors.accent]}
+          colors={[colors.orange, colors.accent]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={{ position: 'absolute', bottom: 0, width: 4, borderRadius: 2, height: `${value}%` }}
@@ -78,19 +78,20 @@ export default function Equalizer() {
   const [chipKey, setChipKey] = useState(0);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Sync once if settings arrive after mount.
-  const settingsReady = !!settings;
-  useEffect(() => {
-    if (!settings) return;
+  // Sync once if settings arrive after mount (adjusting state while rendering, guarded so it runs once).
+  const [synced, setSynced] = useState(!!settings);
+  if (settings && !synced) {
+    setSynced(true);
     setOn(settings.equalizer.enabled);
     setPreset(presetIndex(settings.equalizer.preset));
     setLevels(levelsFrom(settings.equalizer.bands));
     setChipKey((k) => k + 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settingsReady]);
+  }
 
   const state = useRef({ on, preset, levels });
-  state.current = { on, preset, levels };
+  useEffect(() => {
+    state.current = { on, preset, levels };
+  });
 
   const write = useCallback(
     (eq: { on: boolean; preset: number; levels: number[] }, saved?: boolean) => {
@@ -101,7 +102,9 @@ export default function Equalizer() {
     [updateSettings],
   );
   const writeRef = useRef(write);
-  writeRef.current = write;
+  useEffect(() => {
+    writeRef.current = write;
+  });
 
   // Debounced band writes while dragging; flushed on unmount.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);

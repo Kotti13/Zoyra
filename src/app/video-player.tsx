@@ -3,9 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, useWindowDimensions, View } from 'react-native';
 import type { YoutubeIframeRef } from 'react-native-youtube-iframe';
 
-import { Button, ErrorState, Glass, Icon, IconButton, Loading, Row, Screen, ScreenHeader, SectionHeader, T, Tap, Toast, Toggle, useAsync, ToggleBurst } from '../components';
+import { Image } from 'expo-image';
+import { Avatar, artFor, Button, ErrorState, Glass, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle, useAsync, ToggleBurst } from '../components';
 import { usePlayPref } from '../lib/play-prefs';
-import { ChannelAvatar, playerErrorText, useVideoAutoStart, VideoFrame, VideoRow } from '../lib/video-ui';
+import { playerErrorText, useVideoAutoStart, VideoFrame, VideoRow } from '../lib/video-ui';
 import {
   channelUrl,
   compactCount,
@@ -29,7 +30,7 @@ import {
 } from '../lib/youtube';
 import { useAuth } from '../state/auth';
 import { usePlayerPick } from '../state/player';
-import { colors, radius } from '../theme/tokens';
+import { colors, glow } from '../theme/tokens';
 
 /** Sheets that open over this screen; the video keeps playing under them. */
 const OUR_SHEETS = new Set(['/video-comments', '/video-options']);
@@ -46,7 +47,7 @@ export default function VideoPlayerScreen() {
   const { width } = useWindowDimensions();
   const { user } = useAuth();
   const me = user?.id;
-  const audio = usePlayerPick('playing');
+  const audio = usePlayerPick('playing', 'track');
   const bus = useVideoBus();
   const ref = useRef<YoutubeIframeRef>(null);
 
@@ -64,10 +65,10 @@ export default function VideoPlayerScreen() {
   // Captions are a player var: changing them reloads the player at the current position.
   const [frame, setFrame] = useState({ captions: bus.captions, start: startAt, n: 0 });
 
-  const info = useAsync(() => fetchVideo(id), [id]);
+  const info = useAsync(() => fetchVideo(id), [id], 'app/video-player:68');
   const video = info.data?.video;
   const channel = info.data?.channel;
-  const related = useAsync(() => (video ? fetchRelated(video) : Promise.resolve({ videos: [] })), [video?.id]);
+  const related = useAsync(() => (video ? fetchRelated(video) : Promise.resolve({ videos: [] })), [video?.id], 'app/video-player:71');
   const preview = useAsync<{ comment: YouTubeComment | null; disabled: boolean }>(async () => {
     if (!id) return { comment: null, disabled: false };
     try {
@@ -77,10 +78,10 @@ export default function VideoPlayerScreen() {
       if (e instanceof YouTubeError && e.code === 'comments_disabled') return { comment: null, disabled: true };
       throw new Error(youtubeErrorMessage(e, 'Could not load comments'));
     }
-  }, [id]);
+  }, [id], 'app/video-player:72');
 
-  const saved = useAsync(() => (me && id ? isVideoSaved(me, id) : Promise.resolve(false)), [me, id]);
-  const following = useAsync(() => (me && video?.channelId ? isChannelFollowed(me, video.channelId) : Promise.resolve(false)), [me, video?.channelId]);
+  const saved = useAsync(() => (me && id ? isVideoSaved(me, id) : Promise.resolve(false)), [me, id], 'app/video-player:83');
+  const following = useAsync(() => (me && video?.channelId ? isChannelFollowed(me, video.channelId) : Promise.resolve(false)), [me, video?.channelId], 'app/video-player:84');
   const [busy, setBusy] = useState<'save' | 'follow' | null>(null);
 
   useEffect(() => {
@@ -194,8 +195,29 @@ export default function VideoPlayerScreen() {
   }
 
   return (
-    <Screen top={4} gap={16} backdrop={false}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral', orbs: true }}>
       <ScreenHeader title="" right={<IconButton icon="more" label="Video options" onPress={() => router.push({ pathname: '/video-options', params: { id } })} />} />
+      {audio.track ? (
+        // Song / Video switch (PlayerVideo board): Song goes back to the audio player.
+        <Glass radius={22} padding={4} style={{ flexDirection: 'row', gap: 4 }}>
+          <Tap
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/player'))}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: false }}
+            accessibilityLabel="Song"
+            style={{ flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <T size={13} weight={600} color={colors.textSecondary}>
+              Song
+            </T>
+          </Tap>
+          <View accessibilityRole="tab" accessibilityState={{ selected: true }} style={{ flex: 1, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent }}>
+            <T size={13} weight={700}>
+              Video
+            </T>
+          </View>
+        </Glass>
+      ) : null}
 
       {/* The player: full width, nothing drawn over it. */}
       <View style={{ marginHorizontal: -16 }}>
@@ -224,7 +246,7 @@ export default function VideoPlayerScreen() {
       ) : (
         <>
           <View style={{ gap: 6 }}>
-            <T size={20} weight={600} lineHeight={26} accessibilityRole="header">
+            <T size={22} weight={500} lineHeight={26} tracking={-0.4} accessibilityRole="header">
               {video.title}
             </T>
             <T size={13} color={colors.textSecondary}>
@@ -234,7 +256,7 @@ export default function VideoPlayerScreen() {
 
           {/* Actions */}
           <Row gap={8} style={{ flexWrap: 'wrap' }}>
-            <Pill icon="heart" filled={!!saved.data} label={saved.data ? 'Saved' : 'Save'} busy={busy === 'save'} onPress={() => void toggleSave()} a11y={saved.data ? 'Remove from My list' : 'Save to My list'} />
+            <Pill primary icon="heart" filled={!!saved.data} label={saved.data ? 'Saved' : 'Save'} busy={busy === 'save'} onPress={() => void toggleSave()} a11y={saved.data ? 'Remove from My list' : 'Save to My list'} />
             <Pill icon="share" label="Share" onPress={() => void shareVideo(video).catch(() => setNote('Could not open the share sheet.'))} a11y="Share video" />
             <Pill icon="chevronUp" label="Full screen" onPress={() => void openFull()} a11y="Watch full screen" />
             <Pill icon="link" label="Watch on YouTube" onPress={() => void watchOnYouTube()} a11y="Watch on YouTube" />
@@ -252,7 +274,7 @@ export default function VideoPlayerScreen() {
               accessibilityLabel={`${video.channel} on YouTube`}
               style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}
             >
-              <ChannelAvatar name={channel?.title ?? video.channel} uri={channel?.thumbnail ?? null} size={44} />
+              <SquareAvatar name={channel?.title ?? video.channel} uri={channel?.thumbnail ?? null} size={46} />
               <View style={{ flex: 1, gap: 2 }}>
                 <T size={15} weight={600} numberOfLines={1}>
                   {channel?.title ?? video.channel}
@@ -266,7 +288,7 @@ export default function VideoPlayerScreen() {
               <Button
                 label={following.data ? 'Following' : 'Follow'}
                 variant={following.data ? 'glass' : 'light'}
-                height={36}
+                height={40}
                 onPress={busy ? undefined : () => void toggleFollow()}
               />
             ) : null}
@@ -274,7 +296,7 @@ export default function VideoPlayerScreen() {
 
           {video.description ? (
             <Tap onPress={() => setDescOpen((o) => !o)} accessibilityLabel={descOpen ? 'Show less description' : 'Show full description'}>
-              <Glass padding={14}>
+              <Glass padding={14} radius={32}>
                 <T size={13} color={colors.textSecondary} lineHeight={19} numberOfLines={descOpen ? undefined : 3}>
                   {video.description}
                 </T>
@@ -290,7 +312,7 @@ export default function VideoPlayerScreen() {
             onPress={() => router.push({ pathname: '/video-comments', params: { id, d: String(video.durationSec ?? 0) } })}
             accessibilityLabel="Open comments"
           >
-            <Glass padding={14} style={{ gap: 8 }}>
+            <Glass padding={14} radius={32} style={{ gap: 8 }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <T size={15} weight={600}>
                   Comments{video.comments !== null ? ` · ${compactCount(video.comments)}` : ''}
@@ -309,7 +331,7 @@ export default function VideoPlayerScreen() {
                 </T>
               ) : preview.data?.comment ? (
                 <Row gap={10} align="flex-start">
-                  <ChannelAvatar name={preview.data.comment.author} uri={preview.data.comment.authorAvatar} size={28} />
+                  <SquareAvatar name={preview.data.comment.author} uri={preview.data.comment.authorAvatar} size={34} />
                   <T size={13} lineHeight={19} numberOfLines={2} style={{ flex: 1 }}>
                     {splitTimestamps(preview.data.comment.text, video.durationSec).map((p, i) =>
                       p.seconds !== undefined ? (
@@ -333,9 +355,11 @@ export default function VideoPlayerScreen() {
           {/* Up next */}
           <View style={{ gap: 8 }}>
             <Row style={{ justifyContent: 'space-between' }}>
-              <SectionHeader title="Up next" />
+              <T size={18} weight={500} accessibilityRole="header">
+                Up next
+              </T>
               <Row gap={4}>
-                <T size={13} color={colors.textSecondary}>
+                <T size={12} color={colors.textSecondary}>
                   Autoplay
                 </T>
                 <Toggle value={autoplay} onChange={setAutoplay} label="Autoplay next video" />
@@ -370,13 +394,19 @@ export default function VideoPlayerScreen() {
   );
 }
 
-function Pill({ icon, label, onPress, a11y, filled, busy }: { icon: 'heart' | 'share' | 'chevronUp' | 'link'; label: string; onPress: () => void; a11y: string; filled?: boolean; busy?: boolean }) {
+function Pill({ icon, label, onPress, a11y, filled, busy, primary }: { primary?: boolean; icon: 'heart' | 'share' | 'chevronUp' | 'link'; label: string; onPress: () => void; a11y: string; filled?: boolean; busy?: boolean }) {
   return (
     <Tap onPress={busy ? undefined : onPress} accessibilityLabel={a11y} accessibilityState={{ busy: !!busy }} style={{ minHeight: 44, justifyContent: 'center' }}>
-      <Row gap={6} style={{ height: 36, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.chipOutline, opacity: busy ? 0.6 : 1 }}>
+      <Row
+        gap={8}
+        style={[
+          { height: 40, paddingHorizontal: 16, borderRadius: 28, borderWidth: 1, borderColor: colors.chipOutline, backgroundColor: colors.iconGhost, opacity: busy ? 0.6 : 1 },
+          primary && filled && { backgroundColor: colors.accent, borderColor: colors.accent, ...glow(colors.accent, 11, 0.4) },
+        ]}
+      >
         {filled !== undefined ? (
           <ToggleBurst active={filled} kind="save" size={28}>
-            <Icon name={icon} size={16} color={filled ? colors.accentLight : colors.text} filled={filled} />
+            <Icon name={icon} size={16} color={primary && filled ? colors.white : filled ? colors.accentLight : colors.text} filled={filled} />
           </ToggleBurst>
         ) : (
           <Icon name={icon} size={16} color={colors.text} />
@@ -387,4 +417,10 @@ function Pill({ icon, label, onPress, a11y, filled, busy }: { icon: 'heart' | 's
       </Row>
     </Tap>
   );
+}
+
+/** Channel / commenter picture as a rounded square (design: radius ~ size / 3). */
+function SquareAvatar({ name, uri, size }: { name: string; uri: string | null; size: number }) {
+  if (!uri) return <Avatar initial={(name.trim()[0] ?? '?').toUpperCase()} art={artFor(name)} size={size} radius={Math.round(size / 3)} />;
+  return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: Math.round(size / 3), backgroundColor: colors.bgTertiary }} contentFit="cover" accessibilityIgnoresInvertColors />;
 }

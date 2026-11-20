@@ -213,7 +213,7 @@ export default function Import() {
       <ScreenHeader title="Import" />
 
       <View style={{ gap: 8 }}>
-        <T size={26} weight={700} tracking={-0.5} lineHeight={30} accessibilityRole="header">
+        <T size={26} weight={300} tracking={-0.5} lineHeight={30} accessibilityRole="header">
           Bring your music over
         </T>
         <T size={16} color={colors.textSecondary} lineHeight={23}>

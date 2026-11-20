@@ -30,7 +30,7 @@ function StatRing({ value, label, color }: { value: string; label: string; color
 export default function ProfileTaste() {
   const { user, profile } = useAuth();
   const uid = user?.id;
-  const taste = useAsync(() => (uid ? loadTaste(uid) : Promise.reject(new Error('Sign in to see your taste'))), [uid]);
+  const taste = useAsync(() => (uid ? loadTaste(uid) : Promise.reject(new Error('Sign in to see your taste'))), [uid], 'app/profile-taste:33');
   const t = taste.data;
   const pullControl = usePullRefresh(taste.loading, taste.refresh);
   const [shareError, setShareError] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export default function ProfileTaste() {
   const peak = Math.max(1, ...(t?.week ?? [0]));
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'coral' }} refreshControl={uid ? pullControl : undefined}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'amber' }} refreshControl={uid ? pullControl : undefined}>
       <ScreenHeader title={profile?.display_name ?? 'Taste'} right={t?.genres.length ? <IconButton icon="share" label="Share taste" onPress={share} /> : undefined} />
       <ProfileTabs active="taste" />
       {shareError ? (

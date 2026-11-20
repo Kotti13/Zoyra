@@ -224,7 +224,7 @@ export default function Friends() {
   const m: Match | null = match && !blocked.has(match.person.id) ? match : null;
   const shownActivity = activity.filter((a) => !blocked.has(a.user_id));
   const activityIds = shownActivity.map((a) => a.user_id).join(',');
-  const arts = useAsync(() => loadAvatarArts(activityIds ? activityIds.split(',') : []), [activityIds]).data ?? NO_ARTS;
+  const arts = useAsync(() => loadAvatarArts(activityIds ? activityIds.split(',') : []), [activityIds], 'app/friends:227').data ?? NO_ARTS;
   const matchText = m
     ? m.shared.length >= 2
       ? `You both love ${m.shared[0].toLowerCase()} and ${m.shared[1].toLowerCase()}.`

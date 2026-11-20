@@ -6,7 +6,8 @@
  * description, BPM, key, licence, collaborators…). Everything here is real catalogue data; nothing is invented.
  */
 import { catalog, type CatalogTrack, type Collection } from './catalog';
-import { isZoyraId } from './zoyra-api';
+import { cleanTitle } from './lyrics-sync';
+import { isZoyraId, zoyra, zoyraEnabled } from './zoyra-api';
 
 const BASE = 'https://api.audius.co/v1';
 const APP = 'zoyra';
@@ -38,6 +39,11 @@ export type Premieres = {
  * `days` days and sorts newest first. Falls back to the plain trending order when nothing is that fresh.
  */
 export async function loadPremieres(days = 30): Promise<Premieres> {
+  // Zoyra backend: newest big songs by views (no album data there, so the banner is a single).
+  if (zoyraEnabled) {
+    const fresh = await zoyra.popular('new', 20).catch(() => [] as CatalogTrack[]);
+    if (fresh.length) return { albums: [], tracks: fresh };
+  }
   const [cols, tracks] = await Promise.all([catalog.trendingCollections(50), catalog.trending({ time: 'week', limit: 50 })]);
   const albums = cols.filter((c) => c.isAlbum);
   const byNewest = <X extends { releaseDate?: string }>(a: X, b: X) => parseDate(b.releaseDate) - parseDate(a.releaseDate);
@@ -115,4 +121,20 @@ export async function loadTrackDetail(id: string): Promise<TrackDetail> {
       remixOfId: raw.remix_of?.tracks?.[0]?.parent_track_id ?? undefined,
     },
   };
+}
+
+/**
+ * Display title/artist for a big poster. YouTube titles are video-style ("Aura 10/10 - Video Song | Film | Artist"),
+ * so this keeps just the song name and takes "Artist - Song" apart when the title carries the artist.
+ */
+export function posterText(title: string, artist: string): { title: string; artist: string } {
+  let name = cleanTitle(title, artist);
+  let by = artist.replace(/\s*-\s*topic$/i, '').replace(/vevo$/i, '').trim();
+  name = name.replace(/\s*[-–—]\s*(official\s+)?(video\s+song|lyrical(\s+video)?|full\s+(video\s+)?song|music\s+video|audio(\s+song)?|song|video)\s*$/i, '').trim();
+  const dash = name.split(/\s+[-–—]\s+/);
+  if (dash.length === 2 && dash[0].length <= 40) {
+    by = dash[0].trim();
+    name = dash[1].trim();
+  }
+  return { title: name || title, artist: by || artist };
 }

@@ -12,7 +12,7 @@ const options: { label: string; value: number | 'endOfTrack' | 'custom' }[] = [
   { label: '30 min', value: 30 },
   { label: '45 min', value: 45 },
   { label: '1 hr', value: 60 },
-  { label: 'After this song', value: 'endOfTrack' },
+  { label: 'End of track', value: 'endOfTrack' },
   { label: 'Custom', value: 'custom' },
 ];
 

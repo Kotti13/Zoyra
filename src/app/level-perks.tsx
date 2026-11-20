@@ -15,7 +15,7 @@ export default function LevelPerks() {
   const p = q.data;
 
   return (
-    <Screen onRefresh={q.refresh} top={4} gap={16} backdrop={{ pattern: 'dots' }}>
+    <Screen onRefresh={q.refresh} top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'amberRose' }}>
       <ScreenHeader title="Levels and perks" right={<IconButton icon="info" label="Help" href="/help" />} />
 
       {!user ? (

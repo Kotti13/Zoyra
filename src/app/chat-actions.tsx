@@ -53,7 +53,7 @@ export default function ChatActions() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [forwarding, setForwarding] = useState(false);
 
-  const msg = useAsync(() => (mid ? loadMessage(mid) : Promise.resolve(null)), [mid]);
+  const msg = useAsync(() => (mid ? loadMessage(mid) : Promise.resolve(null)), [mid], 'app/chat-actions:56');
   const ctx = useAsync<Ctx>(async () => {
     if (!mid || !me) return { pinned: false, starred: false, mine: new Set<string>(), group: groupHint };
     const [p, r, c, st] = await Promise.all([
@@ -66,9 +66,9 @@ export default function ChatActions() {
     if (r.error) throw new Error(r.error.message);
     const group = groupHint || (c.data as { kind?: string } | null)?.kind === 'group';
     return { pinned: !!p.data, starred: !st.error && !!st.data, mine: new Set(((r.data ?? []) as { emoji: string }[]).map((x) => x.emoji)), group };
-  }, [mid, me, cid, groupHint]);
-  const convs = useAsync(() => (forwarding && me ? listConversations(me, cid) : Promise.resolve([])), [forwarding, me, cid]);
-  const jams = useAsync(() => (forwarding && me ? listMyJams(me).catch(() => []) : Promise.resolve([])), [forwarding, me]);
+  }, [mid, me, cid, groupHint], 'app/chat-actions:57');
+  const convs = useAsync(() => (forwarding && me ? listConversations(me, cid) : Promise.resolve([])), [forwarding, me, cid], 'app/chat-actions:70');
+  const jams = useAsync(() => (forwarding && me ? listMyJams(me).catch(() => []) : Promise.resolve([])), [forwarding, me], 'app/chat-actions:71');
 
   const m = msg.data;
 

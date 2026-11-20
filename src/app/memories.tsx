@@ -23,7 +23,7 @@ export default function Memories() {
   const [busy, setBusy] = useState<'playlist' | 'daily' | null>(null);
   const today = new Date();
 
-  const res = useAsync(() => (me ? loadMemories() : Promise.resolve([])), [me]);
+  const res = useAsync(() => (me ? loadMemories() : Promise.resolve([])), [me], 'app/memories:26');
   const list = res.data ?? [];
   const tracks = list.map((m) => m.track);
 
@@ -73,7 +73,7 @@ export default function Memories() {
   };
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'coral' }} onRefresh={res.refresh}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral' }} onRefresh={res.refresh}>
       <ScreenHeader title="On this day" back="/" />
       <T size={14} color={colors.textSecondary} style={{ marginTop: -8 }}>{`Songs that were on repeat on ${monthDayLabel(today)}.`}</T>
 

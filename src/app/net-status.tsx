@@ -2,7 +2,8 @@ import NetInfo, { useNetInfo } from '@react-native-community/netinfo';
 import { useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { Glass, Icon, IconButton, ListGroup, ListRow, Overline, Row, Screen, ScreenHeader, T, Toggle } from '../components';
+import { Glass, Icon, IconButton, ListRow, Row, Screen, ScreenHeader, T, Toggle } from '../components';
+import { SectionLabel } from '../components/settings-ui';
 import { downloads, formatBytes } from '../lib/downloads';
 import { NETWORK_ALERTS_PREF, describeConnection, formatAgo, formatMbps, slowness, useDevicePref, useSpeedTest } from '../lib/network';
 import { STREAM_KBPS, monthKey, streamedBytes, usage } from '../lib/usage';
@@ -73,7 +74,7 @@ export default function NetStatus() {
   const cache = downloads.cacheBytes();
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'coral' }}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'amber' }}>
       <ScreenHeader
         title="Connection"
         right={refreshing ? <ActivityIndicator color={colors.accent} style={{ width: 44, height: 44 }} /> : <IconButton icon="repeat" label="Refresh connection" onPress={() => void refresh()} />}
@@ -118,7 +119,9 @@ export default function NetStatus() {
         </Row>
       </Glass>
 
-      <ListGroup title="SMART NETWORK">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>Smart network</SectionLabel>
+        <Glass padding={4}>
         <ListRow
           title="Connection alerts"
           subtitle="Tell me when the network is slow or back"
@@ -132,11 +135,12 @@ export default function NetStatus() {
           divider
           right={<Toggle value={dl.wifiOnly} onChange={downloads.setWifiOnly} label="Wi-Fi only downloads" />}
         />
-      </ListGroup>
+      </Glass>
+      </View>
 
       {details.length ? (
         <View style={{ gap: 8 }}>
-          <Overline color={colors.textSecondary}>DETAILS</Overline>
+          <SectionLabel>DETAILS</SectionLabel>
           <Glass padding={16}>
             <View style={{ gap: 10 }}>
               {details.map(([k, v]) => (
@@ -154,7 +158,9 @@ export default function NetStatus() {
         </View>
       ) : null}
 
-      <ListGroup title="TOOLS">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>Tools</SectionLabel>
+        <Glass padding={4}>
         <ListRow
           title="Speed test"
           subtitle={last ? `${formatMbps(last.mbps)} Mbps · ${last.pingMs} ms · ${formatAgo(last.at)}` : 'Check what quality works'}
@@ -170,7 +176,8 @@ export default function NetStatus() {
         />
         <ListRow title="Cache and prefetch" subtitle={`${formatBytes(cache)} cache · ${formatBytes(dl.totalBytes)} downloads`} icon="storage" href="/cache" divider />
         <ListRow title="Offline mode" subtitle="Play your downloads only" icon="wifiOff" href="/offline-home" divider />
-      </ListGroup>
+      </Glass>
+      </View>
     </Screen>
   );
 }

@@ -63,7 +63,7 @@ export default function Family() {
     if (typeof deepCode === 'string' && deepCode) router.replace({ pathname: '/join-family', params: { code: deepCode } });
   }, [deepCode]);
 
-  const fam = useAsync(() => (me ? loadFamily(me) : Promise.resolve(null)), [me]);
+  const fam = useAsync(() => (me ? loadFamily(me) : Promise.resolve(null)), [me], 'app/family:66');
   const { reload } = fam;
   // Coming back to the screen: re-read seats and the plan (the owner's plan drives members' plans).
   const firstFocus = useRef(true);

@@ -1,8 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button, EmptyState, ErrorState, Glass, Icon, Loading, Row, Screen, ScreenHeader, SectionHeader, T, Tap, Toast, ToggleBurst } from '../components';
+import { Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, Tap, Toast, ToggleBurst, Button } from '../components';
 import {
   endSession,
   formatCount,
@@ -28,10 +28,18 @@ const backdrop = {
   pattern: 'none' as const,
   mesh: 'none' as const,
   glows: [
-    { x: 0.5, y: 0, color: colors.accent, opacity: 0.3 },
-    { x: 0, y: 0.6, color: colors.accentDark, opacity: 0.2 },
+    { x: 0.5, y: 0, color: colors.indigo, opacity: 0.34, stop: 0.55 },
+    { x: 0, y: 0.6, color: colors.accent, opacity: 0.22, stop: 0.55 },
   ],
 };
+
+function Heading({ children }: { children: string }) {
+  return (
+    <T size={19} weight={500} tracking={-0.2} accessibilityRole="header">
+      {children}
+    </T>
+  );
+}
 
 export default function LiveHub() {
   const { user } = useAuth();
@@ -167,10 +175,22 @@ export default function LiveHub() {
 
   return (
     <Screen onRefresh={() => load(true)} top={4} gap={20} backdrop={backdrop}>
-      <ScreenHeader
-        title="Live"
-        right={<Button label="Go live" icon="cast" height={36} href="/go-live" style={{ minWidth: 104 }} />}
-      />
+      <Row style={{ justifyContent: 'space-between', minHeight: 44 }}>
+        <IconButton icon="back" label="Back" href="back" />
+        <Tap
+          href="/go-live"
+          accessibilityLabel="Go live"
+          style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, backgroundColor: colors.accent, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 13, shadowOffset: { width: 0, height: 0 } }}
+        >
+          <Icon name="cast" size={18} color={colors.white} />
+          <T size={14} weight={700} color={colors.white}>
+            Go live
+          </T>
+        </Tap>
+      </Row>
+      <T size={36} weight={300} tracking={-1} accessibilityRole="header">
+        Live <T size={36} weight={800} tracking={-1}>now</T>
+      </T>
 
       {note ? <Toast icon={note.ok ? 'check' : 'info'} iconColor={note.ok ? colors.success : colors.error} message={note.text} action="OK" onAction={() => setNote(null)} /> : null}
 
@@ -205,17 +225,20 @@ export default function LiveHub() {
 
       {hosts.length ? (
         <View style={{ gap: 12 }}>
-          <SectionHeader title={followedLive.length ? 'Live now · people you follow' : 'Live now'} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 14, paddingHorizontal: 16 }}>
+          <Heading>{followedLive.length ? 'Your artists' : 'Live now'}</Heading>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
             {hosts.map((s) => (
               <Tap
                 key={s.id}
                 onPress={() => router.push({ pathname: '/live-room', params: { id: s.id } })}
                 accessibilityLabel={`${s.host?.display_name ?? 'Someone'} is live: ${s.title}`}
-                style={{ alignItems: 'center', gap: 6, width: 72 }}
+                style={{ alignItems: 'center', gap: 6, width: 62 }}
               >
-                <HostAvatar p={s.host} size={60} ring />
-                <T size={12} weight={500} numberOfLines={1}>
+                <View>
+                  <HostAvatar p={s.host} size={58} />
+                  <View style={{ position: 'absolute', right: -1, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: colors.success, borderWidth: 2.5, borderColor: colors.bg }} />
+                </View>
+                <T size={11} color={colors.peach} numberOfLines={1}>
                   {s.host_id === me ? 'You' : s.host?.display_name ?? 'Someone'}
                 </T>
               </Tap>
@@ -226,24 +249,26 @@ export default function LiveHub() {
 
       {live.length ? (
         <View style={{ gap: 12 }}>
-          <SectionHeader title="Live sessions" />
-          {live.map((s) => {
-            const followers = data.followers[s.host_id];
-            const isMe = s.host_id === me;
-            const following = data.following.has(s.host_id);
-            const name = s.host?.display_name ?? 'Someone';
-            return (
-              <Tap key={s.id} onPress={() => router.push({ pathname: '/live-room', params: { id: s.id } })} accessibilityLabel={`Join ${s.title} by ${name}, ${s.listeners} listening`}>
-                <Glass padding={14}>
-                  <View style={{ gap: 12 }}>
-                    <Row>
-                      <HostAvatar p={s.host} size={40} />
+          <Heading>Live sessions</Heading>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
+            {live.map((s) => {
+              const followers = data.followers[s.host_id];
+              const isMe = s.host_id === me;
+              const following = data.following.has(s.host_id);
+              const name = s.host?.display_name ?? 'Someone';
+              return (
+                <Tap key={s.id} onPress={() => router.push({ pathname: '/live-room', params: { id: s.id } })} accessibilityLabel={`Join ${s.title} by ${name}, ${s.listeners} listening`} style={{ width: 246 }}>
+                  <View style={{ width: 246, height: 330, borderRadius: 30, overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
+                    <Cover uri={s.host?.avatar_url} id={s.host?.id ?? s.id} width={246} height={330} radius={0} />
+                    <Gradient colors={[withAlpha(colors.bg, 0), withAlpha(colors.bg, 0.9)]} angle={180} style={StyleSheet.absoluteFill} />
+                    <Row gap={8} style={{ position: 'absolute', top: 12, left: 12, right: 12, height: 46, borderRadius: 23, paddingHorizontal: 6, backgroundColor: withAlpha(colors.white, 0.14), borderWidth: 1, borderColor: withAlpha(colors.white, 0.2) }}>
+                      <HostAvatar p={s.host} size={34} />
                       <View style={{ flex: 1, minWidth: 0 }}>
-                        <T size={15} weight={600} numberOfLines={1}>
+                        <T size={12} weight={600} numberOfLines={1}>
                           {isMe ? 'You' : name}
                         </T>
                         {followers ? (
-                          <T size={12} color={colors.textSecondary}>
+                          <T size={10} color={colors.peach} numberOfLines={1}>
                             {`${formatCount(followers)} follower${followers === 1 ? '' : 's'}`}
                           </T>
                         ) : null}
@@ -256,8 +281,8 @@ export default function LiveHub() {
                           style={{ height: 44, justifyContent: 'center' }}
                         >
                           <ToggleBurst active={following}>
-                            <View style={{ height: 32, paddingHorizontal: 14, borderRadius: 16, justifyContent: 'center', backgroundColor: following ? colors.chipGhost : colors.accent }}>
-                              <T size={12} weight={700} color={colors.white}>
+                            <View style={{ height: 30, paddingHorizontal: 12, borderRadius: 15, justifyContent: 'center', backgroundColor: withAlpha(colors.white, 0.2) }}>
+                              <T size={12} weight={700}>
                                 {following ? 'Following' : 'Follow'}
                               </T>
                             </View>
@@ -265,44 +290,45 @@ export default function LiveHub() {
                         </Tap>
                       )}
                     </Row>
-                    <T size={22} weight={300} tracking={-0.4} numberOfLines={2}>
-                      {s.title}
-                    </T>
-                    <Row gap={10}>
-                      <LiveBadge />
-                      <T size={13} color={colors.textSecondary}>
-                        {sinceShort(s.started_at, now)}
+                    <View style={{ position: 'absolute', left: 16, right: 16, bottom: 16, gap: 10 }}>
+                      <T size={30} weight={800} tracking={-1} lineHeight={30} numberOfLines={3} style={{ textTransform: 'uppercase' }}>
+                        {s.title}
                       </T>
-                      <View style={{ flex: 1 }} />
-                      <Icon name="users" size={16} color={colors.textSecondary} />
-                      <T size={13} weight={600}>
-                        {formatCount(s.listeners)}
-                      </T>
-                    </Row>
+                      <Row gap={8}>
+                        <LiveBadge />
+                        <T size={12}>{sinceShort(s.started_at, now)}</T>
+                        <View style={{ flex: 1 }} />
+                        <Icon name="users" size={14} color={colors.text} />
+                        <T size={12} weight={700}>
+                          {formatCount(s.listeners)}
+                        </T>
+                      </Row>
+                    </View>
                   </View>
-                </Glass>
-              </Tap>
-            );
-          })}
+                </Tap>
+              );
+            })}
+          </ScrollView>
         </View>
       ) : null}
 
       {data.upcoming.length ? (
         <View style={{ gap: 12 }}>
-          <SectionHeader title="Upcoming" />
-          <Glass padding={4}>
-            {data.upcoming.map((s, i) => {
+          <Heading>Upcoming</Heading>
+          <View style={{ gap: 10 }}>
+            {data.upcoming.map((s) => {
               const isMe = s.host_id === me;
               const reminded = data.reminders.has(s.id);
               const late = !!s.scheduled_at && new Date(s.scheduled_at).getTime() < now;
               return (
-                <Row key={s.id} style={[{ minHeight: 72, paddingHorizontal: 10 }, i > 0 && { borderTopWidth: 1, borderTopColor: colors.divider }]}>
-                  <HostAvatar p={s.host} size={44} />
+                <Glass key={s.id} padding={12}>
+                <Row gap={14}>
+                  <HostAvatar p={s.host} size={52} />
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                    <T size={16} weight={500} numberOfLines={1}>
+                    <T size={15} weight={600} numberOfLines={1}>
                       {s.title}
                     </T>
-                    <T size={13} color={colors.textSecondary} numberOfLines={1}>
+                    <T size={12} color={colors.textSecondary} numberOfLines={1}>
                       {`${isMe ? 'You' : s.host?.display_name ?? 'Someone'} · ${s.scheduled_at ? (late ? 'Starting soon' : formatWhen(s.scheduled_at)) : ''}`}
                     </T>
                   </View>
@@ -329,15 +355,16 @@ export default function LiveHub() {
                     </Tap>
                   )}
                 </Row>
+                </Glass>
               );
             })}
-          </Glass>
+          </View>
         </View>
       ) : null}
 
       {data.replays.length ? (
         <View style={{ gap: 12 }}>
-          <SectionHeader title="Replays" />
+          <Heading>Replays</Heading>
           <Glass padding={4}>
             {data.replays.map((s, i) => {
               const exp = replayExpiresAt(s);

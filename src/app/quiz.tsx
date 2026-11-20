@@ -60,7 +60,7 @@ function Timer({ fraction, label }: { fraction: number; label: string }) {
 
 export default function Quiz() {
   const { playTrack, toggle, track: current, playing } = usePlayerPick('track', 'playing');
-  const pool = useAsync(() => catalog.trending({ limit: 50 }), []);
+  const pool = useAsync(() => catalog.trending({ limit: 50 }), [], 'app/quiz:63');
   const [rounds, setRounds] = useState<Round[]>([]);
   const [n, setN] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);

@@ -16,7 +16,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Keyboard, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Animated, Easing, Keyboard, Modal, PanResponder, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Cover, flash, Icon, Row, T, Tap, TopHighlight, useReduceMotion } from '../components';
@@ -165,6 +165,7 @@ export function NoteSheet({
   /** My reactions by note owner (optimistic; seeded from list_notes().my_reaction). */
   const [reactions, setReactions] = useState<Record<string, string | null>>(() => Object.fromEntries(notes.map((n) => [n.user_id, n.my_reaction ?? null])));
   const [insights, setInsights] = useState<NoteInsights | null>(null);
+  const [kbOpen, setKbOpen] = useState(false);
   const note: UserNote | undefined = notes[idx] ?? notes[0];
   const mine = !!note && (note.mine || note.user_id === me);
   const owner = note?.user_id ?? null;
@@ -177,6 +178,16 @@ export function NoteSheet({
       Animated.spring(y, { toValue: 0, damping: 22, stiffness: 220, mass: 0.9, useNativeDriver: true }).start();
     }
   }, [reduce, y]);
+
+  // Lift the card to the top while the keyboard is open so the reply field stays visible.
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKbOpen(true));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKbOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   // Opening a friend's note records a view (once per note per sheet).
   const viewed = useRef(new Set<string>());
@@ -334,29 +345,34 @@ export function NoteSheet({
   const compose = (fresh: boolean) => close(() => router.push(fresh ? { pathname: '/note-compose', params: { fresh: '1' } } : '/note-compose'));
 
   const canSend = !!reply.trim() && !busy;
+  const cardTop = kbOpen ? insets.top + 8 : insets.top + (mine ? 126 : 106);
   const others = notes.map((n, i) => ({ n, i })).filter(({ i }) => i !== idx);
   const ago = noteAgo(note.created_at);
   const views = insights?.views ?? 0;
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent navigationBarTranslucent onRequestClose={() => close()}>
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <View style={{ flex: 1 }}>
         <Animated.View style={[StyleSheet.absoluteFill, { opacity: scrim }]}>
           <Pressable accessibilityRole="button" accessibilityLabel={mine ? 'Close your note' : 'Close note'} onPress={() => close()} style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} />
         </Animated.View>
-        <Animated.View style={[styles.sheet, shadow.float, { paddingBottom: Math.max(16, insets.bottom), transform: [{ translateY: y }] }]} accessibilityViewIsModal>
-          {Platform.OS === 'ios' ? <BlurView tint="dark" intensity={50} style={StyleSheet.absoluteFill} /> : null}
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sheet }]} />
-          <TopHighlight radius={36} color={withAlpha(colors.white, 0.22)} />
-          <View style={{ paddingTop: 12, paddingBottom: 4, alignItems: 'center' }}>
-            <View style={styles.handle} />
+        {/* Floating glass card (MsgNoteView / MsgNoteMine): 32 px radius, close button above its top-right corner. */}
+        <Animated.View style={{ position: 'absolute', left: 18, right: 18, top: cardTop, transform: [{ translateY: y }] }} accessibilityViewIsModal>
+          <View style={{ alignItems: 'flex-end', height: 52, justifyContent: 'center' }}>
+            <Pressable onPress={() => close()} accessibilityRole="button" accessibilityLabel="Close" hitSlop={4} style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: withAlpha(colors.white, 0.14) }}>
+              <Icon name="close" size={18} color={colors.text} />
+            </Pressable>
           </View>
+          <View style={[styles.sheet, shadow.float]}>
+          {Platform.OS === 'ios' ? <BlurView tint="dark" intensity={50} style={StyleSheet.absoluteFill} /> : null}
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(28,28,30,0.88)' }]} />
+          <TopHighlight radius={32} color={withAlpha(colors.white, 0.2)} />
 
-          <Animated.View {...pan.panHandlers} style={{ paddingHorizontal: 20, gap: 14, transform: [{ translateX: slide }] }}>
+          <Animated.View {...pan.panHandlers} style={{ padding: 20, gap: 14, transform: [{ translateX: slide }] }}>
             <Row gap={12}>
               <View>
-                <ForeverRing uid={mine ? null : note.user_id} radius={15}>
-                  <RoundFace id={note.user_id} name={note.display_name} uri={note.avatar_url} size={44} radius={15} />
+                <ForeverRing uid={mine ? null : note.user_id} radius={26}>
+                  <RoundFace id={note.user_id} name={note.display_name} uri={note.avatar_url} size={48} radius={24} />
                 </ForeverRing>
               </View>
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -377,9 +393,6 @@ export function NoteSheet({
                   </T>
                 </View>
               ) : null}
-              <Pressable onPress={() => close()} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8} style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: withAlpha(colors.white, 0.14) }}>
-                <Icon name="close" size={18} color={colors.text} />
-              </Pressable>
             </Row>
 
             {note.text ? (
@@ -530,15 +543,15 @@ export function NoteSheet({
               </Row>
             ) : null}
           </Animated.View>
+          </View>
         </Animated.View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: { borderTopLeftRadius: 36, borderTopRightRadius: 36, overflow: 'hidden', borderWidth: 1, borderBottomWidth: 0, borderColor: colors.glassBorder },
-  handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: colors.handle },
+  sheet: { borderRadius: 32, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
 });
 
 /** ∞ Forever chip after a friend's name (only for Forever friends). */

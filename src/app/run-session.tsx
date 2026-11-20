@@ -24,7 +24,8 @@ import {
 import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
 import { usePlayerPick } from '../state/player';
-import { colors, radius } from '../theme/tokens';
+import type { IconName } from '../components/icons';
+import { colors, radius, withAlpha } from '../theme/tokens';
 
 const CONTEXT = 'Run mode';
 
@@ -151,7 +152,7 @@ export default function RunSession() {
 
   if (tracker.status === 'idle') {
     return (
-      <Screen backdrop={{ mesh: 'coral', pattern: 'none' }}>
+      <Screen backdrop={{ mesh: 'coral', pattern: 'dots', glows: [{ x: 0.74, y: 0.1, color: '#FDCB6E', opacity: 0.3 }, { x: 0.16, y: 0.4, color: '#FF6B81', opacity: 0.2 }] }}>
         <ScreenHeader title="Run session" />
         <View style={{ gap: 6 }}>
           <T variant="headlineLight" accessibilityRole="header">
@@ -182,29 +183,34 @@ export default function RunSession() {
   const finished = tracker.status === 'finished';
 
   return (
-    <Screen backdrop={{ mesh: 'coral', pattern: 'none' }} gap={20}>
+    <Screen backdrop={{ mesh: 'coral', pattern: 'dots', glows: [{ x: 0.74, y: 0.1, color: '#FDCB6E', opacity: 0.3 }, { x: 0.16, y: 0.4, color: '#FF6B81', opacity: 0.2 }] }} gap={20}>
       <ScreenHeader title={tracker.status === 'paused' ? 'Paused' : finished ? 'Run ended' : 'Running'} back={finished ? 'back' : false} />
 
-      <View style={{ alignItems: 'center', gap: 4 }}>
-        <T size={12} weight={600} tracking={1.5} color={colors.textSecondary}>
-          DURATION
-        </T>
-        <T variant="displayLight" size={64} accessibilityLabel={`Duration ${formatClock(s.elapsed)}`} style={{ fontVariant: ['tabular-nums'] }}>
-          {formatClock(s.elapsed)}
-        </T>
-      </View>
-
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Metric label="Distance" value={tracker.gps === 'on' ? formatKm(s.meters) : '--'} unit="km" />
-        <Metric label="Pace" value={tracker.gps === 'on' ? formatPace(s.pace) : '--'} unit="/km" />
-        <Metric label="Steps" value={tracker.pedometer === 'on' ? String(s.steps) : '--'} />
-        <Metric label="Cadence" value={tracker.pedometer === 'on' && s.cadence !== null ? String(s.cadence) : '--'} unit="spm" />
-      </Row>
+      <T size={14} weight={300}>
+        Today
+      </T>
+      <Glass padding={16} radius={32}>
+        <View style={{ gap: 4 }}>
+          <T size={22} weight={500} align="center">
+            Running
+          </T>
+          <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+            <T variant="displayLight" size={56} accessibilityLabel={`Duration ${formatClock(s.elapsed)}`} style={{ fontVariant: ['tabular-nums'] }}>
+              {formatClock(s.elapsed)}
+            </T>
+            <T size={13}>Duration</T>
+          </View>
+          <Metric icon="pin" label="Distance" value={tracker.gps === 'on' ? formatKm(s.meters) : '--'} unit="km" />
+          <Metric icon="bolt" label="Pace" value={tracker.gps === 'on' ? formatPace(s.pace) : '--'} unit="/km" />
+          <Metric icon="chart" label="Steps" value={tracker.pedometer === 'on' ? String(s.steps) : '--'} />
+          <Metric icon="heart" label="Cadence" value={tracker.pedometer === 'on' && s.cadence !== null ? String(s.cadence) : '--'} unit="spm" />
+        </View>
+      </Glass>
 
       <SensorNote gps={tracker.gps} pedometer={tracker.pedometer} />
 
       {preset.bpm ? (
-        <Glass padding={14} radius={radius.md}>
+        <Glass padding={14} radius={32}>
           <Row>
             <Icon name="bolt" size={20} color={colors.accentLight} />
             <View style={{ flex: 1, gap: 2 }}>
@@ -264,7 +270,7 @@ export default function RunSession() {
       ) : null}
 
       {saveError ? (
-        <Glass padding={14} radius={radius.md}>
+        <Glass padding={14} radius={32}>
           <View style={{ gap: 10 }}>
             <T size={14} color={colors.error}>
               Couldn&apos;t save your run: {saveError}
@@ -293,16 +299,27 @@ export default function RunSession() {
   );
 }
 
-function Metric({ label, value, unit }: { label: string; value: string; unit?: string }) {
+function Metric({ icon, label, value, unit }: { icon: IconName; label: string; value: string; unit?: string }) {
   return (
-    <View style={{ alignItems: 'center', gap: 2, flex: 1 }} accessible accessibilityLabel={`${label}: ${value === '--' ? 'not available' : `${value}${unit ? ` ${unit}` : ''}`}`}>
-      <T size={22} weight={600} style={{ fontVariant: ['tabular-nums'] }}>
+    <Row
+      gap={12}
+      style={{ paddingVertical: 12, paddingHorizontal: 4, borderTopWidth: 1, borderTopColor: colors.divider }}
+      accessible
+      accessibilityLabel={`${label}: ${value === '--' ? 'not available' : `${value}${unit ? ` ${unit}` : ''}`}`}
+    >
+      <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: withAlpha(colors.white, 0.12), alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={icon} size={18} />
+      </View>
+      <T size={14} style={{ flex: 1 }}>
+        {label}
+      </T>
+      <T size={18} weight={300} style={{ fontVariant: ['tabular-nums'] }}>
         {value}
       </T>
-      <T size={11} color={colors.textSecondary}>
-        {unit && value !== '--' ? `${label} (${unit})` : label}
+      <T size={11} color={colors.textSecondary} style={{ width: 32 }}>
+        {value !== '--' ? unit : ''}
       </T>
-    </View>
+    </Row>
   );
 }
 

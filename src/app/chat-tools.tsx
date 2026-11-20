@@ -79,11 +79,11 @@ export default function ChatTools() {
       pins: pins.count ?? 0,
       pending: req !== 'none',
     };
-  }, [cid, me]);
+  }, [cid, me], 'app/chat-tools:66');
   const other = ctx.data?.other ?? null;
   const name = other?.display_name ?? 'them';
   const first = name.split(' ')[0];
-  const match = useAsync(() => (other ? tasteMatch(other.id) : Promise.resolve(null)), [other?.id]);
+  const match = useAsync(() => (other ? tasteMatch(other.id) : Promise.resolve(null)), [other?.id], 'app/chat-tools:86');
   const timer = timerEdit !== undefined ? timerEdit : (ctx.data?.disappear ?? null);
   const caller = useStartCall(cid, ctx.data?.pending ? 'You can call once they accept your chat request.' : null, { replace: true });
   const call = (kind: 'audio' | 'video') => void caller.start(kind).then((err) => err && setNote({ ok: false, text: err }));
@@ -451,8 +451,8 @@ function SongPicker({ busy, onPick }: { busy: string | null; onPick: (t: Catalog
       out.push(r.track);
     }
     return out.slice(0, 20);
-  }, [user?.id]);
-  const results = useAsync<CatalogTrack[]>(() => (query ? catalog.searchTracks(query, { limit: 20 }) : Promise.resolve([])), [query]);
+  }, [user?.id], 'app/chat-tools:442');
+  const results = useAsync<CatalogTrack[]>(() => (query ? catalog.searchTracks(query, { limit: 20 }) : Promise.resolve([])), [query], 'app/chat-tools:455');
 
   const list = query ? results : recent;
   const tracks = (query ? [] : nowPlaying ? [nowPlaying] : []).concat((list.data ?? []).filter((t) => t.id !== nowPlaying?.id || !!query));
@@ -528,7 +528,7 @@ function ScheduleComposer({ cid, me }: { cid: string; me: string }) {
   const [pick, setPick] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
-  const pending = useAsync(() => listScheduled(cid), [cid]);
+  const pending = useAsync(() => listScheduled(cid), [cid], 'app/chat-tools:531');
 
   const schedule = async () => {
     const text = body.trim();

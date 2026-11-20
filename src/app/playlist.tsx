@@ -18,12 +18,11 @@ import {
   Row,
   Screen,
   ScreenHeader,
-  Spacer,
   T,
   TextField,
   Toast,
-  TrackItem,
 } from '../components';
+import { AppleTrackRow, CollectionHeader, PlayShufflePills } from '../components/apple-parts';
 import { catalog, MOOD_MAP, type Artwork, type CatalogTrack } from '../lib/catalog';
 import { playlistShareUrl, profileShareUrl, shareContent } from '../lib/share-links';
 import { useContentFilter } from '../lib/content-filter';
@@ -32,7 +31,7 @@ import { useAuth } from '../state/auth';
 import { useLibrary, type UserPlaylist } from '../state/library';
 import { toggleCollectionDownload, useCollectionDownload } from '../state/downloads';
 import { usePlayerPick } from '../state/player';
-import { colors, shadow } from '../theme/tokens';
+import { colors } from '../theme/tokens';
 
 /* ------------------------------------------------------------------ local helpers */
 
@@ -320,45 +319,33 @@ export default function Playlist() {
         <ErrorState message={error} onRetry={() => setNonce((n) => n + 1)} />
       ) : view ? (
         <>
-          <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <View style={{ borderRadius: 26, shadowColor: colors.accent, shadowOpacity: 0.3, shadowRadius: 40, shadowOffset: { width: 0, height: 0 } }}>
-              {kind === 'liked' ? (
-                <Art art="sunrise" size={200} radius={26} style={[shadow.artGlow, { alignItems: 'center', justifyContent: 'center' }]}>
-                  <Icon name="heart" size={72} color={colors.white} filled />
+          <CollectionHeader
+            art={
+              kind === 'liked' ? (
+                <Art art="sunrise" size={240} radius={14} style={{ alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="heart" size={88} color={colors.white} filled />
                 </Art>
               ) : (
-                <Cover uri={view.coverUri} artwork={view.artwork} id={id ?? catalogId ?? mix ?? smart} size={200} radius={26} style={shadow.artGlow} />
-              )}
-            </View>
-          </View>
+                <Cover uri={view.coverUri} artwork={view.artwork} id={id ?? catalogId ?? mix ?? smart} size={240} radius={14} />
+              )
+            }
+            title={view.title}
+            meta={`${view.rows.length} ${view.rows.length === 1 ? 'song' : 'songs'} · ${totalTime(view.rows)}${view.tag ? ` · ${view.tag}` : ''}`}
+            description={view.description}
+          />
 
-          <View style={{ gap: 6 }}>
-            <T variant="title" accessibilityRole="header">
-              {view.title}
-            </T>
-            {view.description ? (
-              <T size={14} color={colors.textSecondary} lineHeight={20}>
-                {view.description}
-              </T>
-            ) : null}
-            <Row gap={8}>
-              <T mono size={12} color={colors.textSecondary}>
-                {view.rows.length} {view.rows.length === 1 ? 'song' : 'songs'} · {totalTime(view.rows)}
-              </T>
-              {view.tag ? (
-                <>
-                  <T size={12} color={colors.textTertiary}>
-                    ·
-                  </T>
-                  <T size={12} weight={600} color={colors.amber}>
-                    {view.tag}
-                  </T>
-                </>
-              ) : null}
-            </Row>
-          </View>
+          <PlayShufflePills
+            playing={playingHere}
+            onPlay={onPlay}
+            shuffleOn={player.shuffle}
+            onShuffle={() => {
+              if (!allTracks.length) return show('Nothing to play yet');
+              player.setShuffle(true);
+              player.playTracks(allTracks, Math.floor(Math.random() * allTracks.length), ctx);
+            }}
+          />
 
-          <Row gap={4}>
+          <Row style={{ justifyContent: 'center' }} gap={16}>
             <IconButton
               icon={dlStatus.complete ? 'check' : 'download'}
               label={dlStatus.downloading ? 'Cancel download' : dlStatus.complete ? 'Remove download' : 'Download'}
@@ -376,9 +363,6 @@ export default function Playlist() {
             />
             <IconButton icon="share" label="Share" size={48} onPress={() => void onShare()} />
             <IconButton icon="more" label="More" size={48} color={menu ? colors.accentLight : colors.text} onPress={() => setMenu((v) => !v)} />
-            <Spacer />
-            <IconButton icon="shuffle" label="Shuffle" size={48} color={player.shuffle ? colors.amber : colors.textSecondary} onPress={() => player.setShuffle(!player.shuffle)} />
-            <IconButton icon={playingHere ? 'pause' : 'play'} label={playingHere ? 'Pause' : 'Play'} size={56} iconSize={26} bg={colors.accent} color={colors.onAccent} onPress={onPlay} />
           </Row>
 
           {dlStatus.downloading ? (
@@ -453,13 +437,13 @@ export default function Playlist() {
           ) : (
             <View>
               {rows.map((r, i) => (
-                <TrackItem
+                <AppleTrackRow
                   key={r.rowId ?? `${r.track.id}-${i}`}
                   track={r.track}
                   list={tracks}
                   index={i}
-                  showIndex
-                  artRadius={14}
+                  withArt
+                  last={i === rows.length - 1}
                   context={ctx}
                   right={
                     isOwner && r.rowId ? (

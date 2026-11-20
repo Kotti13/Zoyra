@@ -42,7 +42,7 @@ export default function ChatExtras() {
     ]);
     const c = conv.data as { disappear_seconds: number | null; kind: string | null } | null;
     return { disappear: c?.disappear_seconds ?? null, group: c?.kind === 'group', pending: req !== 'none', stars };
-  }, [cid, me]);
+  }, [cid, me], 'app/chat-extras:36');
   const timer = timerEdit !== undefined ? timerEdit : (ctx.data?.disappear ?? null);
   const pending = !!ctx.data?.pending;
 
@@ -98,6 +98,13 @@ export default function ChatExtras() {
     });
   };
 
+  const addRows: { key: string; title: string; body: string; icon: IconName; onPress: () => void }[] = [
+    { key: 'song', title: 'Song', body: 'Share now playing or search', icon: 'music', onPress: () => router.replace({ pathname: '/chat-attach', params: { id: cid, mode: 'song' } }) },
+    { key: 'photo', title: 'Photo or video', body: 'Camera roll', icon: 'image', onPress: () => router.replace({ pathname: '/chat-attach', params: { id: cid } }) },
+    { key: 'voice', title: 'Voice note', body: 'Hold to record', icon: 'mic', onPress: () => router.replace({ pathname: '/chat-voice', params: { id: cid } }) },
+    { key: 'schedule', title: 'Schedule', body: 'Send later or lock in a time capsule', icon: 'clock', onPress: () => router.replace({ pathname: '/chat-scheduled', params: { id: cid } }) },
+    { key: 'poll', title: 'Poll', body: 'Let the chat vote', icon: 'chart', onPress: () => router.replace({ pathname: '/chat-attach', params: { id: cid, mode: 'poll' } }) },
+  ];
   const tiles: Tile[] = [
     { key: 'capsule', title: 'Time capsule', body: 'Locked until a date you pick', icon: 'lock', color: '#8A4BFF', onPress: () => router.replace({ pathname: '/chat-capsule', params: { id: cid } }) },
     { key: 'whisper', title: busy === 'whisper' ? 'Sending…' : 'Whisper', body: 'View once, then gone', icon: 'eye', color: '#2B6BFF', onPress: whisper },
@@ -127,13 +134,39 @@ export default function ChatExtras() {
         setNote({ ok: true, text: next === 'auto' ? 'Chat mood follows the song playing' : 'Chat mood off' });
       },
     },
-    { key: 'schedule', title: 'Schedule', body: pending ? 'After they accept' : 'Send later or on a date', icon: 'clock', color: '#1FBF8F', disabled: pending, onPress: () => router.replace({ pathname: '/chat-scheduled', params: { id: cid } }) },
   ];
 
   return (
     <Sheet gap={12}>
       <T size={18} weight={600} accessibilityRole="header">
-        Chat extras
+        Add to chat
+      </T>
+      <View>
+        {addRows.map((r, i) => (
+          <Tap
+            key={r.key}
+            onPress={r.onPress}
+            accessibilityRole="button"
+            accessibilityLabel={`${r.title}. ${r.body}`}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64, paddingVertical: 12, paddingHorizontal: 4, borderTopWidth: i ? 1 : 0, borderTopColor: withAlpha(colors.white, 0.07) }}
+          >
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: withAlpha(colors.white, 0.08), alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={r.icon} size={20} color={colors.text} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <T size={15} weight={600}>
+                {r.title}
+              </T>
+              <T size={12} color={colors.textSecondary}>
+                {r.body}
+              </T>
+            </View>
+            <Icon name="chevronRight" size={16} color={colors.textSecondary} />
+          </Tap>
+        ))}
+      </View>
+      <T size={12} weight={600} color={colors.textSecondary} style={{ letterSpacing: 1.2, paddingHorizontal: 4 }}>
+        MORE
       </T>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 }}>
         {tiles.map((t) => (

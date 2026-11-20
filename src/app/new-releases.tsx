@@ -1,13 +1,13 @@
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { View, type StyleProp, type TextStyle } from 'react-native';
+import { ScrollView, View, type StyleProp, type TextStyle } from 'react-native';
 
-import { ChipRow, Cover, EmptyState, ErrorState, Glass, IconButton, Loading, MiniPlayer, Screen, ScreenHeader, T, Tap, useAsync } from '../components';
+import { Cover, EmptyState, ErrorState, Glass, IconButton, Loading, MiniPlayer, Screen, ScreenHeader, T, Tap, useAsync } from '../components';
 import { catalog, type Artwork, type CatalogTrack, type Collection } from '../lib/catalog';
 import { useContentFilter } from '../lib/content-filter';
 import { useLibrary } from '../state/library';
 import { usePlayerPick } from '../state/player';
-import { colors, shadow } from '../theme/tokens';
+import { colors, shadow, withAlpha } from '../theme/tokens';
 
 const tabs = ['All', 'Albums', 'Singles', 'Following'] as const;
 type Tab = (typeof tabs)[number];
@@ -23,6 +23,31 @@ function GroupLabel({ children, style }: { children: string; style?: StyleProp<T
     <T size={12} weight={600} tracking={0.5} color={colors.textSecondary} accessibilityRole="header" style={style}>
       {children}
     </T>
+  );
+}
+
+/** Board filter chips: frosted pill, the selected one is solid accent. */
+function FilterChips({ value, onChange }: { value: Tab; onChange: (t: Tab) => void }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+      {tabs.map((t) => {
+        const on = t === value;
+        return (
+          <Tap key={t} onPress={() => onChange(t)} accessibilityState={{ selected: on }} style={{ height: 44, justifyContent: 'center' }}>
+            <View
+              style={[
+                { height: 32, paddingHorizontal: 16, borderRadius: 28, justifyContent: 'center' },
+                on ? { backgroundColor: colors.accent } : { backgroundColor: withAlpha(colors.white, 0.08), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12) },
+              ]}
+            >
+              <T size={14} weight={500} color={on ? colors.onAccent : colors.text}>
+                {t}
+              </T>
+            </View>
+          </Tap>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -52,8 +77,7 @@ function ReleaseCard({ r, onPlay }: { r: Release; onPlay: () => void }) {
 export default function NewReleases() {
   const { followedArtists } = useLibrary();
   const { playTracks } = usePlayerPick();
-  const [initialTab] = useState(followedArtists.length ? 3 : 0);
-  const [tab, setTab] = useState<Tab>(tabs[initialTab]);
+  const [tab, setTab] = useState<Tab>(tabs[followedArtists.length ? 3 : 0]);
   const followKey = followedArtists.map((a) => a.id).join(',');
 
   const data = useAsync(async () => {
@@ -64,7 +88,7 @@ export default function NewReleases() {
       catalog.trending({ time: 'week', limit: 40 }),
     ]);
     return { followedTracks, albums, recent, ids: new Set(ids) };
-  }, [followKey]);
+  }, [followKey], 'app/new-releases:83');
 
   const { filter: hideFilter, hiddenArtists } = useContentFilter();
   // Fixed "now" for this visit: grouping and the 60-day window stay stable across re-renders.
@@ -116,7 +140,7 @@ export default function NewReleases() {
     <Screen onRefresh={data.refresh} top={4} bottom={12} gap={14} backdrop={{ pattern: 'grid', mesh: 'rose' }} footer={<MiniPlayer />}>
       <ScreenHeader title="New releases" right={<IconButton icon="bell" label="Notification settings" href="/notif-settings" />} />
 
-      <ChipRow options={[...tabs]} initial={initialTab} onChange={(i) => setTab(tabs[i])} />
+      <FilterChips value={tab} onChange={setTab} />
 
       {data.loading && !data.data ? (
         <Loading label="Finding new music" />

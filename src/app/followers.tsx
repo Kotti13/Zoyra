@@ -206,7 +206,7 @@ export default function Followers() {
   const followerIds = useMemo(() => new Set(shownFollowers.map((p) => p.id)), [shownFollowers]);
   const list = results ?? (tab === 0 ? shownFollowers : shownFollowing);
   const listIds = list.map((p) => p.id).join(',');
-  const arts = useAsync(() => loadAvatarArts(listIds ? listIds.split(',') : []), [listIds]).data ?? NO_ARTS;
+  const arts = useAsync(() => loadAvatarArts(listIds ? listIds.split(',') : []), [listIds], 'app/followers:209').data ?? NO_ARTS;
 
   return (
     <Screen
@@ -219,7 +219,8 @@ export default function Followers() {
       {!me ? <EmptyState icon="users" title="Sign in to see your people" body="Followers, following and people search need an account." action="Sign in" href="/login" /> : null}
       <Segmented options={[`Followers ${shownFollowers.length}`, `Following ${shownFollowing.length}`]} initial={startTab} onChange={(i) => setTab(i)} />
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, borderRadius: 24, backgroundColor: colors.bgTertiary, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 }}>
+      <Glass radius={24} style={{ height: 48 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingHorizontal: 14 }}>
         <Icon name="search" size={20} color={colors.textSecondary} />
         <TextInput
           value={query}
@@ -237,6 +238,7 @@ export default function Followers() {
           </Tap>
         ) : null}
       </View>
+      </Glass>
 
       {note ? (
         <Tap onPress={() => setNote(null)}>

@@ -44,6 +44,9 @@ export function T({ variant = 'body', size, weight, color = colors.text, mono, a
   const fg = contrast && color === colors.textSecondary ? HIGH_CONTRAST_SECONDARY : color;
   return (
     <Text
+      // Cap the phone's system font scaling: the in-app text size already applies on top of it, and uncapped
+      // double scaling breaks fixed-height rows. A screen can still pass its own maxFontSizeMultiplier.
+      maxFontSizeMultiplier={1.25}
       {...rest}
       style={[
         {
@@ -217,7 +220,10 @@ export function Avatar({
   size = 56,
   online,
   ringColor = colors.bg,
+  radius: r,
 }: {
+  /** Corner radius; defaults to a full circle. Boards use rounded squares (~size / 3). */
+  radius?: number;
   initial?: string;
   art?: ArtName;
   size?: number;
@@ -227,7 +233,7 @@ export function Avatar({
   const status = useStatusColors();
   return (
     <View style={{ width: size, height: size }}>
-      <Art art={a} size={size} radius={size / 2} style={styles.center}>
+      <Art art={a} size={size} radius={r ?? size / 2} style={styles.center}>
         {initial ? (
           <T weight={600} size={Math.round(size * 0.32)} color={colors.white}>
             {initial}

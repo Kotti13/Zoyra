@@ -3,7 +3,8 @@ import { Image } from 'expo-image';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Glass, Icon, ListGroup, ListRow, Loading, Row, Screen, ScreenHeader, T, Toast } from '../components';
+import { Button, Glass, Icon, ListRow, Loading, Row, Screen, ScreenHeader, T, Toast } from '../components';
+import { SectionLabel } from '../components/settings-ui';
 import { downloads, formatBytes } from '../lib/downloads';
 import { useDownloads } from '../state/downloads';
 import { colors } from '../theme/tokens';
@@ -75,7 +76,7 @@ export default function Cache() {
     : [];
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'coral' }}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'lines', mesh: 'coral' }}>
       <ScreenHeader title="Cache and prefetch" />
 
       <Glass padding={16}>
@@ -120,10 +121,13 @@ export default function Cache() {
         </Row>
       </Glass>
 
-      <ListGroup title="HOW DATA IS KEPT">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>How data is kept</SectionLabel>
+        <Glass padding={4}>
         <ListRow title="Album art and photos" subtitle="Kept until cleared or the system needs space" icon="camera" right={false} />
         <ListRow title="Downloaded songs" subtitle={`${dl.list.length} ${dl.list.length === 1 ? 'song' : 'songs'} · kept until you remove them`} icon="download" divider href="/downloads" />
-      </ListGroup>
+      </Glass>
+      </View>
 
       {note ? <Toast icon={note.ok ? 'check' : 'info'} iconColor={note.ok ? colors.success : colors.error} message={note.text} /> : null}
 

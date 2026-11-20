@@ -22,7 +22,7 @@ import {
   type ZoyraComment,
 } from '../lib/youtube';
 import { useAuth } from '../state/auth';
-import { colors, fonts, radius } from '../theme/tokens';
+import { colors, fonts } from '../theme/tokens';
 
 const TABS = ['Top', 'Newest', 'Timestamps', 'On Zoyra'] as const;
 type Tab = (typeof TABS)[number];
@@ -50,7 +50,7 @@ export default function VideoComments() {
   return (
     <Sheet gap={12} maxHeight={720}>
       <Row style={{ justifyContent: 'space-between' }}>
-        <T variant="section" accessibilityRole="header">
+        <T variant="section" size={18} accessibilityRole="header">
           Comments
         </T>
         <IconButton icon="close" label="Close comments" onPress={() => go('back')} />
@@ -85,7 +85,7 @@ function YouTubeTab({ videoId, tab, duration, onSeek, onZoyra }: { videoId: stri
       if (e instanceof YouTubeError && e.code === 'comments_disabled') return { comments: [], disabled: true };
       throw new Error(youtubeErrorMessage(e, 'Could not load comments'));
     }
-  }, [videoId, order]);
+  }, [videoId, order], 'app/video-comments:79');
 
   const loadMore = async () => {
     if (!token || loadingMore) return;
@@ -104,7 +104,7 @@ function YouTubeTab({ videoId, tab, duration, onSeek, onZoyra }: { videoId: stri
 
   const addOnZoyra = (
     <Tap onPress={onZoyra} accessibilityLabel="Add a comment on Zoyra" style={{ minHeight: 48, justifyContent: 'center' }}>
-      <Row gap={10} style={{ height: 44, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.chipOutline }}>
+      <Row gap={10} style={{ height: 48, paddingHorizontal: 18, borderRadius: 32, borderWidth: 1, borderColor: colors.chipOutline, backgroundColor: colors.iconGhost }}>
         <Icon name="edit" size={18} color={colors.textSecondary} />
         <T size={14} color={colors.textSecondary} style={{ flex: 1 }}>
           Add a comment on Zoyra…
@@ -160,7 +160,7 @@ function ZoyraTab({ videoId, duration, onSeek }: { videoId: string; duration: nu
   const { user } = useAuth();
   const me = user?.id;
   const blocks = useBlocks(me);
-  const list = useAsync(() => listZoyraComments(videoId), [videoId]);
+  const list = useAsync(() => listZoyraComments(videoId), [videoId], 'app/video-comments:163');
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,7 +205,7 @@ function ZoyraTab({ videoId, duration, onSeek }: { videoId: string; duration: nu
     <>
       {me ? (
         <View style={{ gap: 6 }}>
-          <Row gap={8} style={{ minHeight: 48, paddingLeft: 16, paddingRight: 4, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.chipOutline }}>
+          <Row gap={8} style={{ minHeight: 48, paddingLeft: 18, paddingRight: 4, borderRadius: 32, borderWidth: 1, borderColor: colors.chipOutline, backgroundColor: colors.iconGhost }}>
             <TextInput
               accessibilityLabel="Write a comment on Zoyra"
               value={draft}
@@ -299,8 +299,8 @@ function CommentRow({
 }) {
   const parts = splitTimestamps(text, duration);
   return (
-    <Row gap={10} align="flex-start" style={{ paddingVertical: 6 }}>
-      <ChannelAvatar name={name} uri={avatar} size={32} />
+    <Row gap={12} align="flex-start" style={{ paddingVertical: 6 }}>
+      <ChannelAvatar name={name} uri={avatar} size={38} />
       <View style={{ flex: 1, gap: 4 }}>
         <T size={12} color={colors.textSecondary} numberOfLines={1}>
           {[name, when].filter(Boolean).join(' · ')}

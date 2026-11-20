@@ -88,7 +88,7 @@ export default function ChatLockSheet() {
             Face ID required
           </T>
           <T size={13} color={colors.textSecondary}>
-            Banners show only the name, never the message.
+            The chat moves to Locked chats. Banners show only the name, never the message.
           </T>
         </View>
       </View>

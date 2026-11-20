@@ -91,7 +91,7 @@ export default function Badges() {
   };
 
   return (
-    <Screen onRefresh={q.refresh} top={4} gap={16} backdrop={{ pattern: 'dots' }}>
+    <Screen onRefresh={q.refresh} top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'amberRose' }}>
       <ScreenHeader title="Badges" right={q.data ? <IconButton icon="share" label="Share badges" onPress={() => void share()} /> : undefined} />
 
       {!user ? (

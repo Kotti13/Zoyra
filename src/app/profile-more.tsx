@@ -31,7 +31,7 @@ export default function ProfileMore() {
     const { data, error } = await supabase.from('profiles').select('display_name, username').eq('id', otherId).maybeSingle();
     if (error) throw new Error(error.message);
     return (data as { display_name: string; username: string | null } | null) ?? null;
-  }, [otherId]);
+  }, [otherId], 'app/profile-more:29');
 
   const name = otherId ? other.data?.display_name ?? 'this person' : profile?.display_name ?? 'me';
   const targetUsername = otherId ? other.data?.username : profile?.username;

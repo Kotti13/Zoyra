@@ -26,10 +26,10 @@ function Progress() {
 function LockPreview() {
   const { track, playing, toggle, next, previous } = usePlayerPick('track', 'playing');
   return (
-    <Glass padding={16} radius={28} strong>
+    <Glass padding={16} radius={26} strong>
       <View style={{ gap: 12 }}>
         <Row gap={12}>
-          <Cover artwork={track?.artwork} id={track?.id} size={56} radius={12} />
+          <Cover artwork={track?.artwork} id={track?.id} size={56} radius={18} />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <T size={15} weight={600} numberOfLines={1}>
               {track?.title ?? 'Nothing playing'}

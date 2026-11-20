@@ -133,7 +133,7 @@ export default function Login() {
   return (
     <Screen top={20} gap={20} contentStyle={{ flexGrow: 1 }} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
       <View style={{ gap: 8 }}>
-        <T variant="hero" lineHeight={37} accessibilityRole="header">
+        <T variant="hero" weight={300} lineHeight={37} accessibilityRole="header">
           Welcome back
         </T>
         <T size={16} lineHeight={23} color={colors.textSecondary}>

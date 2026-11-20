@@ -1,6 +1,9 @@
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Avatar, Cover, Glass, Icon, IconButton, ListGroup, ListRow, Row, Screen, T, Tap, artFor, type IconName, type NavTarget } from '../components';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import { Avatar, Cover, Icon, IconButton, Row, Screen, T, Tap, artFor, type IconName, type NavTarget } from '../components';
+import { IconChip, Panel, PanelRow, SectionLabel } from '../components/settings-ui';
 import { useScreenReaderHints } from '../lib/a11y';
 import { useAuth, type Profile } from '../state/auth';
 import { colors, withAlpha } from '../theme/tokens';
@@ -82,21 +85,19 @@ const GROUPS: { title: string; rows: Item[] }[] = [
 function TileCard({ item, hints }: { item: Item; hints: boolean }) {
   return (
     <Tap href={item.href} accessibilityRole="button" accessibilityLabel={`${item.title}. ${item.subtitle}`} accessibilityHint={hints ? `Opens ${item.title} settings` : undefined} style={{ flex: 1, minWidth: 0 }}>
-      <Glass padding={16} radius={28} style={{ flex: 1 }}>
+      <Panel padding={16} radius={36} style={{ flex: 1 }}>
         <View style={{ gap: 12 }}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={item.icon} size={22} color={colors.accentLight} />
-          </View>
+          <IconChip icon={item.icon} size={44} alpha={0.2} />
           <View style={{ gap: 2 }}>
             <T size={15} weight={600} numberOfLines={1}>
               {item.title}
             </T>
-            <T size={12} color={colors.textSecondary} numberOfLines={2}>
+            <T size={12} color={colors.textSecondary} numberOfLines={2} lineHeight={16}>
               {item.subtitle}
             </T>
           </View>
         </View>
-      </Glass>
+      </Panel>
     </Tap>
   );
 }
@@ -112,30 +113,31 @@ export default function SettingsHub() {
   return (
     <Screen top={4} gap={16} bottom={24} backdrop={{ pattern: 'none', mesh: 'coral', orbs: true }}>
       <Row style={{ justifyContent: 'space-between', minHeight: 44 }}>
-        <T variant="display" size={36} accessibilityRole="header">
+        <T variant="display" size={36} tracking={-1} accessibilityRole="header">
           Settings
         </T>
         <IconButton icon="close" label="Close" href="back" bg={colors.chipGhost} />
       </Row>
 
       <Tap href="/settings-search" accessibilityRole="search" accessibilityLabel="Search settings">
-        <Glass radius={26} style={{ height: 52, justifyContent: 'center', paddingHorizontal: 18 }}>
+        <Panel radius={26} style={{ height: 52, justifyContent: 'center', paddingHorizontal: 18 }}>
           <Row gap={12}>
             <Icon name="search" size={20} color={colors.textSecondary} />
             <T size={15} color={colors.textSecondary}>
               Search settings
             </T>
           </Row>
-        </Glass>
+        </Panel>
       </Tap>
 
       <Tap href="/profile" accessibilityLabel={`${name}, ${plan}. Open profile`}>
-        <View style={{ borderRadius: 36, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: withAlpha(colors.red, 0.22), padding: 16 }}>
+        <View style={{ borderRadius: 36, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.white, 0.14), padding: 16 }}>
+          <LinearGradient colors={[withAlpha(colors.accent, 0.32), 'rgba(20,20,20,0.6)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <Row gap={14}>
             {profile?.avatar_url ? (
               <Cover uri={profile.avatar_url} id={user?.id} size={56} radius={19} />
             ) : (
-              <Avatar initial={name.trim().charAt(0).toUpperCase() || 'Z'} art={artFor(user?.id)} size={56} />
+              <Avatar initial={name.trim().charAt(0).toUpperCase() || 'Z'} art={artFor(user?.id)} size={56} radius={19} />
             )}
             <View style={{ flex: 1, gap: 4 }}>
               <T size={17} weight={600} numberOfLines={1}>
@@ -163,11 +165,14 @@ export default function SettingsHub() {
       ))}
 
       {GROUPS.map((g) => (
-        <ListGroup key={g.title} title={g.title}>
-          {g.rows.map((r, i) => (
-            <ListRow key={r.title} title={r.title} subtitle={r.subtitle} icon={r.icon} href={r.href} divider={i > 0} />
-          ))}
-        </ListGroup>
+        <View key={g.title} style={{ gap: 8 }}>
+          <SectionLabel>{g.title}</SectionLabel>
+          <Panel padding={{ v: 4, h: 16 }}>
+            {g.rows.map((r, i) => (
+              <PanelRow key={r.title} title={r.title} subtitle={r.subtitle} icon={r.icon} href={r.href} divider={i > 0} />
+            ))}
+          </Panel>
+        </View>
       ))}
     </Screen>
   );

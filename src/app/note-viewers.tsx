@@ -103,7 +103,7 @@ export default function NoteViewers() {
               accessibilityLabel={`${r.display_name}, ${status(r, tab)}${r.emoji ? `, reacted ${r.emoji}` : ''}`}
               style={{ paddingVertical: 10, paddingHorizontal: 4, borderTopWidth: 1, borderTopColor: withAlpha(colors.white, 0.07) }}
             >
-              <RoundFace id={r.user_id} name={r.display_name} uri={r.avatar_url} size={44} radius={15} />
+              <RoundFace id={r.user_id} name={r.display_name} uri={r.avatar_url} size={44} radius={22} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <T size={15} weight={600} numberOfLines={1}>
                   {r.display_name}

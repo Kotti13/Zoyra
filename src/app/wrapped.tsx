@@ -68,7 +68,7 @@ export default function Wrapped() {
     }
     const topSong = [...counts.values()].sort((a, b) => b.n - a.n)[0]?.track ?? null;
     return { ins: ins.data as Insights, topSong, peakHour: hours.indexOf(Math.max(...hours)), artists: artists.size };
-  }, [user?.id]);
+  }, [user?.id], 'app/wrapped:44');
 
   const d = q.data;
   const minutes = Number(d?.ins.minutes) || 0;

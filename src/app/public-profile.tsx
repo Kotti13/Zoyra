@@ -71,7 +71,7 @@ export default function PublicProfile() {
     const { data, error } = await supabase.from("profiles").select("id").eq("username", username).maybeSingle();
     if (error) throw new Error(error.message);
     return (data as { id: string } | null)?.id ?? null;
-  }, [username, rawId, me]);
+  }, [username, rawId, me], 'app/public-profile:69');
   const id = typeof rawId === "string" ? rawId : byName.data ?? "";
   const { playTrack } = usePlayerPick();
   const { blocked, unblock } = useBlocks(me);
@@ -87,7 +87,7 @@ export default function PublicProfile() {
 
   const res = useAsync(
     () => (id && me ? loadPublicProfile(id, me) : Promise.resolve(null)),
-    [id, me],
+    [id, me], 'app/public-profile:88',
   );
   const d = res.data;
   const { reload } = res;
@@ -99,7 +99,7 @@ export default function PublicProfile() {
       id && me && d
         ? dmAccess(id).catch((): DmAccess | null => null)
         : Promise.resolve(null),
-    [id, me, d, accessNonce],
+    [id, me, d, accessNonce], 'app/public-profile:97',
   );
 
   useEffect(() => {
@@ -310,7 +310,7 @@ export default function PublicProfile() {
   const pct = d.match ? Math.round(d.match.value * 100) : 0;
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: "dots", mesh: "coral" }} onRefresh={refresh}>
+    <Screen top={4} gap={16} backdrop={{ pattern: "dots", mesh: "rose" }} onRefresh={refresh}>
       <ProfileHero
         id={p.id}
         name={p.display_name}

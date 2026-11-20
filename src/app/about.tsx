@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
 
-import { Gradient, ListGroup, ListRow, Screen, ScreenHeader, T } from '../components';
+import { Gradient, ListRow, Screen, ScreenHeader, T, Glass } from '../components';
 import { colors } from '../theme/tokens';
 
 const links = ['Terms of service', 'Privacy policy', 'Open source licenses', 'Rate Zoyra', 'Contact support'] as const;
@@ -48,11 +48,13 @@ export default function About() {
         </T>
       </View>
 
-      <ListGroup>
+      <View>
+        <Glass padding={4}>
         {links.map((l, i) => (
           <ListRow key={l} title={l} minHeight={56} divider={i > 0} onPress={() => open(l)} />
         ))}
-      </ListGroup>
+      </Glass>
+      </View>
       {note ? (
         <T size={13} lineHeight={18} color={colors.textSecondary} align="center" accessibilityLiveRegion="polite">
           {note}

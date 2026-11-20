@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { Image } from 'expo-image';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
 
 import {
@@ -7,12 +8,13 @@ import {
   Chip,
   EmptyState,
   ErrorState,
+  Gradient,
+  Icon,
   IconButton,
   Loading,
   Row,
   Screen,
   ScreenHeader,
-  SectionHeader,
   T,
   Tap,
   TextField,
@@ -78,7 +80,7 @@ export default function Videos() {
   const live = submitted && submitted === draft.trim() ? submitted : debounced;
   const query = live.length >= 2 ? live : '';
 
-  const saved = useAsync(() => (me ? listSavedVideos(me) : Promise.resolve<YouTubeVideo[]>([])), [me]);
+  const saved = useAsync(() => (me ? listSavedVideos(me) : Promise.resolve<YouTubeVideo[]>([])), [me], 'app/videos:83');
   const savedIds = new Set((saved.data ?? []).map((v) => v.id));
 
   const toggleSave = async (v: YouTubeVideo) => {
@@ -104,8 +106,11 @@ export default function Videos() {
 
   return (
     <group.Provider value={group.value}>
-      <Screen top={4} gap={18} backdrop={{ pattern: 'lines', mesh: 'coral' }} onRefresh={refresh}>
-        <ScreenHeader title="Videos" />
+      <Screen top={4} gap={18} backdrop={{ pattern: 'dots', mesh: 'coral', orbs: true }} onRefresh={refresh}>
+        <ScreenHeader />
+        <T variant="display" size={36} weight={300} tracking={-1} lineHeight={40} accessibilityRole="header">
+          Videos
+        </T>
 
         <TextField
           label="Search music videos"
@@ -151,9 +156,9 @@ const friendly = <T,>(p: Promise<T>): Promise<T> =>
   });
 
 function AllTab({ width, saved, savedIds, onSave }: { width: number; saved: YouTubeVideo[]; savedIds: Set<string>; onSave: (v: YouTubeVideo) => Promise<void> }) {
-  const chart = useAsync(() => friendly(fetchChart()), []);
-  const shorts = useAsync(() => friendly(fetchShorts()), []);
-  const concerts = useAsync(() => friendly(searchVideos(CONCERT_QUERY, { duration: 'long' })), []);
+  const chart = useAsync(() => friendly(fetchChart()), [], 'app/videos:159');
+  const shorts = useAsync(() => friendly(fetchShorts()), [], 'app/videos:160');
+  const concerts = useAsync(() => friendly(searchVideos(CONCERT_QUERY, { duration: 'long' })), [], 'app/videos:161');
   useRefreshWith(() => Promise.all([chart.refresh(), shorts.refresh(), concerts.refresh()]));
 
   if (chart.error && chart.error === YOUTUBE_SETUP_MESSAGE) return <Toast icon="info" iconColor={colors.accentLight} message={YOUTUBE_SETUP_MESSAGE} />;
@@ -175,11 +180,11 @@ function AllTab({ width, saved, savedIds, onSave }: { width: number; saved: YouT
 
       {trending.length ? (
         <View style={{ gap: 4 }}>
-          <SectionHeader title="Trending videos" />
+          <H title="Trending videos" />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
             {trending.map((v) => (
               <Tap key={v.id} onPress={() => openVideo(v)} accessibilityLabel={`Play ${v.title} by ${v.channel}`} style={{ width: cardW, gap: 8 }}>
-                <VideoThumb video={v} width={cardW} radius={radius.md} />
+                <VideoThumb video={v} width={cardW} radius={radius.xl} />
                 <View style={{ gap: 2 }}>
                   <T size={14} weight={600} numberOfLines={2}>
                     {v.title}
@@ -195,7 +200,7 @@ function AllTab({ width, saved, savedIds, onSave }: { width: number; saved: YouT
       ) : null}
 
       <View style={{ gap: 4 }}>
-        <SectionHeader title="Shorts" action="Open shorts" href="/video-shorts" />
+        <H title="Shorts" action="Open shorts" href="/video-shorts" />
         {shorts.loading && !shorts.data ? (
           <Loading height={80} />
         ) : shorts.error ? (
@@ -225,7 +230,7 @@ function AllTab({ width, saved, savedIds, onSave }: { width: number; saved: YouT
 
       {saved.length ? (
         <View style={{ gap: 4 }}>
-          <SectionHeader title="My list" />
+          <H title="My list" />
           {saved.slice(0, 6).map((v) => (
             <VideoRow key={v.id} video={v} meta={v.channel} onPress={() => openVideo(v)} />
           ))}
@@ -233,7 +238,7 @@ function AllTab({ width, saved, savedIds, onSave }: { width: number; saved: YouT
       ) : null}
 
       <View style={{ gap: 4 }}>
-        <SectionHeader title="Concerts and live" />
+        <H title="Concerts and live" />
         {concerts.loading && !concerts.data ? (
           <Loading height={80} />
         ) : concerts.error ? (
@@ -256,7 +261,7 @@ function AllTab({ width, saved, savedIds, onSave }: { width: number; saved: YouT
 
 function ShortThumb({ video }: { video: YouTubeVideo }) {
   return (
-    <View style={{ width: 120, height: 200, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
+    <View style={{ width: 120, height: 200, borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
       <VideoThumb video={{ ...video, durationSec: null }} width={356} radius={0} style={{ position: 'absolute', left: -118, top: 0, height: 200 }} />
       {video.views !== null ? (
         <View style={{ position: 'absolute', left: 8, bottom: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: colors.shade }}>
@@ -271,33 +276,54 @@ function ShortThumb({ video }: { video: YouTubeVideo }) {
 
 function Featured({ video, width, saved, onSave }: { video: YouTubeVideo; width: number; saved: boolean; onSave: () => void }) {
   const official = /official/i.test(video.title);
+  const badge = video.live ? 'LIVE' : official ? 'OFFICIAL VIDEO' : '#1 TRENDING MUSIC VIDEO';
   return (
-    <View style={{ gap: 12 }}>
-      <Tap onPress={() => openVideo(video)} accessibilityLabel={`Play ${video.title} by ${video.channel}`}>
-        <VideoThumb video={video} width={width} radius={radius.xl} />
+    <View style={{ width, height: 430, borderRadius: 34, overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
+      {video.thumbnail ? <Image source={{ uri: video.thumbnail }} style={{ position: 'absolute', width: '100%', height: '100%' }} contentFit="cover" transition={150} accessibilityIgnoresInvertColors /> : null}
+      <Gradient colors={['rgba(5,5,5,0)', 'rgba(5,5,5,0.92)']} angle={180} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '62%' }} />
+      <Tap onPress={() => openVideo(video)} accessibilityLabel={`Play ${video.title} by ${video.channel}`} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}>
+        <View style={{ position: 'absolute', left: width / 2 - 34, top: 430 * 0.4 - 34, width: 68, height: 68, borderRadius: 34, backgroundColor: colors.frost, borderWidth: 1, borderColor: colors.glassHighlight, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="play" size={28} color={colors.white} filled />
+        </View>
       </Tap>
-      <View style={{ gap: 4 }}>
-        {official || video.live ? (
-          <T size={12} weight={700} color={colors.accentLight} tracking={1.2}>
-            {video.live ? 'LIVE' : 'OFFICIAL VIDEO'}
+      <View style={{ position: 'absolute', top: 16, left: 16, flexDirection: 'row', gap: 8 }} pointerEvents="none">
+        <View style={{ height: 26, paddingHorizontal: 12, borderRadius: 13, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center' }}>
+          <T size={11} weight={700} tracking={0.6}>
+            {badge}
           </T>
-        ) : (
-          <T size={12} weight={700} color={colors.accentLight} tracking={1.2}>
-            #1 TRENDING MUSIC VIDEO
-          </T>
-        )}
-        <T size={24} weight={300} lineHeight={30} numberOfLines={2}>
+        </View>
+      </View>
+      <View style={{ position: 'absolute', left: 18, right: 18, bottom: 18, gap: 10 }}>
+        <T size={34} weight={300} tracking={-1.2} lineHeight={36} numberOfLines={2}>
           {video.title}
         </T>
-        <T size={13} color={colors.textSecondary} numberOfLines={1}>
+        <T size={13} color={colors.peach} numberOfLines={1}>
           {[video.channel, videoMeta(video)].filter(Boolean).join(' · ')}
         </T>
+        <Row gap={10}>
+          <Button label="Watch" icon="play" height={46} onPress={() => openVideo(video)} style={{ flexShrink: 0 }} />
+          <Button label={saved ? 'In my list' : 'My list'} icon={saved ? 'check' : 'plus'} variant="glass" height={46} onPress={onSave} style={{ flex: 1 }} />
+        </Row>
       </View>
-      <Row gap={10}>
-        <Button label="Watch" icon="play" height={44} onPress={() => openVideo(video)} style={{ flex: 1 }} />
-        <Button label={saved ? 'In my list' : 'My list'} icon={saved ? 'check' : 'plus'} variant="glass" height={44} onPress={onSave} style={{ flex: 1 }} />
-      </Row>
     </View>
+  );
+}
+
+/** Section title: 19/500 with an optional accent link. */
+function H({ title, action, href }: { title: string; action?: string; href?: '/video-shorts' }) {
+  return (
+    <Row style={{ justifyContent: 'space-between', minHeight: 32 }}>
+      <T size={19} weight={500} tracking={-0.2} accessibilityRole="header">
+        {title}
+      </T>
+      {action ? (
+        <Tap href={href} accessibilityRole="link">
+          <T size={13} weight={600} color={colors.accentLight}>
+            {action}
+          </T>
+        </Tap>
+      ) : null}
+    </Row>
   );
 }
 
@@ -329,7 +355,7 @@ function VideoList({
       if (e instanceof ServiceNotConfiguredError) return { videos: [], notConfigured: true };
       throw e;
     }
-  }, []);
+  }, [], 'app/videos:348');
 
   useRefreshWith(res.refresh);
 

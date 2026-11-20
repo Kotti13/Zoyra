@@ -4,7 +4,7 @@ import { ScrollView, View } from 'react-native';
 
 import { Art, Button, Chip, Cover, Glass, Icon, IconButton, Row, Sheet, T, TextField, Toggle } from '../components';
 import type { IconName } from '../components';
-import { createSession, formatWhen } from '../lib/live';
+import { createSession } from '../lib/live';
 import { useAuth } from '../state/auth';
 import { usePlayerPick } from '../state/player';
 import { colors } from '../theme/tokens';
@@ -102,10 +102,6 @@ export default function GoLive() {
       <T variant="section" accessibilityRole="header">
         Go live
       </T>
-      <T size={14} color={colors.textSecondary} style={{ marginTop: -6 }}>
-        Play songs for your listeners in sync. Audio only from your music, no mic or camera.
-      </T>
-
       <Row gap={14}>
         {track ? <Cover artwork={track.artwork} id={track.id} size={88} radius={32} /> : <Art art="coral" size={88} radius={32} />}
         <TextField label="Session title" value={title} onChangeText={setTitle} placeholder={placeholder} maxLength={80} returnKeyType="done" style={{ flex: 1 }} />
@@ -116,7 +112,6 @@ export default function GoLive() {
         <OptionRow icon="queue" title="Song requests" subtitle={requests ? 'Listeners request tracks' : 'Requests are off'} value={requests} onChange={setRequests} divider />
         <OptionRow icon="repeat" title="Save replay" subtitle={replay ? 'Tracklist available for 7 days' : 'Nothing is kept after you end'} value={replay} onChange={setReplay} divider />
         <OptionRow icon="bell" title="Notify followers" subtitle="Tell followers when you go live" value={notify} onChange={setNotify} divider />
-        <OptionRow icon="clock" title="Schedule" subtitle={schedule ? formatWhen(start) : 'Start now'} value={schedule} onChange={setSchedule} divider />
       </Glass>
 
       {schedule ? (
@@ -145,12 +140,16 @@ export default function GoLive() {
         </T>
       ) : null}
 
-      <Button
-        label={busy ? (schedule ? 'Scheduling…' : 'Starting…') : schedule ? 'Schedule' : 'Start live'}
-        icon={schedule ? 'clock' : 'cast'}
-        variant={busy || tooSoon || !me ? 'disabled' : 'primary'}
-        onPress={() => void submit()}
-      />
+      <Row gap={10}>
+        <Button label={schedule ? 'Start now' : 'Schedule'} icon={schedule ? 'cast' : 'clock'} variant="glass" height={48} style={{ flex: 1 }} onPress={() => setSchedule((x) => !x)} />
+        <Button
+          label={busy ? (schedule ? 'Scheduling…' : 'Starting…') : schedule ? 'Schedule' : 'Start live'}
+          icon={schedule ? 'clock' : 'cast'}
+          variant={busy || tooSoon || !me ? 'disabled' : 'primary'}
+          style={{ flex: 1.5 }}
+          onPress={() => void submit()}
+        />
+      </Row>
     </Sheet>
   );
 }

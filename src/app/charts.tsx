@@ -27,7 +27,7 @@ export default function Charts() {
   const [range, setRange] = useState<TimeRange>('week');
   const g = scope === 1 ? genre : undefined;
 
-  const chart = useAsync(() => catalog.trending({ genre: g, time: range, limit: 30 }), [g, range]);
+  const chart = useAsync(() => catalog.trending({ genre: g, time: range, limit: 30 }), [g, range], 'app/charts:30');
   const { filter: hideFilter } = useContentFilter();
   const list = hideFilter(chart.data ?? []);
   const context = `Top charts${g ? ` · ${g}` : ''}`;
@@ -82,7 +82,7 @@ export default function Charts() {
                   <T mono weight={500} size={15} align="center" style={{ width: 24 }}>
                     {i + 1}
                   </T>
-                  <Cover artwork={s.artwork} id={s.id} size={48} radius={26} />
+                  <Cover artwork={s.artwork} id={s.id} size={48} radius={16} />
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                     <T size={16} weight={600} numberOfLines={1} color={active ? colors.accentLight : colors.text}>
                       {s.title}

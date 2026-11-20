@@ -36,7 +36,7 @@ export default function PodcastShow() {
     if (!id) return null;
     const [artist, episodes] = await Promise.all([catalog.artist(id), catalog.artistTracks(id, 50, 'date')]);
     return { artist, episodes };
-  }, [id]);
+  }, [id], 'app/podcast-show:35');
 
   if (!id) {
     return (
@@ -84,7 +84,7 @@ export default function PodcastShow() {
           </View>
 
           <View style={{ alignItems: 'center', gap: 6 }}>
-            <T size={26} weight={700} tracking={-0.5} align="center" accessibilityRole="header">
+            <T size={26} weight={300} tracking={-0.5} align="center" accessibilityRole="header">
               {artist.name}
             </T>
             <T size={15} align="center" color={colors.textSecondary} numberOfLines={3}>

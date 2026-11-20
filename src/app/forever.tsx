@@ -317,7 +317,7 @@ export default function ForeverHub() {
         <T size={12} weight={600} tracking={1.2} color={colors.textSecondary} style={{ paddingHorizontal: 4 }}>
           RULES
         </T>
-        <View style={{ padding: 16, borderRadius: 32, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.hairline, gap: 8 }}>
+        <View style={{ paddingVertical: 14, paddingHorizontal: 16, borderRadius: 32, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.hairline, gap: 8 }}>
           {[
             '1. You must follow each other and have chatted.',
             '2. Both people accept, then it is locked.',

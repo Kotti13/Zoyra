@@ -151,7 +151,7 @@ export default function NewMessage() {
   const [note, setNote] = useState<string | null>(null);
   const { count: requestCount } = useRequestCount(me);
   const onlineIds = useOnlineUsers();
-  const contacts = useAsync(() => (me ? searchContacts(q) : Promise.resolve([] as DmContact[])), [q, me]);
+  const contacts = useAsync(() => (me ? searchContacts(q) : Promise.resolve([] as DmContact[])), [q, me], 'app/new-message:154');
 
   const list = (contacts.data ?? []).filter((c) => c.access !== 'blocked' && c.id !== me);
   const direct = list.filter((c) => c.access === 'direct');

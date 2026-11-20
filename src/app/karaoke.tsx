@@ -1,8 +1,9 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 
-import { EmptyState, ErrorState, Glass, Icon, IconButton, LinkText, Loading, ProgressBar, Row, Screen, ScreenHeader, T, Tap } from '../components';
+import { Cover, EmptyState, ErrorState, Glass, IconButton, LinkText, Loading, ProgressBar, Row, Screen, ScreenHeader, T, Tap } from '../components';
 import { useSyncedLyrics } from '../components/LyricTicker';
 import { boundsOf, LyricSyncControl, useLyricShift, useLyricTime } from '../components/lyric-sync';
 import { useReduceMotion } from '../components/motion';
@@ -107,16 +108,16 @@ function SingInfo({ lyrics }: { lyrics: Lyrics }) {
   const total = lyrics.synced.length;
   return (
     <Row gap={10}>
-      <Glass radius={22} padding={12} style={{ flex: 1, gap: 2 }}>
-        <T size={11} mono tracking={1} color={colors.textSecondary}>
+      <Glass radius={26} style={{ flex: 1, gap: 2, paddingVertical: 12, paddingHorizontal: 14 }}>
+        <T size={11} tracking={1} color={colors.textSecondary}>
           WORD TIMING
         </T>
         <T size={15} weight={600}>
           {lyrics.wordSynced ? 'Word-synced' : 'Estimated'}
         </T>
       </Glass>
-      <Glass radius={22} padding={12} style={{ flex: 1, gap: 2 }}>
-        <T size={11} mono tracking={1} color={colors.textSecondary}>
+      <Glass radius={26} style={{ flex: 1, gap: 2, paddingVertical: 12, paddingHorizontal: 14 }}>
+        <T size={11} tracking={1} color={colors.textSecondary}>
           LINE
         </T>
         <T size={15} weight={600} mono>
@@ -124,18 +125,6 @@ function SingInfo({ lyrics }: { lyrics: Lyrics }) {
         </T>
       </Glass>
     </Row>
-  );
-}
-
-/** Accent corner brackets framing the lyrics stage. */
-function Corners() {
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[styles.corner, { top: 0, left: 0, borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 8 }]} />
-      <View style={[styles.corner, { top: 0, right: 0, borderTopWidth: 2, borderRightWidth: 2, borderTopRightRadius: 8 }]} />
-      <View style={[styles.corner, { bottom: 0, left: 0, borderBottomWidth: 2, borderLeftWidth: 2, borderBottomLeftRadius: 8 }]} />
-      <View style={[styles.corner, { bottom: 0, right: 0, borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 8 }]} />
-    </View>
   );
 }
 
@@ -170,7 +159,7 @@ function KaraokeStage({ track }: { track: CatalogTrack }) {
     <>
       {lyrics?.synced.length ? <SingInfo lyrics={lyrics} /> : null}
       <View style={styles.stage}>
-        <Corners />
+        <LinearGradient colors={[withAlpha(colors.accent, 0.18), 'rgba(10,10,10,0.5)']} style={StyleSheet.absoluteFill} pointerEvents="none" />
         {body}
       </View>
       {lyrics?.synced.length ? (
@@ -244,15 +233,16 @@ export default function Karaoke() {
   }
 
   return (
-    <Screen top={4} bottom={18} gap={14} backdrop={{ pattern: 'dots', mesh: 'rose', orbs: true }} contentStyle={{ flexGrow: 1 }} swipeDown="top">
+    <Screen top={4} bottom={18} gap={14} backdrop={{ pattern: 'dots', mesh: 'none', glows: [{ x: 0, y: 0, color: colors.accent, opacity: 0.4 }, { x: 1, y: 0.35, color: colors.amber, opacity: 0.22 }] }} contentStyle={{ flexGrow: 1 }} swipeDown="top">
       {/* Header */}
-      <Row gap={8}>
-        <IconButton icon="back" label="Back" bg={colors.chipGhost} href="back" />
-        <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
-          <T size={15} weight={600} accessibilityRole="header">
+      <Row gap={10}>
+        <IconButton icon="back" label="Back" href="back" />
+        <Cover artwork={track.artwork} id={track.id} size={44} radius={22} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <T size={17} weight={700} accessibilityRole="header">
             Karaoke
           </T>
-          <T size={12} color={colors.textSecondary} numberOfLines={1}>
+          <T size={12} color={colors.accentLight} numberOfLines={1}>
             {`${track.title} · ${track.artist.name}`}
           </T>
         </View>
@@ -261,25 +251,12 @@ export default function Karaoke() {
 
       <KaraokeStage key={track.id} track={track} />
 
-      {/* Honest note: no live audio engine for these yet. */}
-      <Glass radius={22} padding={12}>
-        <Row gap={10} align="flex-start">
-          <Icon name="info" size={18} color={colors.textSecondary} />
-          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-            <T size={13} color={colors.textSecondary} lineHeight={18}>
-              Pitch scoring, mic level and duets need a live mic engine, so they aren&apos;t in this version.
-            </T>
-            <LinkText label="Remove vocals in Create studio" size={13} href="/create" />
-          </View>
-        </Row>
-      </Glass>
-
       <View style={{ flex: 1 }} />
 
       <Progress />
 
       {/* Dock */}
-      <Glass radius={34} style={styles.dock}>
+      <Glass radius={32} style={styles.dock}>
         <IconButton icon="repeat" label="Restart song" size={48} bg={colors.chipGhost} onPress={() => seekTo(0)} />
         <DockStatus playing={playing} />
         <View style={styles.playWrap}>
@@ -303,11 +280,10 @@ export default function Karaoke() {
 }
 
 const styles = StyleSheet.create({
-  stage: { minHeight: 300, justifyContent: 'center', paddingVertical: 22, paddingHorizontal: 10 },
+  stage: { minHeight: 280, justifyContent: 'center', paddingVertical: 26, paddingHorizontal: 16, borderRadius: 30, borderWidth: 1, borderColor: withAlpha(colors.white, 0.12), overflow: 'hidden' },
   lines: { gap: 18 },
   glowText: { textShadowColor: withAlpha(colors.accent, 0.85), textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } },
-  corner: { position: 'absolute', width: 22, height: 22, borderColor: colors.accent },
-  dock: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  dock: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10 },
   playWrap: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
   ring: { position: 'absolute', width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: colors.accent },
 });

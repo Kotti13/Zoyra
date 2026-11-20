@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { Avatar, Cover, EmptyState, ErrorState, Glass, Icon, ListGroup, ListRow, Overline, Row, Screen, ScreenHeader, T, Tap, TextField, Toast, Toggle, artFor, useAsync, useDebounced } from '../components';
+import { Avatar, Cover, EmptyState, ErrorState, Icon, Row, Screen, T, Tap, TextField, Toast, Toggle, artFor, useAsync, useDebounced } from '../components';
+import { BigHeader, Panel, PanelRow, SectionLabel } from '../components/settings-ui';
 import { catalog, type Artist } from '../lib/catalog';
 import { useContentFilter, type HiddenItem } from '../lib/content-filter';
 import { useAuth } from '../state/auth';
@@ -11,7 +12,7 @@ type Note = { ok: boolean; text: string } | null;
 
 function HiddenRow({ item, divider, busy, onUnhide }: { item: HiddenItem; divider: boolean; busy: boolean; onUnhide: () => void }) {
   return (
-    <ListRow
+    <PanelRow
       title={item.name || (item.kind === 'artist' ? 'Artist' : 'Song')}
       subtitle={item.subtitle}
       divider={divider}
@@ -42,7 +43,7 @@ function HiddenRow({ item, divider, busy, onUnhide }: { item: HiddenItem; divide
 function HideArtistSearch({ hidden, onHide, busyId }: { hidden: ReadonlySet<string>; onHide: (a: Artist) => void; busyId: string | null }) {
   const [query, setQuery] = useState('');
   const q = useDebounced(query.trim(), 350);
-  const res = useAsync(() => (q.length >= 2 ? catalog.searchArtists(q, 6) : Promise.resolve([] as Artist[])), [q]);
+  const res = useAsync(() => (q.length >= 2 ? catalog.searchArtists(q, 6) : Promise.resolve([] as Artist[])), [q], 'app/content-controls:46');
   const list = (res.data ?? []).filter((a) => !hidden.has(a.id));
 
   return (
@@ -53,9 +54,9 @@ function HideArtistSearch({ hidden, onHide, busyId }: { hidden: ReadonlySet<stri
       ) : res.error ? (
         <ErrorState message={res.error} onRetry={res.reload} />
       ) : list.length ? (
-        <Glass padding={4}>
+        <Panel padding={{ v: 4, h: 16 }}>
           {list.map((a, i) => (
-            <ListRow
+            <PanelRow
               key={a.id}
               title={a.name}
               subtitle={`@${a.handle}`}
@@ -75,7 +76,7 @@ function HideArtistSearch({ hidden, onHide, busyId }: { hidden: ReadonlySet<stri
               }
             />
           ))}
-        </Glass>
+        </Panel>
       ) : (
         <T size={13} color={colors.textSecondary}>
           No artists found for “{q}”.
@@ -114,21 +115,19 @@ export default function ContentControls() {
 
   return (
     <Screen top={4} gap={16} bottom={24} backdrop={{ pattern: 'none', mesh: 'coral' }}>
-      <ScreenHeader title="Content" />
+      <BigHeader title="Content" />
 
-      <ListGroup title="KIDS">
-        <ListRow title="Kids mode" subtitle="Family friendly music, limits and a parent PIN" icon="shield" href="/kids-mode" />
-      </ListGroup>
-
-      <ListGroup title="EXPLICIT">
-        <ListRow
+      <View>
+        <Panel padding={{ v: 4, h: 16 }}>
+        <PanelRow
           title="Kid-safe mode"
           subtitle="Hide songs the artist titled or tagged explicit. Same switch as Family plan."
           minHeight={72}
           right={settings ? <Toggle value={cf.kidSafe} onChange={toggleKidSafe} label="Kid-safe mode" /> : <ActivityIndicator color={colors.accent} />}
         />
-      </ListGroup>
-      <Glass padding={14}>
+      </Panel>
+      </View>
+      <Panel padding={14} radius={32}>
         <Row gap={10} align="flex-start">
           <Icon name="info" size={18} color={colors.textSecondary} />
           <T size={13} color={colors.textSecondary} style={{ flex: 1 }}>
@@ -136,10 +135,17 @@ export default function ContentControls() {
             some explicit songs may still play.
           </T>
         </Row>
-      </Glass>
+      </Panel>
 
       <View style={{ gap: 8 }}>
-        <Overline color={colors.textSecondary}>{`HIDDEN ARTISTS${artists.length ? ` · ${artists.length}` : ''}`}</Overline>
+        <SectionLabel size={12} tracking={1.2}>Kids</SectionLabel>
+        <Panel padding={{ v: 4, h: 16 }}>
+        <PanelRow title="Kids mode" subtitle="Family friendly music, limits and a parent PIN" icon="shield" href="/kids-mode" />
+      </Panel>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        <SectionLabel size={12} tracking={1.2}>{`HIDDEN ARTISTS${artists.length ? ` · ${artists.length}` : ''}`}</SectionLabel>
         <T size={13} color={colors.textSecondary}>
           Songs by hidden artists are skipped in your lists, mixes and queues.
         </T>
@@ -153,11 +159,11 @@ export default function ContentControls() {
         ) : cf.error ? (
           <ErrorState message={cf.error} onRetry={() => void cf.reload()} />
         ) : artists.length ? (
-          <Glass padding={4}>
+          <Panel padding={{ v: 4, h: 16 }}>
             {artists.map((it, i) => (
               <HiddenRow key={it.id} item={it} divider={i > 0} busy={busy === `u:${it.id}`} onUnhide={() => void run(`u:${it.id}`, () => cf.unhide('artist', it.id), `${it.name} is back`)} />
             ))}
-          </Glass>
+          </Panel>
         ) : (
           <T size={13} color={colors.textTertiary}>
             No hidden artists.
@@ -166,22 +172,25 @@ export default function ContentControls() {
       </View>
 
       <View style={{ gap: 8 }}>
-        <Overline color={colors.textSecondary}>{`HIDDEN SONGS${songs.length ? ` · ${songs.length}` : ''}`}</Overline>
+        <SectionLabel size={12} tracking={1.2}>{`HIDDEN SONGS${songs.length ? ` · ${songs.length}` : ''}`}</SectionLabel>
         {cf.loading || cf.error ? null : songs.length ? (
-          <Glass padding={4}>
+          <Panel padding={{ v: 4, h: 16 }}>
             {songs.map((it, i) => (
               <HiddenRow key={it.id} item={it} divider={i > 0} busy={busy === `u:${it.id}`} onUnhide={() => void run(`u:${it.id}`, () => cf.unhide('track', it.id), `${it.name} is back`)} />
             ))}
-          </Glass>
+          </Panel>
         ) : (
           <EmptyState icon="music" title="No hidden songs" body="Hide a song from its options menu and it won’t show up in your lists or queues." />
         )}
       </View>
 
-      <ListGroup title="RECOMMENDATIONS">
-        <ListRow title="Private session and history" subtitle="Privacy and security" icon="shield" href="/privacy" />
-        <ListRow title="Family plan" subtitle="Members and kid-safe mode" icon="users" href="/family" divider />
-      </ListGroup>
+      <View style={{ gap: 8 }}>
+        <SectionLabel size={12} tracking={1.2}>Recommendations</SectionLabel>
+        <Panel padding={{ v: 4, h: 16 }}>
+        <PanelRow title="Private session and history" subtitle="Privacy and security" icon="shield" href="/privacy" />
+        <PanelRow title="Family plan" subtitle="Members and kid-safe mode" icon="users" href="/family" divider />
+      </Panel>
+      </View>
 
       {note ? <Toast icon={note.ok ? 'check' : 'info'} iconColor={note.ok ? colors.success : colors.error} message={note.text} /> : null}
     </Screen>

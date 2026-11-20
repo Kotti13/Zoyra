@@ -160,9 +160,9 @@ export default function Invite() {
 
       <View style={{ alignItems: 'center', gap: 12 }}>
         {pl.owner?.avatar_url ? (
-          <Cover uri={pl.owner.avatar_url} id={pl.owner.id} size={56} radius={28} />
+          <Cover uri={pl.owner.avatar_url} id={pl.owner.id} size={56} radius={19} />
         ) : (
-          <Avatar initial={(ownerName[0] ?? '?').toUpperCase()} art="rose" size={56} />
+          <Avatar initial={(ownerName[0] ?? '?').toUpperCase()} art="rose" size={56} radius={19} />
         )}
         <T size={16} color={colors.peach} align="center">
           {isOwner ? 'Invite friends to build this playlist' : `${firstName(ownerName)} invited you to a playlist`}

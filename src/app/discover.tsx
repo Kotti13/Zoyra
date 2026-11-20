@@ -1,12 +1,12 @@
 import { router, type Href } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { Art, Avatar, Button, ChipRow, Cover, ErrorState, Glass, Icon, IconButton, Loading, Row, Screen, SectionHeader, T, Tap, artFor, useAsync, type IconName } from '../components';
+import { Art, Avatar, Cover, ErrorState, Glass, Icon, IconButton, Loading, Row, Screen, T, Tap, artFor, useAsync, type IconName } from '../components';
 import { supabase } from '../lib/supabase';
 import { StoriesRail } from '../lib/stories-ui';
 import { useAuth } from '../state/auth';
-import { colors, type ArtName } from '../theme/tokens';
+import { colors, withAlpha, type ArtName } from '../theme/tokens';
 
 type Insights = { minutes: number; plays: number; top_genres: { genre: string | null; plays: number }[] };
 
@@ -31,21 +31,24 @@ const fmtMinutes = (m: number) => (m >= 60 ? `${(m / 60).toFixed(1).replace(/\.0
 
 function StatCard({ label, sub, value, unit, href }: { label: string; sub: string; value: string; unit: string; href: Href }) {
   return (
-    <Tap href={href} accessibilityLabel={`${label}: ${value} ${unit}`} style={{ flex: 1 }}>
-      <Glass radius={26} padding={14} style={{ gap: 10, minHeight: 120 }}>
-        <View style={{ gap: 2 }}>
-          <T size={14} weight={600}>
-            {label}
-          </T>
-          <T size={12} color={colors.textSecondary}>
-            {sub}
-          </T>
-        </View>
-        <Row gap={4} align="flex-end" style={{ marginTop: 'auto' }}>
-          <T size={34} weight={300} tracking={-1} lineHeight={36}>
+    <Tap href={href} accessibilityLabel={`${label}: ${value} ${unit}`} style={{ width: 158 }}>
+      <Glass radius={26} padding={16} style={{ height: 176, justifyContent: 'space-between' }}>
+        <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View style={{ gap: 2 }}>
+            <T size={15} weight={500}>
+              {label}
+            </T>
+            <T size={12} color={colors.textSecondary}>
+              {sub}
+            </T>
+          </View>
+          <Icon name="chevronRight" size={16} color={colors.textSecondary} />
+        </Row>
+        <Row gap={6} align="baseline">
+          <T size={44} weight={300} tracking={-1.5} lineHeight={46}>
             {value}
           </T>
-          <T size={13} color={colors.textSecondary} style={{ marginBottom: 4 }}>
+          <T size={12} color={colors.textSecondary}>
             {unit}
           </T>
         </Row>
@@ -67,44 +70,67 @@ export default function Discover() {
     if (streak.error) throw new Error(streak.error.message);
     const i = (ins.data ?? { minutes: 0, plays: 0, top_genres: [] }) as Insights;
     return { minutes: Number(i.minutes) || 0, plays: Number(i.plays) || 0, streak: typeof streak.data === 'number' ? streak.data : 0, topGenre: i.top_genres?.find((g) => g.genre)?.genre ?? null };
-  }, [uid]);
+  }, [uid], 'app/discover:66');
 
   const name = profile?.display_name ?? 'Listener';
   const a = activity.data;
 
   return (
-    <Screen onRefresh={activity.refresh} top={4} gap={20} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
-      <Row gap={12}>
+    <Screen onRefresh={activity.refresh} top={4} gap={18} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
+      <Row style={{ justifyContent: 'space-between' }}>
         <IconButton icon="back" label="Back" href="back" />
         <Tap href="/profile" accessibilityLabel="Your profile">
-          {profile?.avatar_url ? <Cover uri={profile.avatar_url} id={uid} size={44} radius={22} /> : <Avatar initial={name[0]?.toUpperCase()} art={artFor(uid)} size={44} />}
+          {profile?.avatar_url ? <Cover uri={profile.avatar_url} id={uid} size={40} radius={13} /> : <Avatar initial={name[0]?.toUpperCase()} art={artFor(uid)} size={40} radius={13} />}
         </Tap>
-        <View style={{ flex: 1 }}>
-          <T variant="displayLight" size={34} lineHeight={38} accessibilityRole="header">
-            Discover
-          </T>
-          <T size={13} color={colors.textSecondary}>
-            Explore and create
-          </T>
-        </View>
       </Row>
 
+      <View style={{ alignItems: 'center', gap: 10, marginTop: 6 }}>
+        <T size={14} weight={300} tracking={1} color={colors.peach}>
+          ✦ Discover
+        </T>
+        <T size={46} weight={300} tracking={-1.5} lineHeight={48} align="center" accessibilityRole="header">
+          {'Explore and\ncreate'}
+        </T>
+      </View>
+
       <Tap href="/search" accessibilityLabel="Search songs, artists and playlists">
-        <Glass radius={24} style={{ height: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 }}>
+        <View style={{ height: 52, borderRadius: 26, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, borderWidth: 1, borderColor: colors.chipOutline, backgroundColor: withAlpha(colors.white, 0.03) }}>
           <Icon name="search" size={20} color={colors.textSecondary} />
-          <T size={15} color={colors.textSecondary}>
+          <T size={15} weight={300} color={colors.textSecondary}>
             Search
           </T>
-        </Glass>
+        </View>
       </Tap>
 
       <StoriesRail />
 
-      <ChipRow options={[...sections]} onChange={setSection} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+        {sections.map((label, i) => (
+          <Tap key={label} onPress={() => setSection(i)} accessibilityState={{ selected: section === i }}>
+            <View
+              style={[
+                { height: 40, paddingHorizontal: 18, borderRadius: 28, justifyContent: 'center' },
+                section === i ? { backgroundColor: colors.text } : { borderWidth: 1, borderColor: colors.chipOutline, backgroundColor: withAlpha(colors.white, 0.03) },
+              ]}
+            >
+              <T size={14} weight={500} color={section === i ? colors.onLight : colors.text}>
+                {label}
+              </T>
+            </View>
+          </Tap>
+        ))}
+      </ScrollView>
 
       {show('Activity') ? (
         <View style={{ gap: 12 }}>
-          <SectionHeader title="Your activity" action="Insights" href="/insights" />
+          <Row style={{ justifyContent: 'space-between' }}>
+            <T variant="section" accessibilityRole="header">
+              Your activity
+            </T>
+            <Tap href="/insights" accessibilityLabel="Insights" style={{ minHeight: 44, minWidth: 44, alignItems: 'flex-end', justifyContent: 'center' }}>
+              <Icon name="chevronRight" size={20} color={colors.textSecondary} />
+            </Tap>
+          </Row>
           {!uid ? (
             <T size={14} color={colors.textSecondary}>
               Sign in to see your listening activity.
@@ -115,10 +141,11 @@ export default function Discover() {
             <ErrorState message={activity.error} onRetry={activity.reload} />
           ) : a ? (
             <>
-              <Row gap={12} align="stretch">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
                 <StatCard label="Listening" sub="This week" value={fmtMinutes(a.minutes)} unit={a.minutes >= 60 ? 'hrs' : 'min'} href="/insights" />
                 <StatCard label="Streak" sub={a.streak ? 'Keep it going' : 'Play a song today'} value={String(a.streak)} unit={a.streak === 1 ? 'day' : 'days'} href="/achievements" />
-              </Row>
+                <StatCard label="Plays" sub="This week" value={String(a.plays)} unit={a.plays === 1 ? 'play' : 'plays'} href="/recent" />
+              </ScrollView>
               <T size={13} color={colors.textSecondary}>
                 {a.plays ? `${a.plays} plays this week${a.topGenre ? `, mostly ${a.topGenre}` : ''}.` : 'No plays yet this week.'}
               </T>
@@ -129,18 +156,20 @@ export default function Discover() {
 
       {show('Picks') ? (
         <View style={{ gap: 12 }}>
-          <SectionHeader title="Weekly picks" />
+          <T variant="section" accessibilityRole="header">
+            Weekly picks
+          </T>
           {picks.map((p) => (
             <Tap key={p.title} onPress={() => router.push(p.href)} accessibilityLabel={`${p.title}. ${p.body}`}>
-              <Glass radius={28} padding={12} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <Art art={p.art} size={64} radius={22} style={{ alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={p.icon} size={26} color={colors.white} />
+              <Glass radius={26} padding={12} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <Art art={p.art} size={52} radius={17} style={{ alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={p.icon} size={22} color={colors.white} />
                 </Art>
                 <View style={{ flex: 1, gap: 2 }}>
-                  <T size={16} weight={600}>
+                  <T size={16} weight={500}>
                     {p.title}
                   </T>
-                  <T size={13} color={colors.textSecondary} lineHeight={18}>
+                  <T size={13} weight={300} color={colors.textSecondary} lineHeight={18}>
                     {p.body}
                   </T>
                 </View>
@@ -164,12 +193,14 @@ export default function Discover() {
       ) : null}
 
       {show('Create') ? (
-        <Glass radius={30} padding={18} style={{ gap: 12 }}>
-          <T size={20} weight={300} tracking={-0.4}>
-            Remix, slow down and split songs in the studio.
-          </T>
-          <Button label="Open Create studio" icon="sliders" href="/create" />
-        </Glass>
+        <Tap href="/create" accessibilityLabel="Open Create studio. Remix, slow down and split songs in the studio">
+          <View style={{ minHeight: 52, borderRadius: 26, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: colors.chipOutline }}>
+            <Icon name="sliders" size={18} color={colors.textSecondary} />
+            <T size={14} color={colors.textSecondary}>
+              Open Create studio
+            </T>
+          </View>
+        </Tap>
       ) : null}
     </Screen>
   );

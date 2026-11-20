@@ -5,7 +5,7 @@ import { Art, Button, Chip, EmptyState, ErrorState, Glass, Icon, IconTile, Loadi
 import { formatClock, formatKm, formatPace, avgPace, listWorkouts, TEMPOS, weeklyStats, type WorkoutSummaryRow } from '../lib/workout';
 import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
-import { colors, radius, withAlpha } from '../theme/tokens';
+import { colors, withAlpha } from '../theme/tokens';
 
 type Source = { kind: 'mix' } | { kind: 'liked' } | { kind: 'playlist'; id: string; title: string };
 
@@ -20,7 +20,7 @@ export default function WorkoutHome() {
   const [tempo, setTempo] = useState('run');
   const [source, setSource] = useState<Source>({ kind: 'mix' });
 
-  const runs = useAsync(() => (user ? listWorkouts(user.id, 60) : Promise.resolve([] as WorkoutSummaryRow[])), [user?.id]);
+  const runs = useAsync(() => (user ? listWorkouts(user.id, 60) : Promise.resolve([] as WorkoutSummaryRow[])), [user?.id], 'app/workout-home:23');
   const week = useMemo(() => weeklyStats(runs.data ?? []), [runs.data]);
   const monthRuns = useMemo(() => {
     const now = new Date();
@@ -56,29 +56,33 @@ export default function WorkoutHome() {
 
   return (
     <Screen onRefresh={user ? runs.refresh : undefined}
-      backdrop={{ mesh: 'coral', pattern: 'none' }}
+      backdrop={{ mesh: 'coral', pattern: 'dots', glows: [{ x: 1, y: 0, color: '#00B894', opacity: 0.32 }, { x: 0, y: 0.45, color: colors.orange, opacity: 0.16 }] }}
       footer={
         <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
-          <Button label="Start run" icon="play" onPress={start} height={52} />
+          <Button label="Start run" icon="play" onPress={start} height={54} />
         </View>
       }
     >
       <ScreenHeader title="Run mode" />
 
       <View style={{ gap: 4 }}>
-        <T variant="headlineLight" accessibilityRole="header">
+        <T size={15} weight={300}>
           {firstName ? `Hi ${firstName},` : 'Hi,'}
         </T>
-        <T variant="headlineLight" color={colors.textSecondary}>
-          ready to move?
+        <T size={34} weight={300} tracking={-1} accessibilityRole="header">
+          Welcome!
         </T>
       </View>
 
+      <T size={26} weight={300}>
+        My sound
+      </T>
+
       {/* Weekly stats: real totals from saved runs. */}
-      <Glass padding={16}>
+      <Glass padding={16} radius={36}>
         <View style={{ gap: 14 }}>
           <Row style={{ justifyContent: 'space-between' }}>
-            <T variant="bodyStrong">This week</T>
+            <T size={15} weight={600}>Weekly stats</T>
             {week.streak > 0 ? (
               <Row gap={6}>
                 <Icon name="flame" size={16} color={colors.orange} />
@@ -107,7 +111,7 @@ export default function WorkoutHome() {
       </Glass>
 
       <View style={{ gap: 10 }}>
-        <SectionHeader title="Tempo" />
+        <T size={15} weight={500}>Active session</T>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8 }}>
           {TEMPOS.map((t) => (
             <Chip key={t.key} label={t.bpm ? `${t.label} · ${t.bpm}` : t.label} active={t.key === tempo} onPress={() => setTempo(t.key)} />
@@ -119,8 +123,8 @@ export default function WorkoutHome() {
       </View>
 
       <View style={{ gap: 10 }}>
-        <SectionHeader title="Music" />
-        <Glass padding={4}>
+        <T size={15} weight={500}>Music</T>
+        <Glass padding={4} radius={36}>
           {sources.map(({ s, title, subtitle, icon }, i) => {
             const on = sourceKey(s) === sourceKey(source);
             return (
@@ -151,7 +155,7 @@ export default function WorkoutHome() {
       </View>
 
       <View style={{ gap: 10 }}>
-        <SectionHeader title="Previous sessions" />
+        <SectionHeader title="Previous sessions" action={runs.data?.length ? 'View all' : undefined} href={runs.data?.length ? { pathname: '/workout-summary', params: { id: runs.data[0].id } } : undefined} />
         {runs.error ? (
           <ErrorState message={runs.error} onRetry={runs.reload} />
         ) : runs.loading && !runs.data ? null : !runs.data?.length ? (
@@ -193,9 +197,9 @@ function RunRow({ r }: { r: WorkoutSummaryRow }) {
   const label = `${runDate(r.started_at)}: ${formatKm(r.distance_m)} kilometres in ${formatClock(r.duration_seconds)}`;
   return (
     <Tap href={{ pathname: '/workout-summary', params: { id: r.id } }} accessibilityLabel={label}>
-      <Glass padding={12} radius={radius.md}>
+      <Glass padding={10} radius={36}>
         <Row>
-          <Art art="sunrise" size={44} radius={22} style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <Art art="green" size={52} radius={26} style={{ alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="bolt" size={20} color={colors.white} />
           </Art>
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>

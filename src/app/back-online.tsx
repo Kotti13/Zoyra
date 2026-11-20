@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Glass, Icon, ListGroup, ProgressBar, Row, Screen, T } from '../components';
+import { Button, Glass, Icon, ProgressBar, Row, Screen, T } from '../components';
+import { SectionLabel } from '../components/settings-ui';
 import { formatBytes } from '../lib/downloads';
 import { describeConnection, formatAgo, formatMbps, lastOutageInfo, useSpeedTest } from '../lib/network';
 import { useDownloads } from '../state/downloads';
@@ -47,7 +48,7 @@ export default function BackOnline() {
   };
 
   return (
-    <Screen top={24} gap={16} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
+    <Screen top={24} gap={16} backdrop={{ pattern: 'dots', mesh: 'gold' }}>
       <View style={{ alignItems: 'center', gap: 10, paddingTop: 16 }} accessibilityLiveRegion="polite">
         <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: withAlpha(c.online ? colors.success : colors.error, 0.18), alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={c.online ? 'check' : 'wifiOff'} size={36} color={c.online ? colors.success : colors.error} />
@@ -71,7 +72,9 @@ export default function BackOnline() {
         </Glass>
       ) : null}
 
-      <ListGroup title="DOWNLOADS">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>Downloads</SectionLabel>
+        <Glass padding={4}>
         {pending ? (
           <View style={{ padding: 12, gap: 12 }}>
             {active.map((a) => (
@@ -103,7 +106,8 @@ export default function BackOnline() {
             </T>
           </View>
         )}
-      </ListGroup>
+      </Glass>
+      </View>
 
       <Glass padding={14}>
         <Row gap={12} align="flex-start">

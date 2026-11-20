@@ -53,7 +53,7 @@ export default function ChatCapsule() {
     if (!cid || !me) return null;
     const { data } = await supabase.from('conversation_members').select('profiles(id, display_name, avatar_url, username)').eq('conversation_id', cid).neq('user_id', me).limit(1).maybeSingle();
     return ((data as { profiles: ChatPerson | null } | null)?.profiles ?? null) as ChatPerson | null;
-  }, [cid, me]);
+  }, [cid, me], 'app/chat-capsule:52');
   const first = (other.data?.display_name || 'They').split(' ')[0];
 
   const opensAt = useMemo(() => (preset === 'tomorrow' ? at9(1) : preset === 'week' ? at9(7) : preset === 'month' ? at9(0, 1) : (picked ?? at9(7))), [preset, picked]);

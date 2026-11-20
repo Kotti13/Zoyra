@@ -1,13 +1,15 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { Button, ChipRow, Cover, EmptyState, ErrorState, Glass, IconButton, Loading, Row, Screen, ScreenHeader, T, Tap, Toast, useAsync } from '../components';
+import { Cover, EmptyState, ErrorState, Glass, IconButton, Loading, Screen, ScreenHeader, T, Tap, Toast, useAsync } from '../components';
 import { catalog, formatCount, type CatalogTrack, type Collection } from '../lib/catalog';
-import { Poster, PosterBadge } from '../lib/poster';
+import { Poster } from '../lib/poster';
 import { formatReleaseDate, isRecent, loadPremieres } from '../lib/premieres';
 import { usePlayerPick } from '../state/player';
-import { colors } from '../theme/tokens';
+import { colors, withAlpha } from '../theme/tokens';
+
+const BLUE = '#2D7FF9';
 
 const filters = ['All', 'Albums', 'Singles'] as const;
 
@@ -16,25 +18,33 @@ const openTrack = (t: CatalogTrack) => router.push({ pathname: '/track-detail', 
 
 function ReleaseRow({ title, meta, date, artwork, id, onOpen, onPlay, busy }: { title: string; meta: string; date?: string; artwork: CatalogTrack['artwork']; id: string; onOpen: () => void; onPlay: () => void; busy?: boolean }) {
   return (
-    <Tap onPress={onOpen} accessibilityLabel={`${title}, ${meta}${date ? `, released ${date}` : ''}`}>
-      <Glass radius={30} padding={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-        <Cover artwork={artwork} id={id} size={72} radius={24} />
-        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-          <T size={16} weight={700} numberOfLines={1}>
-            {title}
-          </T>
-          <T size={13} color={colors.textSecondary} numberOfLines={1}>
-            {meta}
-          </T>
-          {date ? (
-            <T mono size={12} color={colors.accentLight}>
-              {date}
+    <Glass radius={36} padding={12}>
+      <Tap onPress={onOpen} accessibilityLabel={`${title}, ${meta}${date ? `, released ${date}` : ''}`} pressScale={0.98} style={{ flexDirection: 'row', gap: 14 }}>
+        <Cover artwork={artwork} id={id} size={96} width={96} height={120} radius={22} />
+        <View style={{ flex: 1, minWidth: 0, justifyContent: 'space-between', gap: 8 }}>
+          <View style={{ gap: 4 }}>
+            <T size={17} weight={600} numberOfLines={2}>
+              {title}
             </T>
-          ) : null}
+            <T size={13} color={colors.textSecondary} numberOfLines={2}>
+              {meta}
+            </T>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            {date ? (
+              <View style={{ height: 28, paddingHorizontal: 12, borderRadius: 22, backgroundColor: BLUE, justifyContent: 'center' }}>
+                <T size={12} weight={700} color={colors.white}>
+                  {date}
+                </T>
+              </View>
+            ) : (
+              <View />
+            )}
+            <IconButton icon={busy ? 'clock' : 'play'} label={`Play ${title}`} size={44} bg={colors.accent} color={colors.onAccent} onPress={onPlay} />
+          </View>
         </View>
-        <IconButton icon={busy ? 'clock' : 'play'} label={`Play ${title}`} size={44} bg={colors.accent} color={colors.onAccent} onPress={onPlay} />
-      </Glass>
-    </Tap>
+      </Tap>
+    </Glass>
   );
 }
 
@@ -43,7 +53,7 @@ export default function Premieres() {
   const [filter, setFilter] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const data = useAsync(() => loadPremieres(30), []);
+  const data = useAsync(() => loadPremieres(30), [], 'app/premieres:56');
 
   const playAlbum = async (c: Collection) => {
     if (busy) return;
@@ -68,18 +78,31 @@ export default function Premieres() {
   const showSingles = filter !== 1;
 
   return (
-    <Screen onRefresh={data.refresh} top={4} gap={20} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
-      <ScreenHeader title="" />
-      <View style={{ gap: 4 }}>
-        <T variant="displayLight" accessibilityRole="header">
-          Major premieres
+    <Screen onRefresh={data.refresh} top={4} gap={18} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
+      <ScreenHeader title="" right={<IconButton icon="bell" label="Release alerts" bg={withAlpha(colors.white, 0.1)} href="/notif-settings" />} />
+      <T size={40} weight={300} tracking={-1.2} lineHeight={42} accessibilityRole="header">
+        Major{' '}
+        <T size={40} weight={800} tracking={-1.2} lineHeight={42} color={colors.rose}>
+          premieres
         </T>
-        <T size={14} color={colors.textSecondary}>
-          The biggest new releases trending on Audius this week.
-        </T>
-      </View>
+      </T>
 
-      <ChipRow options={[...filters]} onChange={setFilter} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+        {filters.map((label, i) => (
+          <Tap key={label} onPress={() => setFilter(i)} accessibilityState={{ selected: filter === i }}>
+            <View
+              style={[
+                { height: 40, paddingHorizontal: 18, borderRadius: 28, justifyContent: 'center' },
+                filter === i ? { backgroundColor: colors.text } : { borderWidth: 1, borderColor: colors.chipOutline, backgroundColor: withAlpha(colors.white, 0.03) },
+              ]}
+            >
+              <T size={14} weight={500} color={filter === i ? colors.onLight : colors.text}>
+                {label}
+              </T>
+            </View>
+          </Tap>
+        ))}
+      </ScrollView>
 
       {note ? <Toast icon="info" iconColor={colors.amber} message={note} /> : null}
 
@@ -93,21 +116,24 @@ export default function Premieres() {
         <>
           {hero && showAlbums ? (
             <Tap onPress={() => openAlbum(hero)} accessibilityLabel={`${hero.title} by ${hero.artist.name}. Open album`}>
-              <Poster artwork={hero.artwork} id={hero.id} height={380} radius={34}>
-                <View style={{ flex: 1, justifyContent: 'space-between', padding: 6 }}>
-                  <PosterBadge label={isRecent(hero.releaseDate, 7) ? 'NEW THIS WEEK' : 'TRENDING ALBUM'} />
-                  <View style={{ gap: 6 }}>
-                    <T variant="displayLight" size={40} lineHeight={42} numberOfLines={2}>
-                      {hero.title}
+              <Poster artwork={hero.artwork} id={hero.id} height={250} radius={32}>
+                <View style={{ flex: 1, justifyContent: 'space-between', padding: 2 }}>
+                  <View style={{ alignSelf: 'flex-start', height: 28, paddingHorizontal: 12, borderRadius: 22, backgroundColor: BLUE, justifyContent: 'center' }}>
+                    <T size={12} weight={700} color={colors.white}>
+                      {isRecent(hero.releaseDate, 7) ? 'New this week' : 'Trending album'}
                     </T>
-                    <T size={14} color={colors.peach}>
-                      {hero.artist.name} · Album{hero.trackCount ? ` · ${hero.trackCount} tracks` : ''}
-                      {formatReleaseDate(hero.releaseDate) ? ` · ${formatReleaseDate(hero.releaseDate)}` : ''}
-                    </T>
-                    <Row gap={10} style={{ marginTop: 6 }}>
-                      <Button label={busy === hero.id ? 'Loading…' : 'Play'} icon="play" height={44} onPress={() => void playAlbum(hero)} />
-                      <Button label="Live hub" variant="glass" icon="cast" height={44} href="/live-hub" />
-                    </Row>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
+                    <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                      <T size={26} weight={800} tracking={-0.5} lineHeight={28} numberOfLines={2}>
+                        {hero.title.toUpperCase()}
+                      </T>
+                      <T size={13} numberOfLines={1}>
+                        {hero.artist.name} · Album{hero.trackCount ? ` · ${hero.trackCount} tracks` : ''}
+                        {formatReleaseDate(hero.releaseDate) ? ` · ${formatReleaseDate(hero.releaseDate)}` : ''}
+                      </T>
+                    </View>
+                    <IconButton icon={busy === hero.id ? 'clock' : 'play'} label={`Play ${hero.title}`} size={48} bg={colors.accent} color={colors.onAccent} onPress={() => void playAlbum(hero)} />
                   </View>
                 </View>
               </Poster>

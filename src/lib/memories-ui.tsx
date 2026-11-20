@@ -10,7 +10,7 @@ import { loadMemories, yearsAgoLabel } from './memories';
 export function MemoryCard() {
   const { user } = useAuth();
   const me = user?.id;
-  const res = useAsync(() => (me ? loadMemories() : Promise.resolve([])), [me]);
+  const res = useAsync(() => (me ? loadMemories() : Promise.resolve([])), [me], 'lib/memories-ui:13');
   const m = res.data?.[0];
   if (!m) return null;
   return (

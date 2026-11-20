@@ -431,7 +431,7 @@ export type RoomApi = ReturnType<typeof useRoom>;
 export function PersonAvatar({ p, size = 44, initial }: { p: Person | null; size?: number; initial?: string }) {
   const name = p?.display_name ?? initial ?? '?';
   return (
-    <Cover uri={p?.avatar_url} id={p?.id} size={size} radius={size / 2} style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <Cover uri={p?.avatar_url} id={p?.id} size={size} radius={Math.round(size / 3.2)} style={{ alignItems: 'center', justifyContent: 'center' }}>
       {p?.avatar_url ? null : (
         <T size={Math.round(size / 3)} weight={600} color={colors.white}>
           {(name[0] ?? '?').toUpperCase()}

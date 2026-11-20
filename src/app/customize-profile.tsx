@@ -79,7 +79,7 @@ export default function CustomizeProfile() {
   const show = (k: keyof ProfileCustom['showcase'], v: boolean) => setDraft((d) => ({ ...d, showcase: { ...d.showcase, [k]: v } }));
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'dots' }}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'rose' }}>
       <ScreenHeader
         title="Customize"
         right={saving ? <ActivityIndicator color={colors.accent} accessibilityLabel="Saving" /> : <LinkText label="Done" onPress={() => void done()} />}

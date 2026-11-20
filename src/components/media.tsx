@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -150,27 +151,73 @@ export type AsyncState<T> = {
 };
 
 /**
- * Stale-while-revalidate memory cache for `useAsync`: reopening a screen shows the last result instantly while a
- * fresh load runs quietly behind it. Keyed by the loader's source text + serialised deps (skipped when deps cannot
- * be serialised). Memory only; cleared on sign-out / account switch (`clearAsyncCache`).
+ * Stale-while-revalidate cache for `useAsync`: reopening a screen shows the last result instantly while a fresh
+ * load runs quietly behind it. Opt-in per call with a stable name — `useAsync(loader, deps, 'home.trending')` —
+ * because function source text cannot be used as a key (in release builds every function's text is identical).
+ * `{ id, persist: true }` also saves the result on the device so the next app launch opens with data at once;
+ * only use that for plain-JSON results. Cleared on sign-out / account switch (`clearAsyncCache`).
  */
+type CacheOpt = string | { id: string; persist?: boolean };
 const asyncCache = new Map<string, unknown>();
+const persistKeys = new Set<string>();
 const ASYNC_CACHE_MAX = 150;
+const PERSIST_KEY = 'zoyra.asyncCache.v2';
+const PERSIST_TTL_MS = 3 * 24 * 3600_000;
+const PERSIST_MAX_BYTES = 150_000;
+let hydrated = false;
+const hydration: Promise<void> = AsyncStorage.getItem(PERSIST_KEY)
+  .then((raw) => {
+    if (!raw) return;
+    const rows = JSON.parse(raw) as { k: string; v: unknown; t: number }[];
+    for (const r of rows) {
+      if (Date.now() - r.t < PERSIST_TTL_MS && !asyncCache.has(r.k)) {
+        asyncCache.set(r.k, r.v);
+        persistKeys.add(r.k);
+      }
+    }
+  })
+  .catch(() => undefined)
+  .finally(() => {
+    hydrated = true;
+  });
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+function schedulePersist() {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    try {
+      const rows: { k: string; v: unknown; t: number }[] = [];
+      for (const k of persistKeys) {
+        if (!asyncCache.has(k)) continue;
+        const v = asyncCache.get(k);
+        if (JSON.stringify(v).length <= PERSIST_MAX_BYTES) rows.push({ k, v, t: Date.now() });
+      }
+      void AsyncStorage.setItem(PERSIST_KEY, JSON.stringify(rows)).catch(() => undefined);
+    } catch {
+      // Not serialisable: skip, memory cache still works.
+    }
+  }, 1500);
+}
 export function clearAsyncCache() {
   asyncCache.clear();
+  persistKeys.clear();
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = null;
+  void AsyncStorage.removeItem(PERSIST_KEY).catch(() => undefined);
 }
-function cacheKey(loader: () => unknown, deps: unknown[]): string | null {
+function cacheKey(opt: CacheOpt | undefined, deps: unknown[]): string | null {
+  if (!opt) return null;
   try {
     const d = JSON.stringify(deps);
     if (d.length > 1500) return null;
-    return `${loader.toString()}|${d}`;
+    return `${typeof opt === 'string' ? opt : opt.id}|${d}`;
   } catch {
     return null;
   }
 }
 
 /** Run an async loader on mount / when deps change; exposes loading + error + reload. */
-export function useAsync<T>(loader: () => Promise<T>, deps: unknown[]): AsyncState<T> {
+export function useAsync<T>(loader: () => Promise<T>, deps: unknown[], cache?: CacheOpt): AsyncState<T> {
   const [data, setData] = useState<T>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -188,8 +235,10 @@ export function useAsync<T>(loader: () => Promise<T>, deps: unknown[]): AsyncSta
     const quiet = silent.current;
     silent.current = false;
     // A quiet refresh keeps the current content (and any error) up until the new result lands.
-    const key = cacheKey(ref.current, deps);
+    const key = cacheKey(cache, deps);
+    const persist = typeof cache === 'object' && !!cache.persist;
     const hit = key !== null && asyncCache.has(key);
+    let completed = false;
     if (hit && !quiet) {
       // Show the cached result at once; the fresh load below replaces it when it lands.
       setData(asyncCache.get(key as string) as T);
@@ -199,13 +248,27 @@ export function useAsync<T>(loader: () => Promise<T>, deps: unknown[]): AsyncSta
       setLoading(true);
       setError(null);
     }
+    // First launch: the saved copy loads from disk a moment later; show it if the network hasn't answered yet.
+    if (key !== null && persist && !hydrated && !hit && !quiet) {
+      void hydration.then(() => {
+        if (alive && !completed && asyncCache.has(key)) {
+          setData(asyncCache.get(key) as T);
+          setLoading(false);
+        }
+      });
+    }
     ref
       .current()
       .then((d) => {
         if (!alive) return;
+        completed = true;
         if (key !== null) {
           if (asyncCache.size >= ASYNC_CACHE_MAX) asyncCache.delete(asyncCache.keys().next().value as string);
           asyncCache.set(key, d);
+          if (persist) {
+            persistKeys.add(key);
+            schedulePersist();
+          }
         }
         setData(d);
         setError(null);

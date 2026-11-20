@@ -75,11 +75,7 @@ export default function Theme() {
       gap={16}
       backdrop={{
         pattern: 'dots',
-        mesh: 'none',
-        glows: [
-          { x: 0.5, y: 0, color: colors.violet, opacity: 0.34 },
-          { x: 0, y: 0.6, color: colors.accent, opacity: 0.22 },
-        ],
+        mesh: 'rose',
       }}
     >
       <ScreenHeader title="Display and theme" />

@@ -417,6 +417,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const pendingSeek = useRef<number | null>(null);
   /** Restored paused: start counting the listen when the user presses play. */
   const restoredPending = useRef(false);
+  /**
+   * Index we just asked the native playlist to jump to (load → skipTo). Right after `clear()` + `add()` the native
+   * player still reports index 0 (the first search result) for a moment; those stale events must not overwrite the
+   * song the user actually picked, or the wrong song shows (and its lyrics) until the player settles.
+   */
+  const loadTarget = useRef<{ index: number; until: number } | null>(null);
+  const staleNative = (index: number) => {
+    const t = loadTarget.current;
+    if (!t) return false;
+    if (index === t.index || Date.now() > t.until) {
+      loadTarget.current = null;
+      return false;
+    }
+    return true;
+  };
   /** Local track id we already told the user couldn't be played (one notice per attempt). */
   const localFailNotified = useRef<string | null>(null);
   /** Bumped on every queue load so replaying the same file re-arms the watchdog. */
@@ -560,6 +575,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   /* ---------- native events */
   useEffect(() => {
     const changed = playlist.addListener('trackChanged', ({ currentIndex }) => {
+      if (staleNative(currentIndex)) return;
       // Previous track ran out on its own → ramp the new one in; a skip plays at full volume at once.
       const natural = lastLeft.current < 1.5;
       fadeInPending.current = natural && crossfadeRef.current > 0;
@@ -580,6 +596,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       saveSession();
     });
     const status = playlist.addListener('playlistStatusUpdate', (s) => {
+      if (staleNative(s.currentIndex)) return;
       // Android sends `error: { message, code }` with the status when ExoPlayer can't open the source
       // (not in the published AudioPlaylistStatus type).
       const err = (s as { error?: { message?: string } | string | null }).error;
@@ -732,6 +749,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setPlaybackRate(playlist, rate);
       setQueue(tracks);
       setIndex(start);
+      loadTarget.current = start > 0 ? { index: start, until: Date.now() + 4000 } : null;
       playlist.skipTo(start);
       if (opts?.paused) {
         // Restored session: the listen starts counting when the user presses play.
@@ -834,6 +852,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const existing = queueRef.current.findIndex((t) => t.id === track.id);
       if (existing >= 0) {
         hideMetaRef.current = Boolean(opts?.hideMetadata);
+        // Switch the visible current song at once (lyrics, lock screen, mini player read it); the native
+        // "track changed" event can lag, and stale events before it lands are ignored.
+        setIndex(existing);
+        loadTarget.current = { index: existing, until: Date.now() + 4000 };
         playlist.skipTo(existing);
         playlist.play();
         updateLockScreen(track);
@@ -960,6 +982,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         } else playlist.previous();
       },
       skipTo: (i) => {
+        setIndex(i);
+        loadTarget.current = { index: i, until: Date.now() + 4000 };
         playlist.skipTo(i);
         playlist.play();
       },

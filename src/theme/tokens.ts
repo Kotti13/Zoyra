@@ -253,14 +253,14 @@ export function glow(color: string, radius = 15, opacity = 0.55) {
 /** Motion tokens from the Transitions board. */
 export const motion = {
   instant: 100,
-  fast: 200,
-  normal: 300,
+  fast: 150,
+  normal: 220,
   slow: 500,
   emphasis: 800,
   /** Screen push: slide distance (px). */
   pushDistance: 24,
   /** List stagger: rise distance (px), step (ms) and max animated items. */
   staggerRise: 16,
-  staggerStep: 40,
-  staggerMax: 8,
+  staggerStep: 25,
+  staggerMax: 6,
 } as const;

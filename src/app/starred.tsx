@@ -31,7 +31,7 @@ export default function Starred() {
   const [filter, setFilter] = useState<StarFilter>('all');
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [note, setNote] = useState<string | null>(null);
-  const list = useAsync(() => (me ? loadStarred(cid) : Promise.resolve([])), [me, cid]);
+  const list = useAsync(() => (me ? loadStarred(cid) : Promise.resolve([])), [me, cid], 'app/starred:34');
   const items = (list.data ?? []).filter((it) => !removed.has(it.message.id));
   const shown = filter === 'all' ? items : items.filter((it) => starKind(it.message) === filter);
 

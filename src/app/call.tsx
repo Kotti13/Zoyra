@@ -55,7 +55,7 @@ function restPip(x: number, y: number) {
 /**
  * Call (`/call?id=<callId>`): full-screen 1:1 voice / video call over Agora.
  * States: outgoing ringing ("Calling…" + ringback tone), incoming ringing (CallKitRinging / CallKitVideo design:
- * ringtone, Message / Remind me, Decline, swipe up to Answer; `answer=1` = answered from the banner or the
+ * ringtone, quick replies, Message, Decline, Answer; `answer=1` = answered from the banner or the
  * native call UI, so it accepts at once; `ring=1` = opened from the Android call notification, which rings),
  * connecting, in call (voice: avatar, speaking bars, timer, control grid; video: remote full screen,
  * draggable local picture-in-picture, control bar) and ended (Call again / Message / quality stars).
@@ -277,7 +277,7 @@ export default function CallScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <LinearGradient colors={['#2A0B18', '#050505']} locations={[0, 0.75]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      <LinearGradient colors={['#3A0C18', '#0A0204']} locations={[0, 0.8]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
       <View pointerEvents="none" style={{ position: 'absolute', top: -120, alignSelf: 'center', width: 520, height: 520, borderRadius: 260, backgroundColor: withAlpha('#FF6B81', 0.12) }} />
       {body}
     </View>
@@ -337,8 +337,8 @@ function PulseAvatar({ peer, size, rings }: { peer: ChatPerson | null; size: num
             />
           ))
         : null}
-      <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderColor: withAlpha(colors.white, 0.18), overflow: 'hidden', shadowColor: '#FF6B81', shadowOpacity: 0.35, shadowRadius: 30, shadowOffset: { width: 0, height: 20 } }}>
-        <ChatAvatar person={peer} size={size - 6} />
+      <View style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderColor: withAlpha(colors.white, 0.18), overflow: 'hidden', shadowColor: '#E50914', shadowOpacity: 0.35, shadowRadius: 30, shadowOffset: { width: 0, height: 20 } }}>
+        <ChatAvatar person={peer} size={size - 6} radius={(size - 6) / 2} />
       </View>
     </View>
   );
@@ -489,7 +489,7 @@ function Incoming({ call, s, peer, name, busy, note, onAccept, onDecline }: { ca
   return (
     <View style={{ flex: 1 }}>
       {video ? <LinearGradient colors={['#16305F', '#050505']} style={StyleSheet.absoluteFill} /> : null}
-      <View style={{ flex: 1, alignItems: 'center', paddingTop: insets.top + 18, paddingBottom: insets.bottom + 32, paddingHorizontal: 24 }}>
+      <View style={{ flex: 1, alignItems: 'center', paddingTop: insets.top + 18, paddingBottom: insets.bottom + 36, paddingHorizontal: 24 }}>
         <View style={{ alignSelf: video ? 'flex-start' : 'center', height: 28, paddingHorizontal: 12, borderRadius: 22, backgroundColor: withAlpha(colors.white, 0.1), flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Icon name={s?.encrypted ? 'lock' : video ? 'video' : 'call'} size={13} color={colors.text} />
           <T size={12} weight={600}>
@@ -499,10 +499,10 @@ function Incoming({ call, s, peer, name, busy, note, onAccept, onDecline }: { ca
         <View style={{ marginTop: video ? 110 : 64 }}>
           <PulseAvatar peer={peer} size={video ? 130 : 150} rings />
         </View>
-        <T size={34} weight={300} tracking={-0.8} align="center" numberOfLines={1} style={{ marginTop: video ? 30 : 36 }} accessibilityRole="header">
+        <T size={32} weight={300} tracking={-0.6} align="center" numberOfLines={1} style={{ marginTop: video ? 30 : 40 }} accessibilityRole="header">
           {name}
         </T>
-        <BlinkText text={video ? 'Zoyra video ringing…' : 'Zoyra audio ringing…'} />
+        <BlinkText text="Incoming call…" />
         {listening ? (
           <View
             accessible
@@ -522,15 +522,14 @@ function Incoming({ call, s, peer, name, busy, note, onAccept, onDecline }: { ca
         ) : null}
         <View style={{ flex: 1 }} />
         <NoteText text={note} />
-        <View style={{ flexDirection: 'row', gap: 10, width: '100%', marginBottom: 26 }}>
-          <Pill icon="chat" label="Message" busy={busy === 'message'} hint="Declines and opens your chat" onPress={() => onDecline(undefined, true)} />
-          <Pill icon="clock" label="Remind me" busy={busy === 'remind'} hint="Declines and reminds you to call back in 1 hour" onPress={() => onDecline(undefined, false, true)} />
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 36 }}>
+          <Pill label="Can't talk now" busy={busy === 'r:Can’t talk now'} hint="Declines and sends this message" onPress={() => onDecline('Can’t talk now')} />
+          <Pill label="Call you back soon" busy={busy === 'r:Call you back soon'} hint="Declines and sends this message" onPress={() => onDecline('Call you back soon')} />
         </View>
-        <SwipeHint />
-        <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', marginTop: 6 }}>
-          <RoundButton icon="hangup" label="Decline" size={72} bg="#E5253B" color={colors.white} labelSize={13} labelGap={10} busy={busy === 'decline'} onPress={() => onDecline()} />
+        <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-start' }}>
+          <RoundButton icon="hangup" label="Decline" size={72} bg="#E5484D" color={colors.white} glow="#E5484D" labelSize={13} labelGap={10} busy={busy === 'decline'} onPress={() => onDecline()} />
+          <RoundButton icon="chat" label="Message" size={72} bg={withAlpha(colors.white, 0.12)} border={withAlpha(colors.white, 0.18)} labelSize={13} labelGap={10} busy={busy === 'message'} onPress={() => onDecline(undefined, true)} />
           <SwipeAnswer video={video} busy={busy === 'accept'} glow={reduce ? null : glow} onAccept={onAccept} />
-          <View style={{ width: 72 }} />
         </View>
       </View>
       {video ? <IncomingSelfView s={s} /> : null}
@@ -557,7 +556,7 @@ function BlinkText({ text }: { text: string }) {
   );
 }
 
-function Pill({ icon, label, hint, busy, onPress }: { icon: IconName; label: string; hint: string; busy: boolean; onPress: () => void }) {
+function Pill({ label, hint, busy, onPress }: { label: string; hint: string; busy: boolean; onPress: () => void }) {
   return (
     <Tap
       onPress={onPress}
@@ -565,43 +564,14 @@ function Pill({ icon, label, hint, busy, onPress }: { icon: IconName; label: str
       accessibilityLabel={label}
       accessibilityHint={hint}
       accessibilityState={{ busy }}
-      style={{ flex: 1, height: 44, borderRadius: 22, backgroundColor: withAlpha(colors.white, 0.1), borderWidth: 1, borderColor: withAlpha(colors.white, 0.14), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+      style={{ minHeight: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: withAlpha(colors.white, 0.06), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12), alignItems: 'center', justifyContent: 'center' }}
     >
-      {busy ? <ActivityIndicator size="small" color={colors.text} /> : <Icon name={icon} size={16} color={colors.text} glow={false} />}
-      <T size={13} weight={600}>
-        {label}
-      </T>
+      {busy ? <ActivityIndicator size="small" color={colors.text} /> : <T size={13} weight={600}>{label}</T>}
     </Tap>
   );
 }
 
-/** Three chevrons rising in turn above "Swipe up to answer". */
-function SwipeHint() {
-  const reduce = useReduceMotion();
-  const [anims] = useState(() => [0, 1, 2].map(() => new Animated.Value(0.25)));
-  useEffect(() => {
-    if (reduce) return;
-    const loops = anims.map((v, i) =>
-      Animated.loop(Animated.sequence([Animated.delay((2 - i) * 300), Animated.timing(v, { toValue: 1, duration: 500, useNativeDriver: true }), Animated.timing(v, { toValue: 0.25, duration: 700, useNativeDriver: true }), Animated.delay(i * 300)])),
-    );
-    loops.forEach((l) => l.start());
-    return () => loops.forEach((l) => l.stop());
-  }, [reduce, anims]);
-  return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ alignItems: 'center', gap: 2, marginBottom: 6 }}>
-      {anims.map((v, i) => (
-        <Animated.View key={i} style={{ opacity: v }}>
-          <Icon name="chevronUp" size={16} color={colors.text} glow={false} />
-        </Animated.View>
-      ))}
-      <T size={13} color="#E5E5E5" style={{ marginTop: 2 }}>
-        Swipe up to answer
-      </T>
-    </View>
-  );
-}
-
-/** The 84 px green Answer button: swipe it up (or tap it) to answer. */
+/** The 72 px green Answer button: tap it (or swipe it up) to answer. */
 function SwipeAnswer({ video, busy, glow, onAccept }: { video: boolean; busy: boolean; glow: Animated.Value | null; onAccept: () => void }) {
   const [dy] = useState(() => new Animated.Value(0));
   const pan = useMemo(
@@ -628,12 +598,12 @@ function SwipeAnswer({ video, busy, glow, onAccept }: { video: boolean; busy: bo
             pointerEvents="none"
             style={{
               position: 'absolute',
-              width: 84,
-              height: 84,
-              borderRadius: 42,
+              width: 72,
+              height: 72,
+              borderRadius: 36,
               backgroundColor: withAlpha(CALL_GREEN, 0.55),
               opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-              transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 112 / 84] }) }],
+              transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [1, 100 / 72] }) }],
             }}
           />
         ) : null}
@@ -641,9 +611,9 @@ function SwipeAnswer({ video, busy, glow, onAccept }: { video: boolean; busy: bo
           onPress={onAccept}
           accessibilityRole="button"
           accessibilityLabel="Answer"
-          accessibilityHint="Swipe up or double tap to answer"
+          accessibilityHint="Double tap or swipe up to answer"
           accessibilityState={{ busy }}
-          style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: CALL_GREEN, alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: CALL_GREEN, alignItems: 'center', justifyContent: 'center' }}
         >
           {busy ? <ActivityIndicator color={ON_GREEN} /> : <Icon name={video ? 'video' : 'call'} size={32} color={ON_GREEN} glow={false} />}
         </Tap>

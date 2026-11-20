@@ -2,11 +2,14 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Cover, EmptyState, Glass, Icon, IconButton, LinkText, Overline, Row, Screen, ScreenHeader, SectionHeader, T, Tap, Toast } from '../components';
-import { catalog } from '../lib/catalog';
+import { Button, Cover, EmptyState, Glass, Icon, IconButton, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle } from '../components';
+import { EqBars } from '../components/art-fx';
+import { catalog, formatDuration } from '../lib/catalog';
+import { usePlayPref } from '../lib/play-prefs';
 import { useLibrary } from '../state/library';
 import { usePlayerPick } from '../state/player';
-import { colors } from '../theme/tokens';
+import { colors, withAlpha } from '../theme/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type Note = { message: string; error?: boolean };
 
@@ -15,6 +18,7 @@ export default function Queue() {
   const { createPlaylist, addToPlaylist } = useLibrary();
   const [busy, setBusy] = useState<'save' | 'similar' | null>(null);
   const [note, setNote] = useState<Note | null>(null);
+  const [autoSimilar, setAutoSimilar] = usePlayPref('playback.autoplaySimilar');
 
   useEffect(() => {
     if (!note) return;
@@ -63,30 +67,69 @@ export default function Queue() {
     }
   };
 
-  return (
-    <Screen backdrop={{ pattern: 'lines', mesh: 'coral' }} top={4} gap={16} swipeDown="top">
-      <ScreenHeader title="Queue" right={upNext.length ? <LinkText label="Clear" onPress={clearUpNext} /> : undefined} />
+  const left = queue.slice(index);
+  const mins = Math.max(1, Math.round(left.reduce((n, t) => n + (t.duration || 0), 0) / 60));
+  const sub = `${left.length} ${left.length === 1 ? 'song' : 'songs'} · ${mins} min`;
 
-      <Glass padding={12}>
-        <Row gap={12}>
-          <Cover artwork={track.artwork} id={track.id} size={56} radius={28} />
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <Overline>NOW PLAYING</Overline>
-            <T size={16} weight={600} numberOfLines={1}>
-              {track.title}
-            </T>
-            <T size={14} color={colors.textSecondary} numberOfLines={1}>
-              {track.artist.name}
-            </T>
-          </View>
-          <Icon name={playing ? 'speaker' : 'pause'} size={22} color={colors.accentLight} />
+  return (
+    <Screen
+      backdrop={{ pattern: 'dots', mesh: 'coral', orbs: true }}
+      top={4}
+      gap={14}
+      swipeDown="top"
+      footer={
+        <Row gap={10}>
+          <Button variant="glass" icon="plus" label={busy === 'save' ? 'Saving…' : 'Save as playlist'} height={50} style={{ flex: 1 }} onPress={saveAsPlaylist} />
+          <Button icon="bolt" label={busy === 'similar' ? 'Finding…' : 'Add similar'} height={50} style={{ flex: 1 }} onPress={addSimilar} />
         </Row>
-      </Glass>
+      }
+    >
+      <Row gap={10} style={{ minHeight: 44 }}>
+        <IconButton icon="back" label="Back" href="back" />
+        <Cover artwork={track.artwork} id={track.id} size={44} radius={22} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <T size={17} weight={700} accessibilityRole="header">
+            Queue
+          </T>
+          <T size={12} color="#FF9AA0" numberOfLines={1}>
+            {sub}
+          </T>
+        </View>
+        {upNext.length ? (
+          <Tap onPress={clearUpNext} accessibilityLabel="Clear up next" style={{ paddingHorizontal: 6, minHeight: 44, justifyContent: 'center' }}>
+            <T size={14} weight={700} color="#FF6B73">
+              Clear
+            </T>
+          </Tap>
+        ) : null}
+      </Row>
+
+      <View style={{ borderRadius: 26, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.accent, 0.5) }}>
+        <LinearGradient colors={[withAlpha(colors.accent, 0.34), 'rgba(20,20,20,0.6)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 12 }}>
+          <Row gap={12}>
+            <Cover artwork={track.artwork} id={track.id} size={56} radius={28} />
+            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+              <T size={10} weight={700} tracking={1.4} color={colors.gold}>
+                NOW PLAYING
+              </T>
+              <T size={16} weight={700} numberOfLines={1}>
+                {track.title}
+              </T>
+              <T size={12} color="#FF9AA0" numberOfLines={1}>
+                {track.artist.name}
+              </T>
+            </View>
+            <EqBars active={playing} bars={6} height={24} barWidth={4} color={colors.accentLight} />
+          </Row>
+        </LinearGradient>
+      </View>
 
       <Row style={{ justifyContent: 'space-between' }}>
-        <SectionHeader title="Next up" />
-        <T mono size={12} color={colors.textSecondary}>
-          {`${upNext.length} ${upNext.length === 1 ? 'song' : 'songs'}`}
+        <T size={11} weight={700} tracking={1.4} color={colors.textSecondary}>
+          NEXT UP
+        </T>
+        <T size={12} color={colors.textSecondary}>
+          {upNext.length > 1 ? 'Tap the arrows to reorder' : `${upNext.length} ${upNext.length === 1 ? 'song' : 'songs'}`}
         </T>
       </Row>
 
@@ -96,18 +139,21 @@ export default function Queue() {
             Nothing up next. Tap Add similar to keep the music going.
           </T>
         ) : (
-          upNext.map(({ t, i }) => (
-            <Row key={`${t.id}-${i}`} gap={4} style={{ minHeight: 64 }}>
-              <Tap onPress={() => skipTo(i)} accessibilityLabel={`Play ${t.title} by ${t.artist.name}`} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64 }}>
-                <Cover artwork={t.artwork} id={t.id} size={48} radius={14} />
-                <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                  <T size={16} weight={600} numberOfLines={1}>
+          upNext.map(({ t, i }, n) => (
+            <Row key={`${t.id}-${i}`} gap={4} style={{ minHeight: 68, borderTopWidth: n ? 1 : 0, borderTopColor: withAlpha(colors.white, 0.07) }}>
+              <Tap onPress={() => skipTo(i)} accessibilityLabel={`Play ${t.title} by ${t.artist.name}`} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingHorizontal: 4 }}>
+                <Cover artwork={t.artwork} id={t.id} size={48} radius={22} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <T size={15} weight={600} numberOfLines={1}>
                     {t.title}
                   </T>
-                  <T size={14} color={colors.textSecondary} numberOfLines={1}>
+                  <T size={12} color={colors.textSecondary} numberOfLines={1}>
                     {t.artist.name}
                   </T>
                 </View>
+                <T mono size={12} color={colors.textSecondary}>
+                  {formatDuration(t.duration)}
+                </T>
               </Tap>
               <IconButton icon="close" label={`Remove ${t.title} from queue`} iconSize={20} color={colors.textSecondary} onPress={() => removeFromQueue(i)} />
               <IconButton
@@ -121,12 +167,24 @@ export default function Queue() {
         )}
       </View>
 
-      {note ? <Toast icon={note.error ? 'info' : 'check'} iconColor={note.error ? colors.accentLight : colors.success} message={note.message} /> : null}
+      <Glass radius={26} padding={4}>
+        <Row gap={14} style={{ paddingVertical: 12, paddingHorizontal: 12 }}>
+          <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: withAlpha(colors.white, 0.08), alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="bolt" size={20} color={colors.text} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <T size={15} weight={600}>
+              Autoplay similar
+            </T>
+            <T size={12} color={colors.textSecondary}>
+              Keep playing when the queue ends
+            </T>
+          </View>
+          <Toggle value={autoSimilar} onChange={setAutoSimilar} label="Autoplay similar" />
+        </Row>
+      </Glass>
 
-      <Row gap={12}>
-        <Button variant="glass" icon="plus" label={busy === 'save' ? 'Saving…' : 'Save as playlist'} style={{ flex: 1 }} onPress={saveAsPlaylist} />
-        <Button variant="glass" icon="bolt" label={busy === 'similar' ? 'Finding…' : 'Add similar'} style={{ flex: 1 }} onPress={addSimilar} />
-      </Row>
+      {note ? <Toast icon={note.error ? 'info' : 'check'} iconColor={note.error ? colors.accentLight : colors.success} message={note.message} /> : null}
     </Screen>
   );
 }

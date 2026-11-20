@@ -436,5 +436,5 @@ export default function LyricsShare() {
 
 const styles = StyleSheet.create({
   card: { width: CARD_W, height: CARD_H, borderRadius: 32, overflow: 'hidden' },
-  cardInner: { flex: 1, padding: 22, justifyContent: 'space-between' },
+  cardInner: { flex: 1, padding: 26, justifyContent: 'space-between' },
 });

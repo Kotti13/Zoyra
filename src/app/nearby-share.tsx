@@ -105,7 +105,7 @@ export default function NearbyShareScreen() {
 
   if (!user) {
     return (
-      <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral' }}>
+      <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral', orbs: false }}>
         <ScreenHeader title="Nearby share" back="back" />
         <T color={colors.textSecondary}>Sign in to share songs with people nearby.</T>
         <Button label="Sign in" href="/login" />
@@ -116,7 +116,7 @@ export default function NearbyShareScreen() {
   const mm = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
 
   return (
-    <Screen top={4} gap={18} bottom={24} backdrop={{ pattern: 'none', mesh: 'coral' }}>
+    <Screen top={4} gap={18} bottom={24} backdrop={{ pattern: 'none', mesh: 'coral', orbs: false }}>
       <ScreenHeader title="Nearby share" />
 
       <View style={{ gap: 8 }}>

@@ -5,7 +5,7 @@ import type { YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 
-import { Button, Chip, EmptyState, ErrorState, Icon, IconButton, Loading, PopRing, Row, T, Tap, useAsync, usePop } from '../components';
+import { Button, EmptyState, ErrorState, Icon, IconButton, Loading, PopRing, Row, T, Tap, useAsync, usePop } from '../components';
 import { ChannelAvatar, playerErrorText, useVideoAutoStart, VideoFrame } from '../lib/video-ui';
 import {
   compactCount,
@@ -75,9 +75,9 @@ export default function VideoShorts() {
     });
     setToken(page.nextPageToken);
     return page.videos;
-  }, []);
+  }, [], 'app/video-shorts:72');
 
-  const followed = useAsync(() => (me ? listFollowedChannels(me) : Promise.resolve([])), [me]);
+  const followed = useAsync(() => (me ? listFollowedChannels(me) : Promise.resolve([])), [me], 'app/video-shorts:80');
   const followedIds = useMemo(() => new Set((followed.data ?? []).map((c) => c.id)), [followed.data]);
   const followingFeed = useAsync(
     () =>
@@ -88,10 +88,10 @@ export default function VideoShorts() {
               throw new Error(youtubeErrorMessage(e));
             })
         : Promise.resolve<YouTubeVideo[]>([]),
-    [tab, followed.data],
+    [tab, followed.data], 'app/video-shorts:82',
   );
 
-  const saved = useAsync(() => (me ? listSavedVideos(me) : Promise.resolve([])), [me]);
+  const saved = useAsync(() => (me ? listSavedVideos(me) : Promise.resolve([])), [me], 'app/video-shorts:94');
   const savedIds = useMemo(() => new Set((saved.data ?? []).map((v) => v.id)), [saved.data]);
 
   const items = useMemo(() => {
@@ -198,9 +198,14 @@ export default function VideoShorts() {
     <View style={{ flex: 1, backgroundColor: colors.black, paddingTop: insets.top }}>
       <Row gap={4} style={{ height: 52, paddingHorizontal: 8 }}>
         <IconButton icon="back" label="Back" href="back" />
-        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 4 }}>
-          <Chip label="Following" active={tab === 'following'} onPress={() => switchTab('following')} />
-          <Chip label="For you" active={tab === 'foryou'} onPress={() => switchTab('foryou')} />
+        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 18 }}>
+          {(['following', 'foryou'] as const).map((k) => (
+            <Tap key={k} onPress={() => switchTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} accessibilityLabel={k === 'following' ? 'Following' : 'For you'} style={{ minHeight: 44, justifyContent: 'center' }}>
+              <T size={16} weight={tab === k ? 700 : 300} color={tab === k ? colors.text : colors.peach} style={{ paddingBottom: 4, borderBottomWidth: 2, borderBottomColor: tab === k ? colors.white : 'transparent' }}>
+                {k === 'following' ? 'Following' : 'For you'}
+              </T>
+            </Tap>
+          ))}
         </View>
         <View style={{ width: 44 }} />
       </Row>
@@ -354,11 +359,11 @@ function ShortInfo({
   return (
     <View style={{ height: INFO_H, paddingHorizontal: 16, paddingTop: 10, gap: 8 }}>
       <Row gap={10}>
-        <ChannelAvatar name={video.channel} uri={null} size={32} />
-        <T size={14} weight={600} numberOfLines={1} style={{ flex: 1 }}>
+        <ChannelAvatar name={video.channel} uri={null} size={42} />
+        <T size={15} weight={700} numberOfLines={1} style={{ flex: 1 }}>
           {video.channel}
         </T>
-        {video.channelId ? <Button label={following ? 'Following' : 'Follow'} variant={following ? 'glass' : 'light'} height={32} onPress={onFollow} /> : null}
+        {video.channelId ? <Button label={following ? 'Following' : 'Follow'} variant={following ? 'glass' : 'secondary'} height={30} onPress={onFollow} /> : null}
       </Row>
       <T size={13} numberOfLines={2} lineHeight={18}>
         {error ?? video.title}
@@ -378,12 +383,12 @@ function ShortInfo({
 function Stat({ icon, label, a11y, onPress, accent }: { icon: 'eye' | 'heart' | 'mail' | 'share' | 'check' | 'plus' | 'link'; label: string; a11y: string; onPress?: () => void; accent?: boolean }) {
   const pop = usePop(accent);
   const body = (
-    <View style={{ alignItems: 'center', gap: 2, minWidth: 48, minHeight: 44, justifyContent: 'center' }}>
+    <View style={{ alignItems: 'center', gap: 4, minWidth: 48, minHeight: 44, justifyContent: 'center' }}>
       <PopRing active={!!accent} size={34} color={colors.accentLight} />
-      <Animated.View style={{ transform: [{ scale: pop }] }}>
+      <Animated.View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.shade, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pop }] }}>
         <Icon name={icon} size={20} color={accent ? colors.accentLight : colors.text} />
       </Animated.View>
-      <T size={11} color={colors.textSecondary}>
+      <T size={11} weight={600} color={colors.text}>
         {label}
       </T>
     </View>

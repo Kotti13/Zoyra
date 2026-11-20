@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Cover, EmptyState, ErrorState, Glass, Icon, IconButton, Loading, MiniPlayer, Overline, Row, Screen, SectionHeader, Spacer, T, Tap, TrackItem, useAsync, ToggleBurst } from '../components';
+import { Button, Cover, EmptyState, ErrorState, Glass, Icon, IconButton, Loading, MiniPlayer, Overline, Row, Screen, SectionHeader, T, Tap, useAsync, ToggleBurst } from '../components';
+import { AppleTrackRow } from '../components/apple-parts';
 import { EventCard } from '../components/EventCard';
 import { catalog, formatCount, type CatalogTrack } from '../lib/catalog';
 import { artistShareUrl, shareContent } from '../lib/share-links';
@@ -15,6 +16,10 @@ import { ServiceNotConfiguredError, TICKETMASTER_SETUP_MESSAGE, fetchConcerts } 
 import { useLibrary } from '../state/library';
 import { usePlayerPick } from '../state/player';
 import { art, colors, withAlpha } from '../theme/tokens';
+
+const styles = StyleSheet.create({
+  pill: { flex: 1, height: 48, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+});
 
 const shuffle = (a: CatalogTrack[]) => {
   const x = [...a];
@@ -33,13 +38,14 @@ export default function Artist() {
   const player = usePlayerPick('track', 'playing', 'context');
   const top = 4;
 
-  const artist = useAsync(async () => (id ? catalog.artist(id) : null), [id]);
-  const popular = useAsync(async () => (id ? catalog.artistTracks(id, 20, 'plays') : []), [id]);
-  const albums = useAsync(async () => (id ? catalog.artistCollections(id, 20) : []), [id]);
-  const related = useAsync(async () => (id ? catalog.relatedArtists(id, 10).catch(() => []) : []), [id]);
+  const artist = useAsync(async () => (id ? catalog.artist(id) : null), [id], 'app/artist:36');
+  const popular = useAsync(async () => (id ? catalog.artistTracks(id, 20, 'plays') : []), [id], 'app/artist:37');
+  const albums = useAsync(async () => (id ? catalog.artistCollections(id, 20) : []), [id], 'app/artist:38');
+  const related = useAsync(async () => (id ? catalog.relatedArtists(id, 10).catch(() => []) : []), [id], 'app/artist:39');
 
   const content = useContentFilter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [hiding, setHiding] = useState(false);
   const [hideNote, setHideNote] = useState<{ text: string; error?: boolean } | null>(null);
 
@@ -82,13 +88,13 @@ export default function Artist() {
   return (
     <Screen onRefresh={() => Promise.all([artist.refresh(), popular.refresh(), albums.refresh(), related.refresh()])} backdrop={{ pattern: 'dots', mesh: 'coral' }} top={top} gap={20} bottom={16} footer={<MiniPlayer />}>
       {/* Hero */}
-      <View style={{ marginTop: -(insets.top + top), marginHorizontal: -16, height: 256 + insets.top }}>
+      <View style={{ marginTop: -(insets.top + top), marginHorizontal: -16, height: 340 + insets.top }}>
         <LinearGradient colors={[art.coral[0], art.coral[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         {heroImg ? <Image source={{ uri: heroImg }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} cachePolicy="memory-disk" accessibilityIgnoresInvertColors /> : null}
-        <LinearGradient colors={[withAlpha(colors.bg, 0), withAlpha(colors.bg, 0), colors.bg]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={[withAlpha(colors.bg, 0), withAlpha(colors.bg, 0), colors.bg]} locations={[0, 0.35, 1]} style={StyleSheet.absoluteFill} />
         <View style={{ position: 'absolute', left: 16, right: 16, bottom: 16, gap: 6 }}>
           {a?.verified ? <Overline color={colors.peach}>VERIFIED ARTIST</Overline> : null}
-          <T size={40} weight={700} tracking={-1} lineHeight={46} accessibilityRole="header" numberOfLines={2}>
+          <T size={44} weight={800} tracking={-1} lineHeight={50} accessibilityRole="header" numberOfLines={2}>
             {a?.name ?? (artist.loading ? ' ' : 'Artist')}
           </T>
           {a ? (
@@ -169,23 +175,24 @@ export default function Artist() {
         <>
           {/* Actions */}
           <Row gap={12}>
+            <Tap onPress={onPlay} accessibilityLabel={playingHere ? 'Pause' : 'Play'} style={[styles.pill, { backgroundColor: colors.accent }]}>
+              <Icon name={playingHere ? 'pause' : 'play'} size={18} color={colors.onAccent} filled />
+              <T size={16} weight={700} color={colors.onAccent}>
+                {playingHere ? 'Pause' : 'Play'}
+              </T>
+            </Tap>
             <Tap
               onPress={() => void lib.toggleFollowArtist(a)}
               accessibilityState={{ selected: following }}
-              style={[
-                { height: 44, paddingHorizontal: 24, borderRadius: 22, justifyContent: 'center' },
-                following ? { backgroundColor: colors.accentLight } : { borderWidth: 1, borderColor: colors.accentLight },
-              ]}
+              style={[styles.pill, following ? { backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder } : { borderWidth: 1, borderColor: colors.accentLight }]}
             >
               <ToggleBurst active={following} size={48}>
-                <T size={14} weight={600} color={following ? colors.onAccent : colors.accentLight}>
+                <T size={16} weight={700} color={following ? colors.text : colors.accentLight}>
                   {following ? 'Following' : 'Follow'}
                 </T>
               </ToggleBurst>
             </Tap>
             <IconButton icon="bolt" label="Artist radio" color={radioOn ? colors.amber : colors.text} onPress={() => tracks.length && player.playTracks(shuffle(tracks), 0, radioCtx)} />
-            <Spacer />
-            <IconButton icon={playingHere ? 'pause' : 'play'} label={playingHere ? 'Pause' : 'Play'} size={56} iconSize={26} bg={colors.accent} color={colors.onAccent} onPress={onPlay} />
           </Row>
 
           {a.bio ? (
@@ -195,7 +202,7 @@ export default function Artist() {
           ) : null}
 
           {/* Popular */}
-          <SectionHeader title="Popular" />
+          <SectionHeader title="Top songs" action={tracks.length > 5 ? (showAll ? 'Show less' : 'Show more') : undefined} onAction={() => setShowAll((v) => !v)} />
           <View style={{ marginTop: -8 }}>
             {popular.loading && !popular.data ? (
               <Loading />
@@ -212,8 +219,8 @@ export default function Artist() {
                 body={allTracks.length ? 'Your hidden songs and kid-safe filter cover every popular song here.' : 'This artist has no streamable songs right now.'}
               />
             ) : (
-              tracks.slice(0, 10).map((t, i) => (
-                <TrackItem key={t.id} track={t} list={tracks} index={i} showIndex context={ctx} showDuration={false} subtitle={`${formatCount(t.plays)} plays`} />
+              (showAll ? tracks.slice(0, 20) : tracks.slice(0, 5)).map((t, i, arr) => (
+                <AppleTrackRow key={t.id} track={t} list={tracks} index={i} context={ctx} withArt subtitle={`${formatCount(t.plays)} plays`} last={i === arr.length - 1} />
               ))
             )}
           </View>
@@ -221,11 +228,11 @@ export default function Artist() {
           {/* Discography */}
           {albums.data && albums.data.length > 0 ? (
             <>
-              <SectionHeader title="Discography" />
+              <SectionHeader title="Albums" />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginRight: -16, marginTop: -8 }} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
                 {albums.data.map((d) => (
-                  <Tap key={d.id} href={{ pathname: '/album', params: { id: d.id } }} style={{ width: 128, gap: 6 }}>
-                    <Cover artwork={d.artwork} id={d.id} size={128} radius={20} />
+                  <Tap key={d.id} href={{ pathname: '/album', params: { id: d.id } }} style={{ width: 144, gap: 6 }}>
+                    <Cover artwork={d.artwork} id={d.id} size={144} radius={10} />
                     <T size={13} weight={600} numberOfLines={1}>
                       {d.title}
                     </T>
@@ -241,12 +248,12 @@ export default function Artist() {
           {/* Related */}
           {related.data && related.data.length > 0 ? (
             <>
-              <SectionHeader title="Fans also like" />
+              <SectionHeader title="Similar artists" />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginRight: -16, marginTop: -8 }} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
                 {related.data.map((r) => (
-                  <Tap key={r.id} href={{ pathname: '/artist', params: { id: r.id } }} style={{ width: 104, gap: 6, alignItems: 'center' }}>
-                    <Cover artwork={r.image} id={r.id} size={96} radius={48} />
-                    <T size={13} weight={600} numberOfLines={1} align="center">
+                  <Tap key={r.id} href={{ pathname: '/artist', params: { id: r.id } }} style={{ width: 128, gap: 6 }}>
+                    <Cover artwork={r.image} id={r.id} size={128} radius={10} />
+                    <T size={13} weight={600} numberOfLines={1}>
                       {r.name}
                     </T>
                   </Tap>
@@ -277,7 +284,7 @@ function OnTour({ artistName }: { artistName: string }) {
       if (e instanceof ServiceNotConfiguredError) return { events: [], notConfigured: true };
       throw e;
     }
-  }, [artistName]);
+  }, [artistName], 'app/artist:269');
 
   const message = (title: string, body: string, badge: string) => (
     <Glass padding={16} style={{ marginTop: -8 }}>

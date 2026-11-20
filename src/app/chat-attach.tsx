@@ -26,7 +26,7 @@ type Mode = 'grid' | 'song' | 'playlist' | 'lyric' | 'poll';
 export default function ChatAttach() {
   const params = useLocalSearchParams<{ id?: string; mode?: string }>();
   const cid = typeof params.id === 'string' ? params.id : '';
-  const initial: Mode = params.mode === 'lyric' ? 'lyric' : 'grid';
+  const initial: Mode = params.mode === 'lyric' || params.mode === 'song' || params.mode === 'poll' ? params.mode : 'grid';
   const { user, profile } = useAuth();
   const me = user?.id;
   const { track: nowPlaying } = usePlayerPick('track');
@@ -311,8 +311,8 @@ function SongPicker({ busy, onPick }: { busy: string | null; onPick: (t: Catalog
       out.push(r.track);
     }
     return out.slice(0, 20);
-  }, [user?.id]);
-  const results = useAsync<CatalogTrack[]>(() => (query ? catalog.searchTracks(query, { limit: 20 }) : Promise.resolve([])), [query]);
+  }, [user?.id], 'app/chat-attach:302');
+  const results = useAsync<CatalogTrack[]>(() => (query ? catalog.searchTracks(query, { limit: 20 }) : Promise.resolve([])), [query], 'app/chat-attach:315');
 
   const list = query ? results : recent;
   const tracks = (query ? [] : nowPlaying ? [nowPlaying] : []).concat((list.data ?? []).filter((t) => t.id !== nowPlaying?.id || !!query));
@@ -355,7 +355,7 @@ function SongPicker({ busy, onPick }: { busy: string | null; onPick: (t: Catalog
 }
 
 function LyricPicker({ track, busy, onPick }: { track: CatalogTrack; busy: string | null; onPick: (line: string) => void }) {
-  const lyrics = useAsync(() => fetchLyrics(track), [track.id]);
+  const lyrics = useAsync(() => fetchLyrics(track), [track.id], 'app/chat-attach:358');
   const lines = lyrics.data ? [...new Set(sourceLines(lyrics.data).map((l) => l.trim()).filter(Boolean))] : [];
   return (
     <>

@@ -1,7 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, ScrollView, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Avatar, Cover, EmptyState, ErrorState, Icon, Loading, Sheet, T, Tap, Toast, artFor, useAsync, type IconName } from '../components';
@@ -15,7 +16,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../state/auth';
 import { usePlayerPick } from '../state/player';
 import { useSheetTrack } from '../state/selection';
-import { colors } from '../theme/tokens';
+import { colors, withAlpha } from '../theme/tokens';
 
 type Friend = { id: string; display_name: string; username: string | null; avatar_url: string | null };
 type Note = { message: string; error?: boolean };
@@ -54,7 +55,7 @@ export default function ShareSheet() {
     if (p.error) throw new Error(p.error.message);
     const byId = new Map((p.data as Friend[]).map((x) => [x.id, x]));
     return ids.map((id) => byId.get(id)).filter((x): x is Friend => !!x);
-  }, [user?.id]);
+  }, [user?.id], 'app/share-sheet:48');
   // People you blocked aren't offered as recipients.
   const { blocked } = useBlocks(user?.id);
   const recipients = friends.data?.filter((f) => !blocked.has(f.id));
@@ -87,21 +88,24 @@ export default function ShareSheet() {
     }
   };
 
-  const targets: { label: string; icon: IconName; onPress: () => void }[] = [
-    { label: 'Share via…', icon: 'share', onPress: () => void systemShare() },
+  const targets: { label: string; icon: IconName; bg: string | readonly [string, string]; onPress: () => void }[] = [
+    { label: 'Lyrics card', icon: 'image', bg: ['#FF8A3D', '#E50914'], onPress: () => router.push('/lyrics-share') },
+    { label: 'WhatsApp', icon: 'chat', bg: '#1FBF8F', onPress: () => void openOr(`whatsapp://send?text=${encodeURIComponent(`${text}\n${url}`)}`) },
+    { label: 'X', icon: 'share', bg: ['#8A4BFF', '#E50914'], onPress: () => void openOr(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`) },
+    { label: 'Messages', icon: 'mail', bg: '#2B6BFF', onPress: () => void openOr(`sms:${Platform.OS === 'ios' ? '&' : '?'}body=${encodeURIComponent(`${text} ${url}`)}`) },
     {
       label: 'Copy link',
       icon: 'link',
+      bg: 'rgba(255,255,255,0.14)',
       onPress: () => {
         Clipboard.setStringAsync(url)
           .then(() => setNote({ message: 'Link copied' }))
           .catch(() => setNote({ message: 'Could not copy the link', error: true }));
       },
     },
-    { label: 'QR code', icon: 'qr', onPress: () => setShowQr((v) => !v) },
-    { label: 'Nearby', icon: 'broadcast', onPress: () => router.push('/nearby-share') },
-    { label: 'WhatsApp', icon: 'phone', onPress: () => void openOr(`whatsapp://send?text=${encodeURIComponent(`${text}\n${url}`)}`) },
-    { label: 'X', icon: 'share', onPress: () => void openOr(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`) },
+    { label: 'QR code', icon: 'qr', bg: 'rgba(255,255,255,0.14)', onPress: () => setShowQr((v) => !v) },
+    { label: 'Nearby', icon: 'broadcast', bg: 'rgba(255,255,255,0.14)', onPress: () => router.push('/nearby-share') },
+    { label: 'More', icon: 'more', bg: 'rgba(255,255,255,0.14)', onPress: () => void systemShare() },
   ];
 
   const sendTo = async (f: Friend) => {
@@ -135,49 +139,28 @@ export default function ShareSheet() {
 
   return (
     <Sheet>
-      <T variant="section" accessibilityRole="header">
+      <T size={18} weight={600} accessibilityRole="header">
         Share
       </T>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 26, backgroundColor: colors.divider }}>
-        <Cover artwork={track.artwork} id={track.id} size={56} radius={28} />
-        <View style={{ gap: 2, flex: 1, minWidth: 0 }}>
-          <T size={16} weight={600} numberOfLines={1}>
-            {track.title}
-          </T>
-          <T size={14} color={colors.textSecondary} numberOfLines={1}>
-            {track.artist.name}
-          </T>
-        </View>
-      </View>
-
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 }}>
-        {targets.map((t) => (
-          <Tap key={t.label} onPress={t.onPress} accessibilityLabel={t.label === 'Share via…' ? 'Share with another app' : `Share to ${t.label}`} style={{ width: '25%', alignItems: 'center', gap: 6, paddingHorizontal: 4 }}>
-            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.iconGhost, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={t.icon} size={24} color={colors.accentLight} />
-            </View>
-            <T size={12} align="center">
-              {t.label}
+      <View style={{ borderRadius: 26, borderWidth: 1, borderColor: withAlpha(colors.white, 0.14), overflow: 'hidden' }}>
+        <LinearGradient colors={[withAlpha(colors.accent, 0.3), 'rgba(20,20,20,0.6)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12 }}>
+          <Cover artwork={track.artwork} id={track.id} size={64} radius={20} />
+          <View style={{ gap: 3, flex: 1, minWidth: 0 }}>
+            <T size={16} weight={700} numberOfLines={1}>
+              {track.title}
             </T>
-          </Tap>
-        ))}
-      </View>
-
-      {showQr ? (
-        <View style={{ alignItems: 'center', gap: 6 }}>
-          <View style={{ width: 168, height: 168, padding: 12, borderRadius: 26, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={`QR code linking to ${track.title}`}>
-            <QRCode value={url} size={144} color={colors.bg} backgroundColor={colors.white} ecl="M" />
+            <T size={13} color={colors.accentLight} numberOfLines={1}>
+              {track.artist.name}
+            </T>
           </View>
-          <T size={12} color={colors.textSecondary}>
-            Scan to open this song
-          </T>
         </View>
-      ) : null}
+      </View>
 
       {/* Send to a friend */}
-      <T size={12} weight={600} tracking={0.5} color={colors.textSecondary} style={{ marginTop: 4 }}>
-        SEND TO A FRIEND
+      <T size={11} weight={700} tracking={1.4} color={colors.textSecondary} style={{ marginTop: 2, marginLeft: 4 }}>
+        SEND TO FRIENDS
       </T>
       {!user ? (
         <T size={14} color={colors.textSecondary}>
@@ -200,13 +183,13 @@ export default function ShareSheet() {
                 key={f.id}
                 onPress={done ? undefined : () => void sendTo(f)}
                 accessibilityLabel={done ? `Sent to ${f.display_name}` : `Send to ${f.display_name}`}
-                style={{ width: 72, alignItems: 'center', gap: 6, opacity: sending && sending !== f.id ? 0.5 : 1 }}
+                style={{ width: 62, alignItems: 'center', gap: 6, opacity: sending && sending !== f.id ? 0.5 : 1 }}
               >
                 <View>
                   {f.avatar_url ? (
-                    <Cover uri={f.avatar_url} id={f.id} size={56} radius={28} />
+                    <Cover uri={f.avatar_url} id={f.id} size={52} radius={17} />
                   ) : (
-                    <Avatar initial={f.display_name.slice(0, 1).toUpperCase()} art={artFor(f.id)} size={56} />
+                    <Avatar initial={f.display_name.slice(0, 1).toUpperCase()} art={artFor(f.id)} size={52} radius={17} />
                   )}
                   {done || sending === f.id ? (
                     <View style={{ position: 'absolute', right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: done ? colors.success : colors.accent, alignItems: 'center', justifyContent: 'center' }}>
@@ -214,7 +197,7 @@ export default function ShareSheet() {
                     </View>
                   ) : null}
                 </View>
-                <T size={12} align="center" numberOfLines={1}>
+                <T size={11} align="center" numberOfLines={1}>
                   {f.display_name}
                 </T>
               </Tap>
@@ -222,6 +205,31 @@ export default function ShareSheet() {
           })}
         </ScrollView>
       )}
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 }}>
+        {targets.map((t) => (
+          <Tap key={t.label} onPress={t.onPress} accessibilityLabel={t.label === 'More' ? 'Share with another app' : `Share to ${t.label}`} style={{ width: '25%', alignItems: 'center', gap: 6, paddingHorizontal: 2 }}>
+            <View style={{ width: 54, height: 54, borderRadius: 19, overflow: 'hidden', backgroundColor: typeof t.bg === 'string' ? t.bg : undefined, alignItems: 'center', justifyContent: 'center' }}>
+              {typeof t.bg === 'string' ? null : <LinearGradient colors={t.bg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+              <Icon name={t.icon} size={24} color={colors.white} />
+            </View>
+            <T size={11} align="center" numberOfLines={1}>
+              {t.label}
+            </T>
+          </Tap>
+        ))}
+      </View>
+
+      {showQr ? (
+        <View style={{ alignItems: 'center', gap: 6 }}>
+          <View style={{ width: 168, height: 168, padding: 12, borderRadius: 26, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel={`QR code linking to ${track.title}`}>
+            <QRCode value={url} size={144} color={colors.bg} backgroundColor={colors.white} ecl="M" />
+          </View>
+          <T size={12} color={colors.textSecondary}>
+            Scan to open this song
+          </T>
+        </View>
+      ) : null}
 
       {note ? <Toast icon={note.error ? 'info' : 'check'} iconColor={note.error ? colors.accentLight : colors.success} message={note.message} /> : null}
     </Sheet>

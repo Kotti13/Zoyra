@@ -123,15 +123,15 @@ export default function ChatInfo() {
   const query = useDebounced(q.trim(), 300);
   const [mood, setMood] = useChatMood(cid);
 
-  const snap = useAsync(() => (cid && me ? loadChat(cid, me) : Promise.resolve(null)), [cid, me]);
+  const snap = useAsync(() => (cid && me ? loadChat(cid, me) : Promise.resolve(null)), [cid, me], 'app/chat-info:126');
   const kindQ = useAsync(async () => {
     if (params.group === '1') return 'group';
     if (!cid) return 'direct';
     const { data } = await supabase.from('conversations').select('kind').eq('id', cid).maybeSingle();
     return (data as { kind?: string } | null)?.kind === 'group' ? 'group' : 'direct';
-  }, [cid, params.group]);
+  }, [cid, params.group], 'app/chat-info:127');
   const isGroup = kindQ.data === 'group';
-  const req = useAsync(() => (cid && me ? requestState(cid).catch(() => 'none' as const) : Promise.resolve('none' as const)), [cid, me]);
+  const req = useAsync(() => (cid && me ? requestState(cid).catch(() => 'none' as const) : Promise.resolve('none' as const)), [cid, me], 'app/chat-info:134');
   const pending = (req.data ?? 'none') !== 'none';
   // Counts for the rows (none of them block the screen).
   const counts = useAsync(async () => {
@@ -149,7 +149,7 @@ export default function ChatInfo() {
       stars,
       waiting: sched.filter((x) => !x.sent_at && !x.failed).length + caps.length,
     };
-  }, [cid, me, isGroup]);
+  }, [cid, me, isGroup], 'app/chat-info:137');
   const [mineEdit, setMine] = useState<{ muted: boolean; read_receipts: boolean } | null>(null);
   const [timerEdit, setTimer] = useState<number | null | undefined>(undefined);
   const loadedMine = snap.data?.mine;
@@ -175,7 +175,7 @@ export default function ChatInfo() {
     const out = await decryptChatRows(rows);
     const needle = query.toLowerCase();
     return out.filter((m) => !m.meta?.e2ee || (m.body ?? '').toLowerCase().includes(needle) || messagePreview(m).toLowerCase().includes(needle)).sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 40);
-  }, [cid, query]);
+  }, [cid, query], 'app/chat-info:159');
 
   const s = snap.data;
   const other = s?.other ?? seedPeer;
@@ -194,7 +194,7 @@ export default function ChatInfo() {
   const byId = new Map(visible.map((m) => [m.id, m]));
   const pins = (s?.pins ?? []).map((p) => byId.get(p.message_id)).filter((m): m is ChatMessage => !!m);
   const iBlocked = !!other && blocked.has(other.id);
-  const blockedWith = useAsync(() => (otherId ? isBlockedWith(otherId).catch(() => false) : Promise.resolve(false)), [otherId, iBlocked]);
+  const blockedWith = useAsync(() => (otherId ? isBlockedWith(otherId).catch(() => false) : Promise.resolve(false)), [otherId, iBlocked], 'app/chat-info:197');
   const anyBlock = iBlocked || blockedWith.data === true;
   const pullRefresh = () => Promise.all([snap.refresh(), req.refresh(), counts.refresh(), blockedWith.refresh(), query.length >= 2 ? results.refresh() : undefined]);
   const callBlocked = iBlocked ? `Unblock ${name} to call them.` : anyBlock ? 'This account isn’t available.' : pending ? 'You can call once they accept your chat request.' : null;
@@ -378,7 +378,7 @@ export default function ChatInfo() {
         ]
       : []),
     { key: 'search', label: 'Search', icon: 'search', on: searching, onPress: () => setSearching((v) => !v) },
-    { key: 'mute', label: mine?.muted ? 'Unmute' : 'Mute', icon: mine?.muted ? 'bellOff' : 'bell', on: !!mine?.muted, onPress: () => setSetting({ muted: !mine?.muted }) },
+    { key: 'mute', label: mine?.muted ? 'Unmute' : 'Mute', icon: mine?.muted ? 'bellOff' : 'bell', on: !!mine?.muted, onPress: () => (isGroup || !cid ? setSetting({ muted: !mine?.muted }) : router.push({ pathname: '/chat-notifications', params: { id: cid, name: params.name ?? '' } })) },
   ];
   const c = counts.data;
   const mediaValue = c && c.media !== null ? `${c.media} · ${c.links} · ${c.songs}` : counts.loading ? '…' : 'Photos, links and songs';

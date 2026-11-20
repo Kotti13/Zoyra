@@ -57,7 +57,7 @@ export default function ProfileActivity() {
   const uid = user?.id;
   const { playTrack } = usePlayerPick();
   const [filter, setFilter] = useState(0);
-  const feed = useAsync(() => (uid ? loadActivity(uid) : Promise.reject(new Error('Sign in to see your activity'))), [uid]);
+  const feed = useAsync(() => (uid ? loadActivity(uid) : Promise.reject(new Error('Sign in to see your activity'))), [uid], 'app/profile-activity:60');
 
   const { reload } = feed;
   const first = useRef(true);
@@ -92,7 +92,7 @@ export default function ProfileActivity() {
   };
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'coral' }} refreshControl={uid ? pullControl : undefined}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'lines', mesh: 'coral' }} refreshControl={uid ? pullControl : undefined}>
       <ScreenHeader title={profile?.display_name ?? 'Activity'} />
       <ProfileTabs active="activity" />
       <ChipRow options={FILTERS.map((f) => f.label)} initial={filter} onChange={setFilter} />

@@ -55,10 +55,10 @@ export default function IdentifyResult() {
     if (!title) return null;
     const list = await catalog.searchTracks(`${title} ${artist}`.trim(), { limit: 10 }).catch(() => [] as CatalogTrack[]);
     return pick(list, title, artist);
-  }, [title, artist]);
+  }, [title, artist], 'app/identify-result:54');
   const track = found.data ?? null;
 
-  const lyrics = useAsync(async () => (track && heardAt !== null ? fetchLyrics(track) : null), [track?.id, heardAt]);
+  const lyrics = useAsync(async () => (track && heardAt !== null ? fetchLyrics(track) : null), [track?.id, heardAt], 'app/identify-result:61');
   const line = (() => {
     const synced = lyrics.data?.synced ?? [];
     if (heardAt === null || !synced.length || lyrics.data?.timingMismatch) return null;
@@ -112,7 +112,7 @@ export default function IdentifyResult() {
   };
 
   return (
-    <Screen top={4} gap={18} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
+    <Screen top={4} gap={18} backdrop={{ pattern: 'none', mesh: 'coral' }}>
       <ScreenHeader title="" backIcon="close" />
 
       <View style={{ alignItems: 'center', gap: 16 }}>

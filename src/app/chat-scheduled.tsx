@@ -76,7 +76,7 @@ export default function ChatScheduled() {
     }
     const name = ((other.data as { profiles: { display_name: string } | null } | null)?.profiles?.display_name ?? '').split(' ')[0];
     return { scheduled: scheduled.filter((s) => !s.sent_at), capsules, name };
-  }, [cid, me]);
+  }, [cid, me], 'app/chat-scheduled:60');
 
   const run = async (key: string, fn: () => Promise<void>, ok?: string) => {
     if (busy) return;

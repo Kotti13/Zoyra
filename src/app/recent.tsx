@@ -42,7 +42,7 @@ export default function Recent() {
     const { data, error } = await q;
     if (error) throw new Error(error.message);
     return (data ?? []) as Play[];
-  }, [user?.id, range]);
+  }, [user?.id, range], 'app/recent:37');
 
   // New plays (from this or another device) show up live.
   useEffect(() => {

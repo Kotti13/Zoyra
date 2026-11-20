@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, type GestureResponderEvent } from 'react-native';
 
-import { Glass, ListGroup, ListRow, Row, Screen, ScreenHeader, T, Toggle } from '../components';
+import { Glass, ListRow, Row, Screen, ScreenHeader, T, Toggle } from '../components';
+import { SectionLabel } from '../components/settings-ui';
 import { usePlayPref } from '../lib/play-prefs';
 import { useAuth } from '../state/auth';
 import { colors } from '../theme/tokens';
@@ -107,7 +108,7 @@ export default function PlaybackSettings() {
   const fadeOn = crossfade > 0;
 
   return (
-    <Screen top={4} gap={18} backdrop={{ pattern: 'lines', mesh: 'none', glows: [{ x: 0.9, y: 0, color: colors.accent, opacity: 0.3 }] }}>
+    <Screen top={4} gap={18} backdrop={{ pattern: 'none', mesh: 'coral' }}>
       <ScreenHeader title="Playback" />
       {error ? (
         <T size={13} color={colors.error} accessibilityLiveRegion="polite">
@@ -116,7 +117,9 @@ export default function PlaybackSettings() {
       ) : null}
 
       <View style={{ gap: 8 }}>
-        <ListGroup title="TRANSITIONS">
+        <View style={{ gap: 8 }}>
+        <SectionLabel>Transitions</SectionLabel>
+        <Glass padding={4}>
           <ListRow
             title="Smooth transition"
             subtitle="Fade the end of one track into the next"
@@ -140,7 +143,8 @@ export default function PlaybackSettings() {
             </View>
           ) : null}
           <ListRow title="Gapless playback" subtitle="Always on: the next track is queued natively" minHeight={64} divider right={false} />
-        </ListGroup>
+        </Glass>
+      </View>
         <Note>
           {fadeOn
             ? `Each song fades out over its last ${crossfade} s and the next fades in over its first ${crossfade} s. Songs don't overlap, so this is a smooth fade, not a true crossfade.`
@@ -149,7 +153,9 @@ export default function PlaybackSettings() {
         <Note>Automix, volume normalising, mono audio and skip silence need an audio engine this version doesn’t have, so they aren’t offered.</Note>
       </View>
 
-      <ListGroup title="BEHAVIOUR">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>Behaviour</SectionLabel>
+        <Glass padding={4}>
         <ListRow
           title="Autoplay similar"
           subtitle="When the queue ends, keep going with songs by the same artist and in the same genre"
@@ -163,7 +169,8 @@ export default function PlaybackSettings() {
           divider
           right={<Toggle value={resume} onChange={toggleResume} label="Resume where I left off" />}
         />
-      </ListGroup>
+      </Glass>
+      </View>
 
       <Glass padding={16} style={{ gap: 6 }}>
         <T size={15} weight={500}>

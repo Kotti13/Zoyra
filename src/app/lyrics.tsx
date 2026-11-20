@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Animated, Easing, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { EmptyState, ErrorState, Glass, Icon, IconButton, LinkText, Loading, Row, Screen, T, Tap, useReduceMotion, type AsyncState } from '../components';
+import { Cover, EmptyState, ErrorState, Glass, Icon, IconButton, LinkText, Loading, Row, Screen, T, Tap, type AsyncState } from '../components';
+import { GlowBackdrop } from '../components/art-fx';
 import { displaySynced, LyricsView, PlayRing, useTrackLyrics, type LyricsHighlight } from '../components/LyricsView';
 import { LyricSyncControl } from '../components/lyric-sync';
 import { formatDuration } from '../lib/catalog';
@@ -38,52 +39,6 @@ function Progress() {
   );
 }
 
-const BAR_SPEEDS = [1.23, 1.02, 0.69, 0.96, 1.11, 0.57, 0.78, 0.62, 1.0, 0.89, 0.93, 1.04, 0.56, 0.99, 0.64, 1.24, 0.71, 0.8, 1.16, 0.66, 1.14, 0.72, 0.6, 0.97, 1.21, 1.1, 0.65, 1.08];
-
-/** Decorative equalizer strip: moves only while music plays (not an audio analysis). */
-function EqStrip({ active }: { active: boolean }) {
-  const reduce = useReduceMotion();
-  const [vals] = useState(() => BAR_SPEEDS.map((_, i) => new Animated.Value(0.22 + ((i * 37) % 60) / 100)));
-  useEffect(() => {
-    if (!active || reduce) {
-      vals.forEach((v) => v.setValue(0.22));
-      return;
-    }
-    const loops = vals.map((v, i) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(v, { toValue: 1, duration: (BAR_SPEEDS[i] * 1000) / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(v, { toValue: 0.22, duration: (BAR_SPEEDS[i] * 1000) / 2, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        ]),
-      ),
-    );
-    loops.forEach((l) => l.start());
-    return () => loops.forEach((l) => l.stop());
-  }, [active, reduce, vals]);
-  return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 30, marginHorizontal: 6 }}>
-      {vals.map((v, i) => (
-        <Animated.View key={i} style={{ flex: 1, height: '100%', borderRadius: 2, overflow: 'hidden', transformOrigin: 'bottom', transform: [{ scaleY: v }] }}>
-          <LinearGradient colors={[withAlpha(colors.white, 0.85), colors.accent]} style={StyleSheet.absoluteFill} />
-        </Animated.View>
-      ))}
-    </View>
-  );
-}
-
-/** Corner brackets around the lyrics frame (mock: 22 px accent corners, 8 px radius). */
-function Corners() {
-  const c = { position: 'absolute', width: 22, height: 22, borderColor: colors.accent } as const;
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={[c, { top: 0, left: 0, borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 8 }]} />
-      <View style={[c, { top: 0, right: 0, borderTopWidth: 2, borderRightWidth: 2, borderTopRightRadius: 8 }]} />
-      <View style={[c, { bottom: 0, left: 0, borderBottomWidth: 2, borderLeftWidth: 2, borderBottomLeftRadius: 8 }]} />
-      <View style={[c, { bottom: 0, right: 0, borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 8 }]} />
-    </View>
-  );
-}
-
 /** Pill used for the FILL / WAVE / WORD style switch (accent when selected). */
 function ModePill({ label, active, onPress, hint }: { label: string; active?: boolean; onPress: () => void; hint: string }) {
   return (
@@ -107,11 +62,16 @@ function ModePill({ label, active, onPress, hint }: { label: string; active?: bo
   );
 }
 
-/** Round 44 px tool button in the glass bar; `on` tints it (translate / romanize active). */
-function Tool({ label, on, onPress, children }: { label: string; on?: boolean; onPress: () => void; children: ReactNode }) {
+/** Glass dock button (icon + label); `on` tints it. */
+function DockButton({ label, a11y, on, onPress, children }: { label: string; a11y: string; on?: boolean; onPress: () => void; children: ReactNode }) {
   return (
-    <Tap accessibilityLabel={label} accessibilityState={{ selected: !!on }} onPress={onPress} style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? colors.accentTint : undefined }}>
-      {children}
+    <Tap accessibilityLabel={a11y} accessibilityState={{ selected: !!on }} onPress={onPress} style={{ flex: 1 }}>
+      <View style={{ height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: on ? colors.accentTint : withAlpha(colors.white, 0.07), borderWidth: 1, borderColor: on ? withAlpha(colors.accent, 0.6) : colors.glassBorder }}>
+        {children}
+        <T size={10} weight={600} color={on ? colors.accentLight : colors.textSecondary} numberOfLines={1}>
+          {label}
+        </T>
+      </View>
     </Tap>
   );
 }
@@ -188,7 +148,7 @@ function StaticLyrics({ lyr, data, shown, view, k }: { lyr: AsyncState<Loaded>; 
 /* ------------------------------------------------------------------ screen */
 
 export default function Lyrics() {
-  const { track, playing } = usePlayerPick('track', 'playing');
+  const { track, playing, next, previous } = usePlayerPick('track', 'playing');
   const { settings } = useAuth();
   // Text size and highlight style are Settings › Lyrics prefs; changing them here saves them too.
   const [scale, setScale] = usePlayPref('lyrics.size');
@@ -212,6 +172,8 @@ export default function Lyrics() {
   const { lyr, lyrics, ready, ai, result, aiLoading, aiLines } = useTrackLyrics(track, view, target);
   const synced = useMemo(() => displaySynced(lyrics, aiLines), [lyrics, aiLines]);
   const badge = syncBadge(lyrics);
+  // Translation / romanization sits under each original line (the original keeps its word timing).
+  const baseLines = lyrics?.synced.length ? lyrics.synced : null;
 
   const pick = (v: Exclude<LyricsMode, 'original'>) => {
     if (view === v) return setView('original');
@@ -268,7 +230,8 @@ export default function Lyrics() {
       gap={0}
       top={4}
       stagger={false}
-      backdrop={{ pattern: 'grid', mesh: 'coral' }}
+      backdrop={{ pattern: 'dots', mesh: 'none' }}
+      underlay={<GlowBackdrop active={playing && !!synced} />}
       footer={
         <View style={{ paddingTop: 6, paddingHorizontal: 16, paddingBottom: 18, gap: 10 }}>
           {status || note ? (
@@ -283,51 +246,51 @@ export default function Lyrics() {
             </Row>
           ) : null}
           {synced ? (
-            <Row gap={8} style={{ flexWrap: 'wrap' }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
               <ModePill label="FILL" hint="Words fill in as they are sung" active={highlight === 'fill'} onPress={() => setHighlight('fill')} />
               <ModePill label="WAVE" hint="Words lift as they are sung" active={highlight === 'wave'} onPress={() => setHighlight('wave')} />
               <ModePill label="STATIC" hint="The whole line lights up at once" active={highlight === 'static'} onPress={() => setHighlight('static')} />
-              <ModePill label="WORD" hint="Opens focus mode, one line at a time" onPress={openFocus} />
-            </Row>
+              <ModePill label="Rō" hint="Show romanized lyrics" active={view === 'romanize'} onPress={() => pick('romanize')} />
+              <ModePill label="Aa" hint={`Text size, ${(LYRICS_SIZES[scale] ?? LYRICS_SIZES[0]).label.toLowerCase()}`} onPress={() => setScale(((scale + 1) % LYRICS_SIZES.length) as LyricsSizePref)} />
+            </ScrollView>
           ) : null}
           {synced ? <LyricSyncControl trackId={track.id} /> : null}
           <Glass radius={34} padding={12} style={{ gap: 8 }}>
             <Progress />
-            <Row gap={4} style={{ justifyContent: 'space-between' }}>
-              <Row gap={0}>
-                <Tool label={view === 'translate' ? 'Show original lyrics' : `Translate to ${target}`} on={view === 'translate'} onPress={() => pick('translate')}>
-                  <Icon name="globe" size={22} color={view === 'translate' ? colors.accentLight : colors.text} />
-                </Tool>
-                <Tool label={view === 'romanize' ? 'Show original lyrics' : 'Romanize'} on={view === 'romanize'} onPress={() => pick('romanize')}>
-                  <T size={15} weight={600} color={view === 'romanize' ? colors.accentLight : colors.text}>
-                    Rō
-                  </T>
-                </Tool>
-                <Tool label={`Text size, ${(LYRICS_SIZES[scale] ?? LYRICS_SIZES[0]).label.toLowerCase()}`} onPress={() => setScale(((scale + 1) % LYRICS_SIZES.length) as LyricsSizePref)}>
-                  <T size={15} weight={600}>
-                    Aa
-                  </T>
-                </Tool>
-              </Row>
+            <Row style={{ justifyContent: 'space-between', paddingHorizontal: 28 }}>
+              <IconButton icon="prev" label="Previous track" size={48} iconSize={26} onPress={previous} />
               <PlayRing />
-              <Row gap={0}>
-                <IconButton icon="mic" label="Karaoke" href="/karaoke" />
-                <IconButton icon="share" label={ready ? 'Share lyrics' : 'Share song'} onPress={shareLyrics} />
-              </Row>
+              <IconButton icon="next" label="Next track" size={48} iconSize={26} onPress={next} />
+            </Row>
+            <Row gap={8}>
+              <DockButton label="Focus" a11y="Focus mode" onPress={openFocus}>
+                <Icon name="eye" size={20} />
+              </DockButton>
+              <DockButton label="Karaoke" a11y="Karaoke" onPress={() => router.push('/karaoke')}>
+                <Icon name="mic" size={20} />
+              </DockButton>
+              <DockButton label={view === 'translate' ? 'Original' : 'Translate'} a11y={view === 'translate' ? 'Show original lyrics' : `Translate to ${target}`} on={view === 'translate'} onPress={() => pick('translate')}>
+                <Icon name="globe" size={20} color={view === 'translate' ? colors.accentLight : colors.text} />
+              </DockButton>
+              <DockButton label="Share" a11y={ready ? 'Share lyrics' : 'Share song'} onPress={shareLyrics}>
+                <Icon name="share" size={20} />
+              </DockButton>
             </Row>
           </Glass>
         </View>
       }
     >
       {/* Header */}
-      <Row gap={8} style={{ minHeight: 52 }}>
+      <Row gap={10} style={{ minHeight: 52 }}>
         <IconButton icon="chevronDown" label="Back to player" iconSize={24} href="back" bg={colors.chipGhost} />
-        <View style={{ flex: 1, minWidth: 0, alignItems: 'center' }}>
-          <T size={15} weight={600} numberOfLines={1}>
+        <Cover artwork={track.artwork} id={track.id} size={44} radius={14} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <T size={15} weight={700} numberOfLines={1}>
             {track.title}
           </T>
-          <T size={12} color={colors.textSecondary} numberOfLines={1}>
-            {track.artist.name} · {sub}
+          <T size={12} color={colors.accentLight} numberOfLines={1}>
+            {track.artist.name}
+            {badge ? '' : ` · ${sub}`}
           </T>
         </View>
         {badge ? (
@@ -337,32 +300,22 @@ export default function Lyrics() {
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: colors.iconGhost, borderWidth: 1, borderColor: colors.glassBorder }}
           >
             <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: badge.dot }} />
-            <T mono size={10} weight={500} tracking={0.8}>
+            <T mono size={10} weight={500} tracking={0.8} color={badge.dot === colors.success ? colors.success : colors.text}>
               {badge.label}
             </T>
           </View>
-        ) : (
-          <View style={{ width: 44 }} />
-        )}
+        ) : null}
+        <IconButton icon="sliders" label="Lyrics settings" href="/lyrics-settings" bg={colors.chipGhost} />
       </Row>
 
-      <EqStrip active={playing && !!synced} />
-
-      {/* Lyrics frame */}
-      <View style={{ flex: 1, marginTop: 10, marginHorizontal: -2, paddingHorizontal: 14, paddingTop: 10 }}>
-        <Corners />
-        <Row style={{ justifyContent: 'space-between' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <T mono size={10} tracking={1} color={colors.textSecondary}>
-            {synced ? 'LIVE LYRICS' : 'LYRICS'}
-          </T>
-          <T mono size={10} tracking={1} color={colors.textSecondary}>
-            {synced ? 'AUTO-SCROLL · TAP TO SEEK' : view !== 'original' && aiLines ? (view === 'translate' ? target.toUpperCase() : 'ROMANIZED') : ''}
-          </T>
-        </Row>
+      {/* Lyrics */}
+      <View style={{ flex: 1, marginTop: 6 }}>
         {synced ? (
           <LyricsView
             key={track.id}
-            lines={synced}
+            lines={baseLines ?? synced}
+            subLines={aiLines}
+            card
             size={Math.round(30 * k)}
             highlight={highlight}
             footer={

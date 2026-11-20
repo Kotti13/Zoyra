@@ -2,7 +2,8 @@ import { router, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { EmptyState, Glass, Icon, IconButton, ListGroup, ListRow, Overline, Row, Screen, T, Tap, useDebounced } from '../components';
+import { EmptyState, IconButton, Row, Screen, T, Tap, useDebounced } from '../components';
+import { Panel, PanelRow, SectionLabel } from '../components/settings-ui';
 import { usePref } from '../lib/prefs';
 import { POPULAR_SETTINGS, searchSettings, type SettingsEntry } from '../lib/settings-index';
 import { colors } from '../theme/tokens';
@@ -30,23 +31,27 @@ export default function SettingsSearch() {
   };
 
   const row = (e: SettingsEntry, i: number) => (
-    <ListRow
+    <PanelRow
       key={`${e.route}|${e.title}`}
       title={e.title}
       subtitle={e.section === 'Screen' ? 'Settings screen' : e.section}
       icon={e.icon}
       divider={i > 0}
       onPress={() => open(e)}
+      titleSize={15}
+      titleWeight={600}
+      subSize={12}
+      minHeight={64}
+      vPad={0}
     />
   );
 
   return (
     <Screen top={4} gap={16} bottom={24} backdrop={{ pattern: 'none', mesh: 'coral' }} stagger={false}>
-      <Row gap={8}>
-        <IconButton icon="back" label="Back" href="back" />
-        <Glass radius={26} style={{ flex: 1, height: 52, justifyContent: 'center', paddingHorizontal: 16 }}>
+      <Row gap={10}>
+        <IconButton icon="back" label="Back" href="back" bg={colors.chipGhost} />
+        <Panel radius={26} style={{ flex: 1, height: 52, justifyContent: 'center', paddingHorizontal: 18, borderWidth: 1.5, borderColor: colors.accent }}>
           <Row gap={10}>
-            <Icon name="search" size={20} color={colors.textSecondary} />
             <TextInput
               autoFocus
               value={query}
@@ -62,12 +67,15 @@ export default function SettingsSearch() {
             />
             {typing ? <IconButton icon="close" label="Clear search" size={32} iconSize={18} onPress={() => setQuery('')} /> : null}
           </Row>
-        </Glass>
+        </Panel>
       </Row>
 
       {typing ? (
         results.length ? (
-          <ListGroup title={`RESULTS · ${results.length}`}>{results.map(row)}</ListGroup>
+          <View style={{ gap: 8 }}>
+            <SectionLabel size={12} tracking={1.2}>{`Results · ${results.length}`}</SectionLabel>
+            <Panel padding={{ v: 4, h: 16 }}>{results.map(row)}</Panel>
+          </View>
         ) : q.trim() ? (
           <EmptyState icon="search" title="No settings found" body={`Nothing matches “${q.trim()}”. Try another word, like “data” or “lyrics”.`} />
         ) : null
@@ -76,29 +84,30 @@ export default function SettingsSearch() {
           {recent.length ? (
             <View style={{ gap: 8 }}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <Overline color={colors.textSecondary}>RECENT SEARCHES</Overline>
+                <SectionLabel size={12} tracking={1.2}>Recent searches</SectionLabel>
                 <Tap onPress={() => setRecent([])} accessibilityRole="button" accessibilityLabel="Clear recent searches" style={{ minHeight: 44, justifyContent: 'center' }}>
                   <T size={13} color={colors.accentLight}>
                     Clear
                   </T>
                 </Tap>
               </Row>
-              <Glass padding={4}>
-                {recent.map((r, i) => (
-                  <ListRow
-                    key={r}
-                    title={r}
-                    minHeight={52}
-                    divider={i > 0}
-                    onPress={() => setQuery(r)}
-                    leading={<Icon name="clock" size={18} color={colors.textSecondary} />}
-                    right={<Icon name="arrowRight" size={16} color={colors.textSecondary} />}
-                  />
+              <Row gap={8} style={{ flexWrap: 'wrap' }}>
+                {recent.map((r) => (
+                  <Tap key={r} onPress={() => setQuery(r)} accessibilityRole="button" accessibilityLabel={`Search ${r}`}>
+                    <Panel radius={19} style={{ height: 38, paddingHorizontal: 16, justifyContent: 'center' }}>
+                      <T size={13} weight={600}>
+                        {r}
+                      </T>
+                    </Panel>
+                  </Tap>
                 ))}
-              </Glass>
+              </Row>
             </View>
           ) : null}
-          <ListGroup title="POPULAR">{POPULAR_SETTINGS.map(row)}</ListGroup>
+          <View style={{ gap: 8 }}>
+            <SectionLabel size={12} tracking={1.2}>Popular</SectionLabel>
+            <Panel padding={{ v: 4, h: 16 }}>{POPULAR_SETTINGS.map(row)}</Panel>
+          </View>
         </>
       )}
     </Screen>

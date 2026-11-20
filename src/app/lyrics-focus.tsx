@@ -81,8 +81,8 @@ function Focus({ lines, highlight, track }: { lines: LyricLine[]; highlight: Lyr
         <View style={{ alignItems: 'center' }}>
           <LyricSyncControl trackId={track.id} />
         </View>
-        <Glass radius={34} padding={8} style={{ alignSelf: 'center' }}>
-          <Row gap={20} style={{ paddingHorizontal: 12 }}>
+        <Glass radius={34} padding={12} style={{ alignSelf: 'stretch' }}>
+          <Row style={{ paddingHorizontal: 6, justifyContent: 'space-between' }}>
             <IconButton icon="prev" label="Previous line" size={48} onPress={() => seekLine(current <= 0 ? 0 : current - 1)} />
             <PlayRing />
             <IconButton icon="next" label="Next line" size={48} onPress={() => seekLine(Math.min(timed.length - 1, current + 1))} />
@@ -106,7 +106,7 @@ export default function LyricsFocus() {
   const sub = aiLines ? (view === 'translate' ? `One line at a time · ${target}` : 'One line at a time · romanized') : 'One line at a time';
 
   return (
-    <Screen scroll={false} gap={16} top={4} stagger={false} backdrop={{ pattern: 'none', mesh: 'coral' }} swipeDown>
+    <Screen scroll={false} gap={16} top={4} stagger={false} backdrop={{ pattern: 'dots', mesh: 'coral', glows: [{ x: 0.5, y: 0.42, color: colors.accent, opacity: 0.35 }] }} swipeDown>
       <Header sub={sub} badge={lines ? (lyrics?.wordSynced && !aiLines ? 'WORD SYNC' : 'SYNCED') : undefined} />
       {!track ? (
         <EmptyState title="Nothing playing" body="Play a song to follow its lyrics here." action="Go to Home" href="/" />

@@ -9,7 +9,7 @@ import { Button, Chip, Cover, ErrorState, Glass, IconButton, Loading, Row, Scree
 import { moodFromPhoto } from '../lib/ai';
 import { MOOD_MAP, catalog } from '../lib/catalog';
 import { usePlayerPick } from '../state/player';
-import { art, colors, shadow, withAlpha } from '../theme/tokens';
+import { colors, shadow, withAlpha } from '../theme/tokens';
 
 const moods = Object.keys(MOOD_MAP);
 
@@ -38,7 +38,7 @@ export default function MoodScan() {
     return () => clearTimeout(id);
   }, [note]);
 
-  const mix = useAsync(() => catalog.byMood(mood, 30), [mood]);
+  const mix = useAsync(() => catalog.byMood(mood, 30), [mood], 'app/mood-scan:41');
   const list = mix.data ?? [];
 
   const openCamera = async () => {
@@ -108,7 +108,7 @@ export default function MoodScan() {
           accessibilityLabel={scan.state === 'camera' ? 'Front camera preview' : 'Camera off'}
           style={{ width: 260, height: 260, borderRadius: 130, borderWidth: 4, borderColor: colors.accent, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}
         >
-          <LinearGradient colors={[art.coral[1], colors.playerBg]} start={{ x: 0.33, y: 0 }} end={{ x: 0.67, y: 1 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['#3A0B10', '#0A0A0A']} start={{ x: 0.33, y: 0 }} end={{ x: 0.67, y: 1 }} style={StyleSheet.absoluteFill} />
           {scan.state === 'camera' ? (
             <CameraView
               ref={camera}
@@ -134,13 +134,13 @@ export default function MoodScan() {
 
       <View style={{ alignItems: 'center', gap: 8 }}>
         <T size={13} color={colors.textSecondary}>
-          You are feeling
+          You look
         </T>
         <T size={36} weight={700} tracking={-1} accessibilityRole="header">
           {mood}
         </T>
         <Sticker
-          label={scan.state === 'done' && scan.mood === mood ? `Scanned · ${Math.round(scan.confidence * (scan.confidence <= 1 ? 100 : 1))}%` : 'Your pick'}
+          label={scan.state === 'done' && scan.mood === mood ? `${Math.round(scan.confidence * (scan.confidence <= 1 ? 100 : 1))}% sure` : 'Your pick'}
           bg={colors.success}
           rotate={-3}
           style={{ alignSelf: 'center' }}
@@ -186,7 +186,7 @@ export default function MoodScan() {
                 {mood} mix
               </T>
               <T size={13} color={colors.textSecondary}>
-                {list.length ? `${list.length} songs picked for ${mood.toLowerCase()}` : 'No songs for this mood right now'}
+                {list.length ? `Picked for ${mood.toLowerCase()} · ${list.length} songs` : 'No songs for this mood right now'}
               </T>
             </View>
             <IconButton icon="play" label={`Play ${mood} mix`} size={48} bg={colors.accent} color={colors.onAccent} onPress={() => play(false)} style={shadow.sticker} />
@@ -195,7 +195,7 @@ export default function MoodScan() {
       </Glass>
 
       <T size={12} lineHeight={17} align="center" color={colors.textSecondary}>
-        Scan takes one photo, sends it once to read your mood, and deletes it. Nothing is stored. Not right? Pick another mood above.
+        Your photo is read once to find your mood and never saved. Not right? Pick another mood above.
       </T>
 
       <Row>
@@ -203,7 +203,7 @@ export default function MoodScan() {
           <Button label={ready ? 'Take photo' : 'Starting…'} icon="camera" variant={ready ? 'glass' : 'disabled'} style={{ flex: 1 }} onPress={() => void capture()} />
         ) : (
           <Button
-            label={scan.state === 'reading' ? 'Reading…' : scan.state === 'done' ? 'Scan again' : 'Scan'}
+            label={scan.state === 'reading' ? 'Reading…' : scan.state === 'done' ? 'Retake' : 'Scan'}
             icon="camera"
             variant={scan.state === 'reading' ? 'disabled' : 'glass'}
             style={{ flex: 1 }}

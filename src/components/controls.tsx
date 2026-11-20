@@ -128,8 +128,10 @@ export function Button({
   }[variant];
 
   // Toggle-style buttons (Follow → Following, Save → Saved) pop when their label changes, with sparkles on "on".
-  const pop = usePop(label);
+  // Keyed on the on/off state, not the label: while saving the label can briefly read "…", which would turn
+  // the Follow → Following pop into a squeeze.
   const toggledOn = /^(following|saved|added|liked|subscribed|in your library)$/i.test(label.trim());
+  const pop = usePop(toggledOn);
   const content = (
     <Animated.View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', height: '100%', paddingHorizontal: 20, transform: [{ scale: pop }] }}>
       {icon ? <Icon name={icon} size={20} color={v.fg} /> : null}

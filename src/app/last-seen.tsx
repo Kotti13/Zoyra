@@ -42,7 +42,7 @@ type SwitchKey = 'online_status' | 'last_seen_approx' | 'read_receipts' | 'typin
 const SWITCHES: { key: SwitchKey; title: string; subtitle: string; icon: IconName }[] = [
   { key: 'online_status', title: 'Show when I am online', subtitle: 'Green dot in chats and header', icon: 'eye' },
   { key: 'last_seen_approx', title: 'Approximate time', subtitle: 'Show "last seen recently" instead', icon: 'clock' },
-  { key: 'read_receipts', title: 'Read receipts', subtitle: 'Read ticks and "Seen" label', icon: 'checkBold' },
+  { key: 'read_receipts', title: 'Read receipts', subtitle: 'Blue ticks and "Seen" label', icon: 'checkBold' },
   { key: 'typing', title: 'Typing indicator', subtitle: 'Show "typing…" while you write', icon: 'edit' },
 ];
 

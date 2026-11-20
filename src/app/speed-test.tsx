@@ -2,7 +2,8 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Glass, Icon, ListGroup, ProgressBar, Row, Screen, ScreenHeader, T } from '../components';
+import { Button, Glass, Icon, ProgressBar, Row, Screen, ScreenHeader, T } from '../components';
+import { SectionLabel } from '../components/settings-ui';
 import { TIERS, formatAgo, formatMbps, speedTest, streamVerdict, supports, useSpeedTest } from '../lib/network';
 import { STREAM_KBPS } from '../lib/usage';
 import { colors, withAlpha } from '../theme/tokens';
@@ -51,7 +52,7 @@ export default function SpeedTest() {
   const verdict = r && !busy ? streamVerdict(r) : null;
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'coral' }}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'peach' }}>
       <ScreenHeader title="Speed test" />
 
       <Glass padding={20}>
@@ -91,7 +92,9 @@ export default function SpeedTest() {
         </T>
       ) : null}
 
-      <ListGroup title="WHAT YOUR SPEED SUPPORTS">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>What your speed supports</SectionLabel>
+        <Glass padding={4}>
         {TIERS.map((t, i) => {
           const ok = r ? supports(r.mbps, t.kbps) : null;
           const available = t.kbps === STREAM_KBPS;
@@ -112,7 +115,8 @@ export default function SpeedTest() {
             </Row>
           );
         })}
-      </ListGroup>
+      </Glass>
+      </View>
 
       <T size={12} color={colors.textSecondary} lineHeight={18}>
         Times a real download of up to 4.5 MB from our music servers, plus five small requests for ping. On mobile data this uses that much of your plan.

@@ -12,13 +12,26 @@ const KEY = process.env.EXPO_PUBLIC_ZOYRA_API_KEY ?? '';
 const withKey = (url: string) => (KEY ? `${url}${url.includes('?') ? '&' : '?'}key=${encodeURIComponent(KEY)}` : url);
 const keyHeader: Record<string, string> = KEY ? { 'X-Zoyra-Key': KEY } : {};
 
-/** Render's free plan sleeps when idle; the first request can take ~50 s to wake it. */
-const TIMEOUT_MS = 60_000;
+/**
+ * How long to wait for the backend. Short on purpose: when the tunnel/server is down, a long wait freezes every
+ * search before the app can fall back to the other catalogue.
+ */
+const TIMEOUT_MS = 9_000;
+/**
+ * Circuit breaker: after a timeout or network failure the backend counts as down for a short while, so the next
+ * searches go straight to the fallback instead of each waiting for the timeout again.
+ */
+const DOWN_FOR_MS = 30_000;
+let downUntil = 0;
+export const zoyraDown = () => Date.now() < downUntil;
 
 const TRACK_PREFIX = 'yt_';
 const ARTIST_PREFIX = 'yta_';
 
 export const zoyraEnabled = API.length > 0;
+
+// Open the TLS connection early; the first request otherwise pays ~1 s of handshake.
+if (zoyraEnabled) setTimeout(() => fetch(`${API}/api/health`).catch(() => {}), 0);
 
 export const isZoyraId = (id: string | undefined | null): id is string => !!id && id.startsWith(TRACK_PREFIX);
 export const isZoyraArtistId = (id: string | undefined | null): id is string => !!id && id.startsWith(ARTIST_PREFIX);
@@ -40,6 +53,8 @@ export type ApiLyrics = {
   lines: { time: number; text: string }[];
   plain: string;
   instrumental: boolean;
+  /** Length (s) of the LRCLIB recording the timestamps were made for. */
+  duration?: number | null;
   track: string | null;
   artist: string | null;
 };
@@ -47,6 +62,8 @@ export type ApiLyrics = {
 const prefetched = new Set<string>();
 const cache = new Map<string, { at: number; data: unknown }>();
 const TTL = 5 * 60 * 1000;
+/** Same request already running (e.g. two screens, fast typing): share one network call. */
+const inflight = new Map<string, Promise<unknown>>();
 
 async function get<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T> {
   const qs = new URLSearchParams();
@@ -55,7 +72,15 @@ async function get<T>(path: string, params: Record<string, string | number | und
   const url = `${API}${path}${query ? `?${query}` : ''}`;
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL) return hit.data as T;
+  const running = inflight.get(url);
+  if (running) return running as Promise<T>;
+  const p = fetchJson<T>(url).finally(() => inflight.delete(url));
+  inflight.set(url, p);
+  return p;
+}
 
+async function fetchJson<T>(url: string): Promise<T> {
+  if (zoyraDown()) throw new Error('Music service is unreachable right now');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -64,7 +89,12 @@ async function get<T>(path: string, params: Record<string, string | number | und
     if (!res.ok) throw new Error(`Zoyra API request failed (${res.status})`);
     const data = (await res.json()) as T;
     cache.set(url, { at: Date.now(), data });
+    downUntil = 0;
     return data;
+  } catch (e) {
+    // Timeouts and network errors (not "not found" or a server answer) trip the breaker.
+    if (!(e instanceof ZoyraNotFound) && !(e instanceof Error && e.message.startsWith('Zoyra API request failed'))) downUntil = Date.now() + DOWN_FOR_MS;
+    throw e;
   } finally {
     clearTimeout(timer);
   }
@@ -80,7 +110,8 @@ export class ZoyraNotFound extends Error {
 const thumbs = (id: string) => ({
   small: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
   medium: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-  large: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+  // hq720 is true 16:9 (hqdefault has black bars top and bottom, which show on big covers).
+  large: `https://i.ytimg.com/vi/${id}/hq720.jpg`,
 });
 
 function toTrack(s: ApiSong): CatalogTrack {
@@ -102,7 +133,38 @@ export const zoyra = {
   async searchTracks(query: string, limit = 25): Promise<CatalogTrack[]> {
     if (!query.trim()) return [];
     const res = await get<{ results: ApiSong[] }>('/api/search', { q: query.trim(), limit });
-    return res.results.map(toTrack);
+    const tracks = res.results.map(toTrack);
+    // Resolve the top hits on the server now, so tapping one starts in ~1 s instead of ~6 s.
+    tracks.slice(0, 3).forEach((t, i) => setTimeout(() => zoyra.prefetch(t.id), i * 300));
+    return tracks;
+  },
+
+  /**
+   * "Popular now" / new releases from the backend's search (it has no charts endpoint): a few chart-style
+   * queries run in parallel, long mixes and compilations are dropped, and the rest is ranked by views.
+   * `kind: 'new'` favours fresh releases for the home banner.
+   */
+  async popular(kind: 'popular' | 'new' = 'popular', limit = 20): Promise<CatalogTrack[]> {
+    const year = new Date().getFullYear();
+    const queries =
+      kind === 'new'
+        ? [`latest english song ${year} official music video`, `new hindi song ${year} official video`, `new tamil song ${year} official video`]
+        : [`most viewed song this week official video`, `latest english hit song ${year} official music video`, `new hindi songs ${year} official video`, `new tamil songs ${year} official video`];
+    const lists = await Promise.all(queries.map((q) => get<{ results: ApiSong[] }>('/api/search', { q, limit: 15 }).then((r) => r.results).catch(() => [] as ApiSong[])));
+    const bad = /\b(mix|jukebox|non ?stop|compilation|playlist|mashup|hours?|top \d+|best of|full album|live stream|reaction)\b/i;
+    const seen = new Set<string>();
+    const songs = lists
+      .flat()
+      .filter((s) => {
+        if (seen.has(s.id)) return false;
+        seen.add(s.id);
+        const d = s.duration ?? 0;
+        return d >= 90 && d <= 480 && !bad.test(s.title ?? '');
+      });
+    songs.sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+    const tracks = songs.slice(0, limit).map(toTrack);
+    tracks.slice(0, 3).forEach((t, i) => setTimeout(() => zoyra.prefetch(t.id), i * 300));
+    return tracks;
   },
 
   async track(trackId: string): Promise<CatalogTrack> {
@@ -135,7 +197,7 @@ export const zoyra = {
    * when played later. First play of a new song otherwise waits ~6 s (YouTube lookup + delay).
    */
   prefetch(trackId: string) {
-    if (!zoyraEnabled || !isZoyraId(trackId) || prefetched.has(trackId)) return;
+    if (!zoyraEnabled || zoyraDown() || !isZoyraId(trackId) || prefetched.has(trackId)) return;
     prefetched.add(trackId);
     setTimeout(() => prefetched.delete(trackId), 30 * 60 * 1000); // backend keeps URLs ~1 h
     fetch(`${API}/api/prefetch/${videoId(trackId)}`, { method: 'POST', headers: keyHeader }).catch(() => prefetched.delete(trackId));

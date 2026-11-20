@@ -130,7 +130,7 @@ export default function ProfileQR() {
           <ActivityIndicator color={colors.accent} accessibilityLabel="Preparing image" />
         </View>
       ) : (
-        <Button label="Save image" icon="download" variant="glass" onPress={() => void saveImage()} />
+        <Button label="Save to photos" icon="download" variant="glass" onPress={() => void saveImage()} />
       )}
 
       {note ? (
