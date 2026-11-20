@@ -47,7 +47,7 @@ export default function Identify() {
         : cur.hint;
 
   return (
-    <Screen top={4} gap={20} scroll={false} backdrop={{ pattern: 'dots', mesh: 'coral' }} contentStyle={{ flex: 1 }}>
+    <Screen top={4} gap={20} scroll={false} backdrop={{ pattern: 'none', mesh: 'coral', orbs: false }} contentStyle={{ flex: 1 }}>
       <Row style={{ justifyContent: 'space-between' }}>
         <IconButton icon="close" label="Close" glass onPress={() => (router.canGoBack() ? router.back() : router.replace('/search'))} />
         <T size={15} weight={600} accessibilityRole="header">

@@ -254,11 +254,11 @@ export default function AiPlaylist() {
       <ScreenHeader title="AI playlist" />
 
       <View style={{ gap: 8 }}>
-        <T size={26} weight={700} tracking={-0.5} lineHeight={30} accessibilityRole="header">
+        <T size={26} weight={300} tracking={-0.5} lineHeight={30} accessibilityRole="header">
           Describe your playlist
         </T>
         <T size={16} lineHeight={23} color={colors.textSecondary}>
-          Zoyra's AI picks songs for your idea. If AI is unavailable, you get a smart mix built from the genres, moods and words you use.
+          Tell Zoyra the mood, moment or memory.
         </T>
       </View>
 
@@ -325,7 +325,7 @@ export default function AiPlaylist() {
             ) : (
               result.tracks.map((s, i) => (
                 <Row key={s.id} style={{ minHeight: 56, borderTopWidth: 1, borderTopColor: colors.divider }}>
-                  <Cover artwork={s.artwork} id={s.id} size={40} radius={20} />
+                  <Cover artwork={s.artwork} id={s.id} size={40} radius={13} />
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                     <T size={16} weight={500} numberOfLines={1} onPress={() => playTracks(result.tracks, i, result.title)}>
                       {s.title}

@@ -69,7 +69,7 @@ export default function Onboarding() {
       gap={24}
       bottom={34}
       contentStyle={{ flexGrow: 1 }}
-      backdrop={{ pattern: 'dots', mesh: 'none', glows: [{ x: 0.8, y: 0, color: colors.amber, opacity: 0.22, stop: 0.3 }] }}
+      backdrop={{ pattern: 'dots', mesh: 'none', orbs: false }}
     >
       {/* Progress + skip */}
       <Row gap={16}>

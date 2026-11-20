@@ -1,15 +1,14 @@
-import { memo, useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { View, useWindowDimensions } from 'react-native';
 
-import { Art, ChipRow, Cover, EmptyState, Glass, Icon, IconButton, Row, Screen, SectionHeader, Sticker, T, Tap } from '../../components';
+import { APPLE, AppleNavRow, AppleSeparator, AppleTitle, EmptyState, Icon, IconButton, Row, Screen, Shelf, ShelfCard, ShelfHeader, Sticker, T, Tap, go } from '../../components';
 import type { NavTarget } from '../../components';
 import type { Artwork } from '../../lib/catalog';
 import { useAuth } from '../../state/auth';
 import { useLibrary, type UserPlaylist } from '../../state/library';
 import { colors, type ArtName } from '../../theme/tokens';
 
-const filters = ['All', 'Playlists', 'Albums', 'Artists', 'Downloaded'] as const;
-type Filter = (typeof filters)[number];
+type Filter = 'All' | 'Playlists' | 'Albums' | 'Artists';
 
 const smart: { key: string; title: string; art: ArtName }[] = [
   { key: 'week', title: 'Liked this week', art: 'coral' },
@@ -30,40 +29,13 @@ function playlistSub(p: UserPlaylist) {
   return `Playlist · ${n} ${n === 1 ? 'song' : 'songs'}`;
 }
 
-/**
- * One library entry. Items are rebuilt whenever likes / playlists / filters change, so compare by the
- * fields that are drawn: unchanged rows skip re-rendering (and their Cover images) entirely.
- */
-const LibraryRow = memo(
-  function LibraryRow({ it }: { it: Item }) {
-    return (
-      <Tap href={it.href} style={{ minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <Cover artwork={it.artwork} uri={it.uri} id={it.id} size={56} radius={it.round ? 36 : 26} />
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <T size={16} weight={600} numberOfLines={1}>
-            {it.title}
-          </T>
-          <T size={14} color={colors.textSecondary} numberOfLines={1}>
-            {it.sub}
-          </T>
-        </View>
-      </Tap>
-    );
-  },
-  (a, b) =>
-    a.it.key === b.it.key &&
-    a.it.title === b.it.title &&
-    a.it.sub === b.it.sub &&
-    a.it.uri === b.it.uri &&
-    a.it.artwork === b.it.artwork &&
-    a.it.round === b.it.round,
-);
-
 export default function Library() {
   const { user } = useAuth();
   const { liked, playlists, followedArtists, reload } = useLibrary();
   const [filter, setFilter] = useState<Filter>('All');
   const [alpha, setAlpha] = useState(false);
+  const { width: winW } = useWindowDimensions();
+  const cardW = Math.floor((winW - APPLE.side * 2 - APPLE.gap) / 2);
 
   const items = useMemo(() => {
     const pls: Item[] = playlists.map((p, i) => ({
@@ -92,124 +64,102 @@ export default function Library() {
     if (filter === 'Playlists') list = list.filter((x) => x.kind === 'playlist');
     else if (filter === 'Albums') list = list.filter((x) => x.kind === 'album');
     else if (filter === 'Artists') list = list.filter((x) => x.kind === 'artist');
-    else if (filter === 'Downloaded') list = [];
     return alpha ? list.sort((a, b) => a.title.localeCompare(b.title)) : list.sort((a, b) => b.sortAt - a.sortAt);
   }, [playlists, followedArtists, filter, alpha, user]);
 
-  const showLiked = filter === 'All' || filter === 'Playlists';
-  const count = items.length + (showLiked ? 1 : 0);
+  const counts = useMemo(
+    () => ({
+      Playlists: playlists.filter((p) => !isSavedAlbum(p)).length,
+      Albums: playlists.filter(isSavedAlbum).length,
+      Artists: followedArtists.length,
+    }),
+    [playlists, followedArtists],
+  );
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const likedSub = plural(liked.length, 'song', 'songs');
 
   return (
-    <Screen tabbed gap={20} backdrop={{ pattern: 'dots', mesh: 'rose' }} onRefresh={user ? reload : undefined}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <T variant="display" accessibilityRole="header">
-          Your Library
-        </T>
-        <IconButton icon="plus" label="Create" bg={colors.accent} color={colors.onAccent} href="/create-playlist" />
-      </Row>
+    <Screen tabbed gap={APPLE.section} backdrop={{ pattern: 'dots', mesh: 'rose' }} onRefresh={user ? reload : undefined}>
+      <AppleTitle title={filter === 'All' ? 'Library' : filter} right={<IconButton icon="plus" label="Create" bg={colors.accent} color={colors.onAccent} href="/create-playlist" />} />
 
-      <ChipRow options={[...filters]} onChange={(i) => setFilter(filters[i])} />
-
-      {/* Import banner */}
-      <Tap href="/import">
-        <Glass radius={36} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="download" size={20} color={colors.accentLight} />
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <T size={15} weight={600}>
-              Bring your playlists
-            </T>
-            <T size={13} color={colors.textSecondary}>
-              Import from Spotify, Apple Music or YouTube Music
-            </T>
-          </View>
-          <Icon name="chevronRight" size={18} color={colors.textSecondary} />
-        </Glass>
-      </Tap>
-
-      {/* Device music */}
-      <Tap href="/local-music">
-        <Glass radius={36} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="phone" size={20} color={colors.accentLight} />
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <T size={15} weight={600}>
-              Local files
-            </T>
-            <T size={13} color={colors.textSecondary}>
-              Songs saved on this device
-            </T>
-          </View>
-          <Icon name="chevronRight" size={18} color={colors.textSecondary} />
-        </Glass>
-      </Tap>
-
-      {/* Smart playlists — computed from your likes and history */}
-      <SectionHeader title="Smart playlists" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16, paddingBottom: 6 }}>
-        {smart.map((s) => (
-          <Tap key={s.key} href={{ pathname: '/playlist', params: { smart: s.key } }} style={{ width: 132, gap: 8 }}>
-            <Art art={s.art} size={132} radius={36} sticker>
-              <Sticker label="SMART" rotate={-6} style={{ position: 'absolute', left: 8, top: 8 }} />
-            </Art>
-            <T size={14} weight={600}>
-              {s.title}
-            </T>
-          </Tap>
-        ))}
-      </ScrollView>
-
-      {/* Sort row */}
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Tap onPress={() => setAlpha((v) => !v)} accessibilityLabel={`Sort: ${alpha ? 'Alphabetical' : 'Recently added'}`} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Icon name="sort" size={20} />
-          <T size={14} weight={500}>
-            {alpha ? 'Alphabetical' : 'Recently added'}
+      {filter !== 'All' ? (
+        <Tap onPress={() => setFilter('All')} accessibilityLabel="Back to Library" style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -APPLE.section / 2 }}>
+          <Icon name="back" size={18} color={colors.accentLight} />
+          <T size={15} weight={500} color={colors.accentLight}>
+            Library
           </T>
-        </Tap>
-        <T mono size={12} color={colors.textSecondary}>
-          {count} {count === 1 ? 'item' : 'items'}
-        </T>
-      </Row>
-
-      {/* Liked songs */}
-      {showLiked ? (
-        <Tap href={{ pathname: '/playlist', params: { liked: '1' } }} style={{ minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Art art="sunrise" size={56} radius={36} style={{ alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="heart" size={24} color={colors.white} />
-          </Art>
-          <View style={{ gap: 2 }}>
-            <T size={16} weight={600}>
-              Liked Songs
-            </T>
-            <T size={14} color={colors.textSecondary}>
-              Playlist · {liked.length} {liked.length === 1 ? 'song' : 'songs'}
-            </T>
-          </View>
         </Tap>
       ) : null}
 
-      {items.length === 0 ? (
-        filter === 'Downloaded' ? (
-          <EmptyState icon="download" title="Offline downloads are coming" body="Saving songs to your device needs a licensed catalogue. Until then everything streams." action="See downloads" href="/downloads" />
-        ) : filter === 'Artists' ? (
-          <EmptyState icon="users" title="No artists yet" body="Follow artists you love and they will live here." action="Find artists" href="/search" />
-        ) : filter === 'Albums' ? (
-          <EmptyState icon="music" title="No saved albums" body="Tap the heart on an album to keep a copy in your library." />
-        ) : filter === 'Playlists' ? (
-          <EmptyState title="No playlists yet" body="Create one, or let AI build one from a prompt." action="Create playlist" href="/create-playlist" />
-        ) : (
-          <EmptyState title="Your library is empty" body="Create a playlist or follow an artist to get started." action="Create playlist" href="/create-playlist" />
-        )
-      ) : (
-        <View style={{ marginTop: -8 }}>
-          {items.map((it) => (
-            <LibraryRow key={it.key} it={it} />
-          ))}
+      {/* Category rows */}
+      {filter === 'All' ? (
+        <View>
+          <AppleNavRow icon="library" title="Playlists" subtitle={plural(counts.Playlists, 'playlist', 'playlists')} onPress={() => setFilter('Playlists')} />
+          <AppleSeparator inset={46} />
+          <AppleNavRow icon="users" title="Artists" subtitle={plural(counts.Artists, 'artist', 'artists')} onPress={() => setFilter('Artists')} />
+          <AppleSeparator inset={46} />
+          <AppleNavRow icon="music" title="Albums" subtitle={plural(counts.Albums, 'album', 'albums')} onPress={() => setFilter('Albums')} />
+          <AppleSeparator inset={46} />
+          <AppleNavRow icon="heart" title="Liked songs" subtitle={likedSub} href={{ pathname: '/playlist', params: { liked: '1' } }} />
+          <AppleSeparator inset={46} />
+          <AppleNavRow icon="download" title="Downloaded" href="/downloads" />
+          <AppleSeparator inset={46} />
+          <AppleNavRow icon="clock" title="Recently played" href="/recent" />
+          <AppleSeparator inset={46} />
+          <AppleNavRow icon="phone" title="Local files" subtitle="Songs saved on this device" href="/local-music" />
+          <AppleSeparator inset={46} />
+          <AppleNavRow icon="arrowRight" title="Import playlists" subtitle="From Spotify, Apple Music or YouTube Music" href="/import" />
         </View>
-      )}
+      ) : null}
+
+      {/* Smart playlists: computed from your likes and history */}
+      {filter === 'All' ? (
+        <View style={{ gap: 12 }}>
+          <ShelfHeader title="Smart playlists" />
+          <Shelf
+            data={smart}
+            keyExtractor={(x) => x.key}
+            renderItem={({ item: x }) => (
+              <ShelfCard title={x.title} id={x.key} art={x.art} onPress={() => go({ pathname: '/playlist', params: { smart: x.key } })}>
+                <Sticker label="SMART" rotate={-6} style={{ position: 'absolute', left: 8, top: 8 }} />
+              </ShelfCard>
+            )}
+          />
+        </View>
+      ) : null}
+
+      {/* Recently added grid */}
+      <View style={{ gap: 12 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <T size={22} weight={700} tracking={-0.4} accessibilityRole="header">
+            {alpha ? 'Alphabetical' : 'Recently added'}
+          </T>
+          <Tap onPress={() => setAlpha((v) => !v)} accessibilityLabel={`Sort: ${alpha ? 'Alphabetical' : 'Recently added'}`} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Icon name="sort" size={18} color={colors.accentLight} />
+            <T size={14} weight={500} color={colors.accentLight}>
+              Sort
+            </T>
+          </Tap>
+        </Row>
+
+        {items.length === 0 ? (
+          filter === 'Artists' ? (
+            <EmptyState icon="users" title="No artists yet" body="Follow artists you love and they will live here." action="Find artists" href="/search" />
+          ) : filter === 'Albums' ? (
+            <EmptyState icon="music" title="No saved albums" body="Tap the heart on an album to keep a copy in your library." />
+          ) : filter === 'Playlists' ? (
+            <EmptyState title="No playlists yet" body="Create one, or let AI build one from a prompt." action="Create playlist" href="/create-playlist" />
+          ) : (
+            <EmptyState title="Your library is empty" body="Create a playlist or follow an artist to get started." action="Create playlist" href="/create-playlist" />
+          )
+        ) : (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: APPLE.gap, rowGap: 20 }}>
+            {items.map((it) => (
+              <ShelfCard key={it.key} title={it.title} subtitle={it.sub} artwork={it.artwork} uri={it.uri} id={it.id} size={cardW} round={it.round} onPress={() => go(it.href)} />
+            ))}
+          </View>
+        )}
+      </View>
     </Screen>
   );
 }

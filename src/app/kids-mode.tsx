@@ -38,7 +38,7 @@ export default function KidsMode() {
   const [gate, setGate] = useState(false);
   const [note, setNote] = useState<Note | null>(null);
   const [busy, setBusy] = useState(false);
-  const used = useAsync(() => (user ? readUsageSeconds(user.id) : Promise.resolve(0)), [user?.id, unlocked]);
+  const used = useAsync(() => (user ? readUsageSeconds(user.id) : Promise.resolve(0)), [user?.id, unlocked], 'app/kids-mode:41');
 
   const run = async (fn: () => Promise<void>, ok?: string) => {
     if (busy) return;

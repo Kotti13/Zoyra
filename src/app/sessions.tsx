@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { Button, ErrorState, Glass, Icon, ListGroup, ListRow, Loading, OutlineTag, Row, Screen, ScreenHeader, T, Tap, Toast, useAsync } from '../components';
+import { Button, ErrorState, Glass, Icon, ListRow, Loading, OutlineTag, Row, Screen, ScreenHeader, T, Tap, Toast, useAsync } from '../components';
 import type { IconName } from '../components';
 import { verifiedTotpFactor } from '../lib/mfa';
 import { formatAgo } from '../lib/network';
@@ -18,8 +18,8 @@ export default function Sessions() {
   const list = useAsync(async () => {
     await heartbeat(session, true).catch(() => undefined);
     return listSessions(session);
-  }, [session?.access_token]);
-  const mfa = useAsync(() => verifiedTotpFactor(), []);
+  }, [session?.access_token], 'app/sessions:18');
+  const mfa = useAsync(() => verifiedTotpFactor(), [], 'app/sessions:22');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string }>();
@@ -70,7 +70,7 @@ export default function Sessions() {
   const secure = twoStepOn;
 
   return (
-    <Screen onRefresh={() => Promise.all([list.refresh(), mfa.refresh()])} top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'coral' }}>
+    <Screen onRefresh={() => Promise.all([list.refresh(), mfa.refresh()])} top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'gold' }}>
       <ScreenHeader title="Devices" />
 
       <Glass padding={16}>
@@ -147,10 +147,12 @@ export default function Sessions() {
         ) : null}
       </View>
 
-      <ListGroup>
+      <View>
+        <Glass padding={4}>
         <ListRow title="Two-step verification" subtitle={twoStepOn ? `Authenticator app${mfa.data?.friendly_name ? ` · ${mfa.data.friendly_name}` : ''}` : 'Off'} icon="lock" href="/two-factor" />
         <ListRow title="Privacy and security" subtitle="Your data, private session" icon="shield" href="/privacy" divider />
-      </ListGroup>
+      </Glass>
+      </View>
 
       {note ? <Toast icon={note.ok ? 'check' : 'info'} iconColor={note.ok ? colors.success : colors.error} message={note.text} /> : null}
 

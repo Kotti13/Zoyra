@@ -39,7 +39,7 @@ async function loadToday(userId: string): Promise<Today> {
 export default function Rewards() {
   const { user } = useAuth();
   const q = useProgress(user?.id);
-  const today = useAsync(async () => (user ? loadToday(user.id) : null), [user?.id]);
+  const today = useAsync(async () => (user ? loadToday(user.id) : null), [user?.id], 'app/rewards:42');
   const p = q.data;
   const t = today.data;
 
@@ -51,7 +51,7 @@ export default function Rewards() {
           Rewards
         </T>
         <T size={15} color={colors.textSecondary}>
-          Earn XP by listening, level up, unlock profile looks
+          Earn XP by listening and playing
         </T>
       </View>
 
@@ -64,11 +64,11 @@ export default function Rewards() {
       ) : p ? (
         <>
           {/* XP hero */}
-          <Gradient colors={[colors.accent, colors.accentDark]} style={{ borderRadius: 32, padding: 22, gap: 10 }}>
-            <T variant="overline" color={colors.white}>
+          <Gradient colors={['rgba(255,176,32,0.28)', 'rgba(20,20,20,0.55)']} style={{ borderRadius: 32, padding: 22, gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }}>
+            <T variant="overline" color={colors.gold}>
               YOUR XP
             </T>
-            <T size={52} weight={200} tracking={-2} color={colors.white} lineHeight={56} accessibilityLabel={`${p.level.xp} XP`}>
+            <T size={60} weight={200} tracking={-2} color={colors.white} lineHeight={62} accessibilityLabel={`${p.level.xp} XP`}>
               {fmt(p.level.xp)}
             </T>
             <Row style={{ justifyContent: 'space-between' }}>
@@ -80,12 +80,12 @@ export default function Rewards() {
               </T>
             </Row>
             <View accessibilityRole="progressbar" accessibilityLabel={`Level ${p.level.level} progress`} accessibilityValue={{ min: p.level.floor, max: p.level.next, now: p.level.xp }}>
-              <ProgressBar value={p.level.progress} height={6} color={colors.white} />
+              <ProgressBar value={p.level.progress} height={6} color={colors.gold} track="rgba(255,255,255,0.15)" />
             </View>
           </Gradient>
 
           {/* Today: real activity that counts toward XP */}
-          <SectionHeader title="Today" />
+          <SectionHeader title="Daily missions" />
           {today.loading && !t ? (
             <Loading label="Loading today" height={180} />
           ) : today.error ? (

@@ -211,7 +211,7 @@ export default function Dedication() {
                 style={{ width: 64, alignItems: 'center', gap: 6 }}
               >
                 <View style={{ padding: 3, borderRadius: 30, backgroundColor: on ? colors.accent : 'transparent' }}>
-                  <Cover uri={p.avatar_url} id={p.id} size={52} radius={26} style={{ alignItems: 'center', justifyContent: 'center' }}>
+                  <Cover uri={p.avatar_url} id={p.id} size={52} radius={17} style={{ alignItems: 'center', justifyContent: 'center' }}>
                     {p.avatar_url ? null : (
                       <T size={17} weight={600} color={colors.white}>
                         {(p.display_name[0] ?? '?').toUpperCase()}

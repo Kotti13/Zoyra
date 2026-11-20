@@ -273,5 +273,5 @@ export function computeProgress(stats: LevelStats): Progress {
 
 /** XP, level and badges for a user (null while signed out). */
 export function useProgress(userId: string | undefined): AsyncState<Progress | null> {
-  return useAsync(async () => (userId ? computeProgress(await loadLevelStats(userId)) : null), [userId]);
+  return useAsync(async () => (userId ? computeProgress(await loadLevelStats(userId)) : null), [userId], 'lib/levels:276');
 }

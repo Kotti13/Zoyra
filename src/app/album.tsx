@@ -16,13 +16,12 @@ import {
   Screen,
   ScreenHeader,
   SectionHeader,
-  Spacer,
   T,
   Tap,
   Toast,
-  TrackItem,
   useAsync,
 } from '../components';
+import { AppleTrackRow, CollectionHeader, PlayShufflePills } from '../components/apple-parts';
 import { catalog, formatCount } from '../lib/catalog';
 import { albumShareUrl, shareContent } from '../lib/share-links';
 import { useContentFilter } from '../lib/content-filter';
@@ -31,7 +30,7 @@ import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
 import { toggleCollectionDownload, useCollectionDownload } from '../state/downloads';
 import { usePlayerPick } from '../state/player';
-import { colors, shadow } from '../theme/tokens';
+import { colors } from '../theme/tokens';
 
 function useNote() {
   const [note, setNote] = useState<string | null>(null);
@@ -63,9 +62,9 @@ export default function Album() {
     if (!id) return null;
     const [info, tracks] = await Promise.all([catalog.collection(id), catalog.collectionTracks(id)]);
     return { info, tracks };
-  }, [id]);
+  }, [id], 'app/album:62');
   const artistId = album.data?.info.artist.id;
-  const more = useAsync(async () => (artistId ? (await catalog.artistCollections(artistId, 12)).filter((c) => c.id !== id) : []), [artistId, id]);
+  const more = useAsync(async () => (artistId ? (await catalog.artistCollections(artistId, 12)).filter((c) => c.id !== id) : []), [artistId, id], 'app/album:68');
 
   const info = album.data?.info;
   const { filter: hideFilter } = useContentFilter();
@@ -119,27 +118,31 @@ export default function Album() {
         <ErrorState message={album.error} onRetry={album.reload} />
       ) : info ? (
         <>
-          <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <View style={{ borderRadius: 26, shadowColor: colors.accent, shadowOpacity: 0.3, shadowRadius: 40, shadowOffset: { width: 0, height: 0 } }}>
-              <Cover artwork={info.artwork.medium || info.artwork.large ? info.artwork : tracks[0]?.artwork} id={info.id} size={200} radius={26} style={shadow.artGlow} />
-            </View>
-          </View>
+          <CollectionHeader
+            art={<Cover artwork={info.artwork.medium || info.artwork.large ? info.artwork : tracks[0]?.artwork} id={info.id} size={240} radius={14} />}
+            title={info.title}
+            onArtist={
+              <Tap href={{ pathname: '/artist', params: { id: info.artist.id } }} style={{ minHeight: 24 }}>
+                <T size={18} weight={500} color={colors.accentLight} align="center">
+                  {info.artist.name}
+                </T>
+              </Tap>
+            }
+            meta={[info.isAlbum ? 'Album' : 'Collection', year, `${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'}`].filter(Boolean).join(' · ')}
+          />
 
-          <View style={{ gap: 4 }}>
-            <T variant="title" accessibilityRole="header">
-              {info.title}
-            </T>
-            <Tap href={{ pathname: '/artist', params: { id: info.artist.id } }} style={{ alignSelf: 'flex-start', minHeight: 24 }}>
-              <T size={16} weight={500} color={colors.accentLight}>
-                {info.artist.name}
-              </T>
-            </Tap>
-            <T size={13} color={colors.textSecondary}>
-              {[info.isAlbum ? 'Album' : 'Collection', year, `${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'}`].filter(Boolean).join(' · ')}
-            </T>
-          </View>
+          <PlayShufflePills
+            playing={playingHere}
+            onPlay={onPlay}
+            shuffleOn={player.shuffle}
+            onShuffle={() => {
+              if (!tracks.length) return;
+              player.setShuffle(true);
+              player.playTracks(tracks, Math.floor(Math.random() * tracks.length), ctx);
+            }}
+          />
 
-          <Row gap={4}>
+          <Row style={{ justifyContent: 'center' }} gap={16}>
             <IconButton
               icon={dlStatus.complete ? 'check' : 'download'}
               label={dlStatus.downloading ? 'Cancel download' : dlStatus.complete ? 'Remove download' : 'Download'}
@@ -155,9 +158,6 @@ export default function Album() {
               onPress={() => void shareContent({ url: albumShareUrl(info.id), title: info.title, message: `${info.title} by ${info.artist.name} on Zoyra` }).catch(() => show('Could not open the share sheet'))}
             />
             <IconButton icon="more" label="More" size={48} onPress={() => (tracks.forEach((t) => player.addToQueue(t)), show(`Added ${tracks.length} songs to your queue`))} />
-            <Spacer />
-            <IconButton icon="shuffle" label="Shuffle" size={48} color={player.shuffle ? colors.amber : colors.textSecondary} onPress={() => player.setShuffle(!player.shuffle)} />
-            <IconButton icon={playingHere ? 'pause' : 'play'} label={playingHere ? 'Pause' : 'Play'} size={56} iconSize={26} bg={colors.accent} color={colors.onAccent} onPress={onPlay} />
           </Row>
 
           {dlStatus.downloading ? (
@@ -179,7 +179,7 @@ export default function Album() {
           ) : (
             <View>
               {tracks.map((t, i) => (
-                <TrackItem key={t.id} track={t} list={tracks} index={i} showIndex context={ctx} artRadius={14} />
+                <AppleTrackRow key={t.id} track={t} list={tracks} index={i} context={ctx} subtitle="" last={i === tracks.length - 1} />
               ))}
             </View>
           )}
@@ -204,7 +204,7 @@ export default function Album() {
 
           {more.data && more.data.length > 0 ? (
             <View style={{ gap: 12 }}>
-              <SectionHeader title={`More from ${info.artist.name}`} />
+              <SectionHeader title="More like this" />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginRight: -16 }} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
                 {more.data.map((m) => (
                   <Tap key={m.id} href={{ pathname: '/album', params: { id: m.id } }} style={{ width: 120, gap: 6 }}>

@@ -2,10 +2,10 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Art, ChipRow, MiniPlayer, Row, Screen, ScreenHeader, SectionHeader, T, Tap, Toast } from '../components';
+import { Art, MiniPlayer, Row, Screen, ScreenHeader, SectionHeader, T, Tap, Toast } from '../components';
 import { catalog } from '../lib/catalog';
 import { usePlayerPick } from '../state/player';
-import { colors, type ArtName } from '../theme/tokens';
+import { colors, withAlpha, type ArtName } from '../theme/tokens';
 
 /** `mood` is a MOOD_MAP key (passed to /playlist?mix=). */
 type Board = { label: string; mood: string; art: ArtName; height: number };
@@ -36,6 +36,7 @@ export default function MoodBoards() {
   const { playTracks } = usePlayerPick();
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => {
     if (!note) return;
     const id = setTimeout(() => setNote(null), 3200);
@@ -45,6 +46,7 @@ export default function MoodBoards() {
   /** Decades: catalogue search for the decade keyword (the catalogue has no era metadata). */
   const playDecade = async (d: string) => {
     setBusy(d);
+    setPicked(d);
     try {
       const list = await catalog.searchTracks(`${d} music`, { limit: 30 });
       const fallback = list.length ? list : await catalog.searchTracks(d, { limit: 30 });
@@ -62,7 +64,7 @@ export default function MoodBoards() {
       <ScreenHeader title="Explore" />
 
       <View style={{ gap: 8 }}>
-        <T size={26} weight={700} tracking={-0.5} lineHeight={30} accessibilityRole="header">
+        <T size={26} weight={300} tracking={-0.5} lineHeight={30} accessibilityRole="header">
           How are you feeling?
         </T>
         <T size={16} lineHeight={23} color={colors.textSecondary}>
@@ -88,7 +90,25 @@ export default function MoodBoards() {
 
       <SectionHeader title="Decades" />
       {note ? <Toast icon="info" iconColor={colors.amber} message={note} /> : null}
-      <ChipRow wrap options={decades} initial={-1} onChange={(i) => void playDecade(decades[i])} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8, rowGap: 4 }}>
+        {decades.map((d) => {
+          const on = picked === d;
+          return (
+            <Tap key={d} onPress={() => void playDecade(d)} accessibilityLabel={`${d} mix`} accessibilityState={{ selected: on }} style={{ height: 44, justifyContent: 'center' }}>
+              <View
+                style={[
+                  { height: 32, paddingHorizontal: 16, borderRadius: 28, justifyContent: 'center' },
+                  on ? { backgroundColor: colors.accent } : { backgroundColor: withAlpha(colors.white, 0.08), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12) },
+                ]}
+              >
+                <T size={14} weight={500} color={on ? colors.onAccent : colors.text}>
+                  {d}
+                </T>
+              </View>
+            </Tap>
+          );
+        })}
+      </View>
       {busy ? (
         <T size={13} color={colors.textSecondary}>
           Finding {busy} tracks…

@@ -87,7 +87,7 @@ export default function Podcasts() {
   const [category, setCategory] = useState(0);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const { playTracks } = usePlayerPick();
-  const { data, loading, error, reload, refresh } = useAsync(() => loadEpisodes(categories[category]), [category]);
+  const { data, loading, error, reload, refresh } = useAsync(() => loadEpisodes(categories[category]), [category], 'app/podcasts:90');
   const episodes = useMemo(() => data ?? [], [data]);
 
   const shows = useMemo(() => {

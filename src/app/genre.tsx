@@ -1,12 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Art, ChipRow, Cover, EmptyState, ErrorState, Icon, IconButton, Loading, MiniPlayer, Screen, SectionHeader, T, Tap, TrackItem, artFor, useAsync } from '../components';
+import { Art, Cover, EmptyState, ErrorState, Icon, IconButton, Loading, MiniPlayer, Screen, SectionHeader, T, Tap, TrackItem, artFor, useAsync } from '../components';
 import { catalog, formatCount, type CatalogTrack, type Collection } from '../lib/catalog';
 import { useContentFilter } from '../lib/content-filter';
-import { colors, layout } from '../theme/tokens';
+import { colors, layout, withAlpha } from '../theme/tokens';
 
 const tabs = ['Popular', 'New', 'Playlists', 'Artists'] as const;
 type Tab = (typeof tabs)[number];
@@ -22,8 +22,8 @@ export default function Genre() {
   const top = 4;
   const tileSize = (width - layout.gutter * 2 - 12) / 2;
 
-  const tracks = useAsync(() => catalog.trending({ genre: name, limit: 30 }), [name]);
-  const collections = useAsync(() => catalog.searchCollections(name, 12), [name]);
+  const tracks = useAsync(() => catalog.trending({ genre: name, limit: 30 }), [name], 'app/genre:25');
+  const collections = useAsync(() => catalog.searchCollections(name, 12), [name], 'app/genre:26');
 
   const { filter: hideFilter } = useContentFilter();
   const visible = useMemo(() => hideFilter(tracks.data ?? []), [tracks.data, hideFilter]);
@@ -51,11 +51,11 @@ export default function Genre() {
     <Screen onRefresh={() => Promise.all([tracks.refresh(), collections.refresh()])} backdrop={{ pattern: 'grid', mesh: 'amber' }} top={top} gap={20} bottom={16} footer={<MiniPlayer />}>
       {/* Hero */}
       <View style={{ marginTop: -(insets.top + top), marginHorizontal: -16 }}>
-        <Art art={artFor(name)} width={width} height={156 + insets.top} radius={0} style={{ justifyContent: 'flex-end', padding: 16, overflow: 'hidden' }}>
+        <Art art={artFor(name)} width={width} height={200} radius={0} style={{ justifyContent: 'flex-end', padding: 16, overflow: 'hidden' }}>
           {heroArt ? (
-            <Cover artwork={heroArt} id={name} width={width} height={156 + insets.top} radius={0} style={{ position: 'absolute', left: 0, top: 0, opacity: 0.35 }} />
+            <Cover artwork={heroArt} id={name} width={width} height={200} radius={0} style={{ position: 'absolute', left: 0, top: 0, opacity: 0.35 }} />
           ) : null}
-          <T size={40} weight={700} tracking={-1} lineHeight={46} accessibilityRole="header" numberOfLines={1}>
+          <T size={40} weight={300} tracking={-1} lineHeight={46} accessibilityRole="header" numberOfLines={1}>
             {name}
           </T>
         </Art>
@@ -64,7 +64,25 @@ export default function Genre() {
         </View>
       </View>
 
-      <ChipRow options={[...tabs]} onChange={(i) => setTab(tabs[i])} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+        {tabs.map((t) => {
+          const on = t === tab;
+          return (
+            <Tap key={t} onPress={() => setTab(t)} accessibilityState={{ selected: on }} style={{ height: 44, justifyContent: 'center' }}>
+              <View
+                style={[
+                  { height: 32, paddingHorizontal: 16, borderRadius: 28, justifyContent: 'center' },
+                  on ? { backgroundColor: colors.accent } : { backgroundColor: withAlpha(colors.white, 0.08), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12) },
+                ]}
+              >
+                <T size={14} weight={500} color={on ? colors.onAccent : colors.text}>
+                  {t}
+                </T>
+              </View>
+            </Tap>
+          );
+        })}
+      </ScrollView>
 
       {showPlaylists ? (
         <>

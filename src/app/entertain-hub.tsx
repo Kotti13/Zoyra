@@ -1,10 +1,10 @@
 import { useState, useSyncExternalStore } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { ChipRow, Gradient, Icon, IconTile, Row, Screen, ScreenHeader, SectionHeader, T, Tap, type IconName, type NavTarget } from '../components';
+import { Gradient, Icon, IconTile, Row, Screen, T, Tap, type IconName, type NavTarget } from '../components';
 import { radioState } from '../lib/radio';
 import { usePlayerPick } from '../state/player';
-import { art, colors } from '../theme/tokens';
+import { art, artCycle, colors, withAlpha } from '../theme/tokens';
 
 type Category = 'Listen' | 'Play' | 'Watch' | 'Community';
 type Entry = { title: string; subtitle: string; icon: IconName; href: NavTarget; color: string; cat: Category };
@@ -27,20 +27,22 @@ const ENTRIES: Entry[] = [
 
 const FILTERS = ['For you', 'Listen', 'Play', 'Watch', 'Community'] as const;
 
-function Tile({ e }: { e: Entry }) {
+function Tile({ e, i }: { e: Entry; i: number }) {
   return (
-    <Tap href={e.href} accessibilityLabel={`${e.title}. ${e.subtitle}`} style={{ width: '48%' }} pressScale={0.97}>
-      <View style={{ minHeight: 132, borderRadius: 28, padding: 16, gap: 10, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder }}>
-        <IconTile icon={e.icon} color={e.color} size={44} />
-        <View style={{ gap: 2 }}>
-          <T size={16} weight={600} numberOfLines={1}>
+    <Tap href={e.href} accessibilityLabel={`${e.title}. ${e.subtitle}`} style={{ width: '48.5%' }} pressScale={0.97}>
+      <Gradient colors={art[artCycle[i % artCycle.length]]} style={{ height: 128, borderRadius: 36, overflow: 'hidden' }}>
+        <Gradient colors={[withAlpha(colors.bg, 0), withAlpha(colors.bg, 0.8)]} angle={180} style={{ flex: 1, justifyContent: 'flex-end', paddingLeft: 14, paddingRight: 10, paddingBottom: 12, gap: 2 }}>
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: withAlpha(colors.black, 0.4), alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+            <Icon name={e.icon} size={18} color={colors.white} />
+          </View>
+          <T size={16} weight={700} numberOfLines={1}>
             {e.title}
           </T>
-          <T size={13} color={colors.textSecondary} numberOfLines={2}>
+          <T size={11} color={colors.peach} numberOfLines={1}>
             {e.subtitle}
           </T>
-        </View>
-      </View>
+        </Gradient>
+      </Gradient>
     </Tap>
   );
 }
@@ -53,41 +55,60 @@ export default function EntertainHub() {
   const shown = cat === 'For you' ? ENTRIES : ENTRIES.filter((e) => e.cat === cat);
 
   return (
-    <Screen top={4} gap={20} backdrop={{ pattern: 'none' }}>
-      <ScreenHeader title="" right={<Tap href="/search" accessibilityLabel="Search" style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="search" size={22} /></Tap>} />
-      <View style={{ gap: 4 }}>
-        <T variant="displayLight" accessibilityRole="header">
+    <Screen top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <T size={36} weight={300} tracking={-1} accessibilityRole="header" style={{ flex: 1 }} numberOfLines={1}>
           Entertainment
         </T>
-        <T size={15} color={colors.textSecondary}>
-          Radio, stories, games, shows and more
-        </T>
-      </View>
+        <Tap href="/search" accessibilityLabel="Search" style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: withAlpha(colors.white, 0.1), alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="search" size={20} />
+        </Tap>
+      </Row>
 
-      <ChipRow options={[...FILTERS]} initial={0} onChange={setFilter} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+        {FILTERS.map((label, i) => (
+          <Tap key={label} onPress={() => setFilter(i)} accessibilityState={{ selected: filter === i }}>
+            <View
+              style={[
+                { height: 38, paddingHorizontal: 16, borderRadius: 19, justifyContent: 'center' },
+                filter === i ? { backgroundColor: colors.text } : { backgroundColor: withAlpha(colors.white, 0.06), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12) },
+              ]}
+            >
+              <T size={13} weight={600} color={filter === i ? colors.playerBg : colors.text}>
+                {label}
+              </T>
+            </View>
+          </Tap>
+        ))}
+      </ScrollView>
 
       {cat === 'For you' || cat === 'Play' ? (
         <Tap href="/beat-game" accessibilityLabel="Play Beat Rush, a rhythm game">
-          <Gradient colors={art.red} style={{ borderRadius: 32, padding: 22, minHeight: 190, justifyContent: 'flex-end', overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', top: 20, right: 20 }}>
-              <Icon name="bolt" size={64} color={colors.white} strokeWidth={1.2} />
-            </View>
-            <T variant="overline" color={colors.white}>
-              RHYTHM GAME
-            </T>
-            <T size={44} weight={300} tracking={-1.5} color={colors.white} lineHeight={48}>
-              Beat <T size={44} weight={800} color={colors.white}>Rush</T>
-            </T>
-            <Row style={{ justifyContent: 'space-between', marginTop: 6 }}>
-              <T size={13} color={colors.white} style={{ opacity: 0.85, flex: 1 }}>
-                Tap along to a real track and beat your best
-              </T>
-              <View style={{ height: 40, paddingHorizontal: 20, borderRadius: 20, backgroundColor: colors.white, justifyContent: 'center' }}>
-                <T size={14} weight={700} color={colors.onLight}>
-                  Play
+          <Gradient colors={art.red} style={{ borderRadius: 32, height: 210, overflow: 'hidden' }}>
+            <View pointerEvents="none" style={{ position: 'absolute', right: '-12%', top: '6%', width: '70%', aspectRatio: 1, borderRadius: 999, borderWidth: 1, borderColor: withAlpha(colors.white, 0.18) }} />
+            <View pointerEvents="none" style={{ position: 'absolute', right: '6%', top: '14%', width: '36%', aspectRatio: 1, borderRadius: 999, backgroundColor: withAlpha(colors.white, 0.18) }} />
+            <Gradient colors={[withAlpha(colors.bg, 0), withAlpha(colors.bg, 0.9)]} angle={180} style={{ flex: 1, justifyContent: 'space-between', padding: 14 }}>
+              <View style={{ alignSelf: 'flex-start', height: 26, paddingHorizontal: 12, borderRadius: 13, backgroundColor: withAlpha(colors.black, 0.5), justifyContent: 'center' }}>
+                <T size={11} weight={700} tracking={0.6}>
+                  RHYTHM GAME
                 </T>
               </View>
-            </Row>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, paddingBottom: 2 }}>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <T size={30} weight={300} tracking={-1} lineHeight={30}>
+                    Beat <T size={30} weight={800} tracking={-1}>Rush</T>
+                  </T>
+                  <T size={13} color={colors.peach} numberOfLines={2}>
+                    Tap along to a real track and beat your best
+                  </T>
+                </View>
+                <View style={{ height: 42, paddingHorizontal: 20, borderRadius: 21, backgroundColor: colors.accent, justifyContent: 'center' }}>
+                  <T size={14} weight={700} color={colors.onAccent}>
+                    Play
+                  </T>
+                </View>
+              </Row>
+            </Gradient>
           </Gradient>
         </Tap>
       ) : null}
@@ -116,10 +137,9 @@ export default function EntertainHub() {
         </Tap>
       ) : null}
 
-      <SectionHeader title={cat === 'For you' ? 'Explore' : cat} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12 }}>
-        {shown.map((e) => (
-          <Tile key={e.title} e={e} />
+        {shown.map((e, i) => (
+          <Tile key={e.title} e={e} i={i} />
         ))}
       </View>
     </Screen>

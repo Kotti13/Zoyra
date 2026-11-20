@@ -30,7 +30,7 @@ export default function NewGroup() {
   const [picked, setPicked] = useState<Map<string, DmContact>>(new Map());
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const list = useAsync(() => (me ? loadPickable(q) : Promise.resolve({ contacts: [] as DmContact[], checks: new Map<string, InviteCheck>() })), [q, me]);
+  const list = useAsync(() => (me ? loadPickable(q) : Promise.resolve({ contacts: [] as DmContact[], checks: new Map<string, InviteCheck>() })), [q, me], 'app/new-group:33');
 
   const toggle = (c: DmContact) => {
     setNote(null);

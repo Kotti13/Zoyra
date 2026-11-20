@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Avatar, Cover, Glass, Icon, IconButton, LinkText, ListGroup, ListRow, Row, Screen, ScreenHeader, T, Tap, artFor } from '../components';
 import type { IconName, NavTarget } from '../components';
 import { useAuth, type Profile } from '../state/auth';
-import { colors } from '../theme/tokens';
+import { colors, withAlpha } from '../theme/tokens';
 
 const PLAN_LABEL: Record<Profile['plan'], string> = { free: 'Free plan', premium: 'Premium', family: 'Family plan', student: 'Student plan' };
 
@@ -49,31 +50,32 @@ export default function Settings() {
       <ScreenHeader title="Settings" right={<IconButton icon="search" label="Search settings" href="/settings-search" />} />
 
       <Tap href="/settings-hub" accessibilityLabel="All settings. Playback, quality, video, lyrics and more">
-        <Glass padding={12}>
-          <Row gap={12}>
-            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="sliders" size={22} color={colors.accentLight} />
+        <View style={{ borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.white, 0.14), padding: 16 }}>
+          <LinearGradient colors={[withAlpha(colors.accent, 0.32), 'rgba(20,20,20,0.6)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <Row gap={14}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="sliders" size={22} color={colors.white} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
-              <T size={16} weight={600}>
+              <T size={16} weight={700} color={colors.white}>
                 All settings
               </T>
-              <T size={13} color={colors.textSecondary}>
+              <T size={13} color={withAlpha(colors.white, 0.85)}>
                 Playback, quality, video, lyrics and more
               </T>
             </View>
-            <Icon name="chevronRight" size={18} color={colors.textSecondary} />
+            <Icon name="chevronRight" size={18} color={colors.white} />
           </Row>
-        </Glass>
+        </View>
       </Tap>
 
       <Tap href="/profile" accessibilityLabel={`${name}, ${plan}. Open profile`}>
         <Glass padding={12}>
           <Row gap={12}>
             {profile?.avatar_url ? (
-              <Cover uri={profile.avatar_url} id={user?.id} size={56} radius={28} />
+              <Cover uri={profile.avatar_url} id={user?.id} size={56} radius={19} />
             ) : (
-              <Avatar initial={name.trim().charAt(0).toUpperCase() || 'Z'} art={artFor(user?.id)} size={56} />
+              <Avatar initial={name.trim().charAt(0).toUpperCase() || 'Z'} art={artFor(user?.id)} size={56} radius={19} />
             )}
             <View style={{ flex: 1, gap: 2 }}>
               <T size={16} weight={600} numberOfLines={1}>

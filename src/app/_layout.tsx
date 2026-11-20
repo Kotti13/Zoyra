@@ -1,17 +1,18 @@
 import { Inter_200ExtraLight, Inter_300Light, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
 import { JetBrainsMono_400Regular, JetBrainsMono_500Medium } from '@expo-google-fonts/jetbrains-mono';
 import { useFonts } from 'expo-font';
-import { DarkTheme, Stack, ThemeProvider, router, useGlobalSearchParams, usePathname, useSegments, type Href } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider, router, type ErrorBoundaryProps, useGlobalSearchParams, usePathname, useSegments, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DialogHost } from '../components/DialogHost';
 import { FlashHost } from '../components/flash';
 import { SplashView } from '../components/SplashView';
 import { isAddingAccount, useAccountSync } from '../lib/accounts';
+import { installErrorGuard } from '../lib/error-guard';
 import { CallHost } from '../lib/call-ui';
 import { KidsGuardHost } from '../components/KidsGuard';
 import { useGiftSync } from '../lib/gifts';
@@ -237,12 +238,12 @@ function Scrobbler() {
   return null;
 }
 
-/** Animated launch splash over the app until the session is restored (min 1.4 s so the animation can land). */
+/** Animated launch splash over the app until the session is restored (min 0.9 s so the animation can land). */
 function LaunchSplash({ ready }: { ready: boolean }) {
   const [minElapsed, setMinElapsed] = useState(false);
   const [finished, setFinished] = useState(false);
   useEffect(() => {
-    const id = setTimeout(() => setMinElapsed(true), 1400);
+    const id = setTimeout(() => setMinElapsed(true), 900);
     return () => clearTimeout(id);
   }, []);
   const onReady = useCallback(() => {
@@ -251,6 +252,33 @@ function LaunchSplash({ ready }: { ready: boolean }) {
   const onFinish = useCallback(() => setFinished(true), []);
   if (finished) return null;
   return <SplashView done={ready && minElapsed} onReady={onReady} onFinish={onFinish} />;
+}
+
+// Keep the app alive (and show a message) when a request or callback fails without being handled.
+installErrorGuard();
+
+/**
+ * Expo Router renders this instead of a blank screen when a screen throws while rendering, so a JavaScript
+ * error shows its message (and can be retried) rather than leaving a black screen. Plain React Native only:
+ * it must not depend on providers, theme or fonts, which may be what failed.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <View style={{ flex: 1, backgroundColor: '#050505', padding: 24, paddingTop: 72 }}>
+      <Text style={{ color: '#F5F5F5', fontSize: 22, fontWeight: '600' }}>Something went wrong</Text>
+      <Text style={{ color: '#A3A3A3', fontSize: 14, marginTop: 8 }}>The screen hit an error. Try again, and if it keeps happening send this message to support.</Text>
+      <ScrollView style={{ marginTop: 16, maxHeight: 220 }}>
+        <Text selectable style={{ color: '#FF8A8A', fontSize: 12 }}>
+          {String(error?.message ?? error)}
+          {'\n\n'}
+          {String(error?.stack ?? '').split('\n').slice(0, 8).join('\n')}
+        </Text>
+      </ScrollView>
+      <Pressable accessibilityRole="button" accessibilityLabel="Try again" onPress={() => void retry()} style={{ marginTop: 20, height: 48, borderRadius: 24, backgroundColor: '#E50914', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>Try again</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 export default function RootLayout() {
@@ -285,14 +313,14 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: colors.bg },
               // Same iOS-style push on both platforms, swipe back from anywhere on the screen.
               animation: 'ios_from_right',
-              animationDuration: 320,
+              animationDuration: 200,
               gestureEnabled: true,
               fullScreenGestureEnabled: true,
             }}
           >
             <Stack.Screen name="(tabs)" />
             {['splash', 'welcome', 'login', 'signup', 'otp', 'forgot', 'onboarding', 'permissions', 'auth-callback', 'mfa-verify'].map((name) => (
-              <Stack.Screen key={name} name={name} options={{ animation: 'fade', animationDuration: 260 }} />
+              <Stack.Screen key={name} name={name} options={{ animation: 'fade', animationDuration: 140 }} />
             ))}
             {fullscreenUp.map((name) => (
               <Stack.Screen
@@ -300,16 +328,16 @@ export default function RootLayout() {
                 name={name}
                 // Player-like screens rise from the bottom over the current page. Swipe down closes them
                 // (handled in <Screen swipeDown>, same on iOS and Android), revealing the page underneath.
-                options={{ presentation: 'transparentModal', animation: 'slide_from_bottom', animationDuration: 360, gestureEnabled: false, contentStyle: { backgroundColor: 'transparent' } }}
+                options={{ presentation: 'transparentModal', animation: 'slide_from_bottom', animationDuration: 230, gestureEnabled: false, contentStyle: { backgroundColor: 'transparent' } }}
               />
             ))}
             {/* Profile tabs (Overview → Playlists/Activity/Taste) swap in place instead of sliding in. */}
             {['profile-playlists', 'profile-activity', 'profile-taste'].map((name) => (
-              <Stack.Screen key={name} name={name} options={{ animation: 'fade', animationDuration: 220 }} />
+              <Stack.Screen key={name} name={name} options={{ animation: 'fade', animationDuration: 130 }} />
             ))}
             {/* Forever flow (prompt → sent / ask → done): full screen pages, never sheets, so the chat they lead back to stays a normal card. */}
             {['forever-prompt', 'forever-sent', 'forever-ask', 'forever-done'].map((name) => (
-              <Stack.Screen key={name} name={name} options={{ presentation: 'card', animation: 'fade_from_bottom', animationDuration: 320 }} />
+              <Stack.Screen key={name} name={name} options={{ presentation: 'card', animation: 'fade_from_bottom', animationDuration: 200 }} />
             ))}
             {/* 1:1 voice / video call: full screen, no swipe-to-dismiss (minimize / end are explicit). */}
             <Stack.Screen name="call" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', gestureEnabled: false, fullScreenGestureEnabled: false }} />
@@ -318,7 +346,7 @@ export default function RootLayout() {
               <Stack.Screen
                 key={name}
                 name={name}
-                options={{ presentation: 'transparentModal', animation: 'fade', animationDuration: 200, gestureEnabled: false, contentStyle: { backgroundColor: 'transparent' } }}
+                options={{ presentation: 'transparentModal', animation: 'fade', animationDuration: 120, gestureEnabled: false, contentStyle: { backgroundColor: 'transparent' } }}
               />
             ))}
           </Stack>

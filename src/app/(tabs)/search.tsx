@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { router, useLocalSearchParams, type Href } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Modal, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Modal, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -9,6 +9,11 @@ import {
   Cover,
   EmptyState,
   ErrorState,
+  AppleSeparator,
+  AppleTitle,
+  AppleTrackList,
+  APPLE,
+  Art,
   Gradient,
   Icon,
   IconButton,
@@ -21,7 +26,6 @@ import {
   T,
   Tap,
   Toast,
-  TrackItem,
   useAsync,
   useDebounced,
 } from '../../components';
@@ -34,7 +38,7 @@ import { VideoEntryCard } from '../../lib/video-ui';
 import { useVoiceSearch } from '../../lib/voice';
 import { useAuth } from '../../state/auth';
 import { usePlayerActions, usePlayerSelector } from '../../state/player';
-import { art, colors, fonts, shadow, tile, withAlpha } from '../../theme/tokens';
+import { art, artCycle, colors, fonts, shadow, tile, withAlpha } from '../../theme/tokens';
 import { searchFilters, useSearchFilters, type SearchFilterState } from '../filter-sort';
 
 const filters = ['All', 'Songs', 'Artists', 'Albums', 'Playlists', 'Lyrics', 'Podcasts'] as const;
@@ -94,7 +98,7 @@ function useNote() {
 function ArtistRow({ a, onOpen }: { a: Artist; onOpen: () => void }) {
   return (
     <Tap accessibilityLabel={`Artist ${a.name}`} onPress={onOpen} style={{ minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      <Cover artwork={a.image} id={a.id} size={48} radius={24} />
+      <Cover artwork={a.image} id={a.id} size={56} radius={28} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <T variant="bodyStrong" numberOfLines={1}>
           {a.name}
@@ -111,7 +115,7 @@ function ArtistRow({ a, onOpen }: { a: Artist; onOpen: () => void }) {
 function CollectionRow({ c, onOpen }: { c: Collection; onOpen: () => void }) {
   return (
     <Tap accessibilityLabel={`${c.isAlbum ? 'Album' : 'Playlist'} ${c.title}`} onPress={onOpen} style={{ minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      <Cover artwork={c.artwork} id={c.id} size={48} radius={14} />
+      <Cover artwork={c.artwork} id={c.id} size={56} radius={10} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <T variant="bodyStrong" numberOfLines={1}>
           {c.title}
@@ -310,7 +314,7 @@ export default function Search() {
   const { voice, listening } = voiceSearch;
 
   /* ---------------- trending searches */
-  const trending = useAsync(() => catalog.trending({ limit: 4 }), []);
+  const trending = useAsync(() => catalog.trending({ limit: 4 }), [], 'app/(tabs)/search:314');
 
   /* ---------------- results */
   const singleGenre = f.genres.length === 1 ? f.genres[0] : undefined;
@@ -329,7 +333,7 @@ export default function Search() {
       wantCollections ? catalog.searchCollections(debounced, filter === 'All' ? 10 : 25) : Promise.resolve([]),
     ]);
     return { tracks, artists, collections };
-  }, [debounced, filter, singleGenre]);
+  }, [debounced, filter, singleGenre], 'app/(tabs)/search:318');
 
   // Content controls: hidden songs/artists and (kid-safe) explicit songs stay out of results.
   const { filter: hideFilter, hiddenArtists } = useContentFilter();
@@ -362,23 +366,23 @@ export default function Search() {
   // LRCLIB (our lyrics source) only indexes titles/artists, not lyric text; searching inside lyrics needs a licensed lyrics search API.
   const unsupported = filter === 'Lyrics' ? 'Searching by a line of lyrics needs a lyrics search service (such as Musixmatch) that Zoyra is not connected to. Search by song title or artist instead.' : null;
   const filtersOn = searchFilters.isActive(f);
+  const { width: winW } = useWindowDimensions();
+  const tileW = Math.floor((winW - APPLE.side * 2 - APPLE.gap) / 2);
   const empty = shown && !shown.tracks.length && !shown.artists.length && !shown.collections.length;
 
   return (
-    <Screen tabbed gap={22} backdrop={{ pattern: 'lines', mesh: 'amber' }} onRefresh={refresh}>
-      <T variant="display" accessibilityRole="header">
-        Search
-      </T>
+    <Screen tabbed gap={APPLE.section - 8} backdrop={{ pattern: 'lines', mesh: 'amber' }} onRefresh={refresh}>
+      <AppleTitle title="Search" />
 
-      {/* Search field */}
-      <Row gap={8} style={{ height: 56, borderRadius: 36, backgroundColor: colors.bgTertiary, borderWidth: 1, borderColor: colors.border, paddingLeft: 18, paddingRight: 6 }}>
-        <Icon name="search" size={22} color={colors.textSecondary} />
+      {/* Search field: rounded pill */}
+      <Row gap={8} style={{ height: 46, paddingLeft: 14, paddingRight: 4, borderRadius: 23, backgroundColor: colors.glass, borderWidth: 1, borderColor: colors.glassBorder }}>
+        <Icon name="search" size={20} color={colors.textSecondary} />
         <TextInput
           accessibilityLabel="Search"
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => saveQuery(query)}
-          placeholder="Songs, artists, albums"
+          placeholder="Artists, songs, lyrics and more"
           placeholderTextColor={colors.textTertiary}
           returnKeyType="search"
           autoCorrect={false}
@@ -441,24 +445,28 @@ export default function Search() {
               {shown.tracks.length ? (
                 <View>
                   {filter === 'All' ? <SectionHeader title="Songs" /> : null}
-                  {shown.tracks.map((t, i, list) => (
-                    <TrackItem key={t.id} track={t} list={list} index={i} context={`Search: ${debounced}`} />
-                  ))}
+                  <AppleTrackList tracks={shown.tracks} context={`Search: ${debounced}`} subtitle={(t) => `Song · ${t.artist.name}`} />
                 </View>
               ) : null}
               {shown.artists.length ? (
                 <View>
                   {filter === 'All' ? <SectionHeader title="Artists" /> : null}
-                  {shown.artists.map((a) => (
-                    <ArtistRow key={a.id} a={a} onOpen={() => openArtist(a)} />
+                  {shown.artists.map((a, i) => (
+                    <View key={a.id}>
+                      {i > 0 ? <AppleSeparator /> : null}
+                      <ArtistRow a={a} onOpen={() => openArtist(a)} />
+                    </View>
                   ))}
                 </View>
               ) : null}
               {shown.collections.length ? (
                 <View>
                   {filter === 'All' ? <SectionHeader title="Albums and playlists" /> : null}
-                  {shown.collections.map((c) => (
-                    <CollectionRow key={c.id} c={c} onOpen={() => openCollection(c)} />
+                  {shown.collections.map((c, i) => (
+                    <View key={c.id}>
+                      {i > 0 ? <AppleSeparator /> : null}
+                      <CollectionRow c={c} onOpen={() => openCollection(c)} />
+                    </View>
                   ))}
                 </View>
               ) : null}
@@ -471,9 +479,9 @@ export default function Search() {
           <Tap
             accessibilityLabel="What is playing? Tap to identify a song around you"
             onPress={() => router.push('/identify')}
-            style={[{ borderRadius: 36 }, shadow.sticker]}
+            style={[{ borderRadius: 20 }, shadow.sticker]}
           >
-            <Gradient colors={art.amber} style={{ borderRadius: 36, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <Gradient colors={art.orange} style={{ borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
               <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: withAlpha(colors.white, 0.22), alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="mic" size={26} color={colors.white} />
               </View>
@@ -482,7 +490,7 @@ export default function Search() {
                   What is playing?
                 </T>
                 <T size={14} color={colors.white} style={{ opacity: 0.9 }}>
-                  Listen, hum or sing to find a song
+                  Tap to identify a song around you
                 </T>
               </View>
               <Icon name="chevronRight" size={22} color={colors.white} />
@@ -535,29 +543,33 @@ export default function Search() {
             )}
           </View>
 
-          {/* Browse all */}
-          <Row style={{ justifyContent: 'space-between' }}>
-            <T variant="section" accessibilityRole="header">
-              Browse all
-            </T>
-            <LinkText label={filtersOn ? 'Filters on' : 'Filters'} icon="filter" size={13} href="/filter-sort" />
-          </Row>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            {genres.map((g) => (
-              <Tap
-                key={g.label}
-                onPress={() => router.push({ pathname: '/genre', params: { name: g.label } })}
-                style={[
-                  { width: '47.5%', flexGrow: 1, height: 96, borderRadius: 36, padding: 16, backgroundColor: g.bg, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-                  shadow.sticker,
-                ]}
-              >
-                <T size={18} weight={700} color={colors.white} style={{ flex: 1 }} numberOfLines={2}>
-                  {g.label}
-                </T>
-                <Icon name={g.icon} size={26} color={colors.white} filled={g.filled} />
-              </Tap>
-            ))}
+          {/* Browse categories */}
+          <View style={{ gap: 12 }}>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <T size={22} weight={700} tracking={-0.4} accessibilityRole="header">
+                Browse categories
+              </T>
+              <LinkText label={filtersOn ? 'Filters on' : 'Filters'} icon="filter" size={13} href="/filter-sort" />
+            </Row>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: APPLE.gap }}>
+              {genres.map((g, i) => (
+                <Tap
+                  key={g.label}
+                  accessibilityLabel={g.label}
+                  onPress={() => router.push({ pathname: '/genre', params: { name: g.label } })}
+                  style={{ width: tileW, height: Math.round(tileW / 1.78), borderRadius: 14, padding: 12, backgroundColor: g.bg, overflow: 'hidden', justifyContent: 'flex-end' }}
+                >
+                  <View pointerEvents="none" style={{ position: 'absolute', right: -10, bottom: -8, transform: [{ rotate: i % 2 ? '-18deg' : '18deg' }] }}>
+                    <Art art={artCycle[i % artCycle.length]} size={64} radius={8} style={{ alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name={g.icon} size={28} color={colors.white} filled={g.filled} />
+                    </Art>
+                  </View>
+                  <T size={16} weight={700} color={colors.white} numberOfLines={2} style={{ maxWidth: tileW - 24 }}>
+                    {g.label}
+                  </T>
+                </Tap>
+              ))}
+            </View>
           </View>
         </>
       )}

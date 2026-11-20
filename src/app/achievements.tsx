@@ -24,7 +24,7 @@ async function loadWeekDays(uid: string): Promise<boolean[]> {
 export default function Achievements() {
   const { user } = useAuth();
   const q = useProgress(user?.id);
-  const week = useAsync(() => (user ? loadWeekDays(user.id) : Promise.resolve(WEEK_LABELS.map(() => false))), [user?.id]);
+  const week = useAsync(() => (user ? loadWeekDays(user.id) : Promise.resolve(WEEK_LABELS.map(() => false))), [user?.id], 'app/achievements:27');
 
   const pr = q.data;
   const s = pr ? { streak: pr.stats.currentStreak, best: Math.max(pr.stats.bestStreak, pr.stats.currentStreak), weekDays: week.data ?? WEEK_LABELS.map(() => false) } : null;

@@ -61,7 +61,7 @@ export default function GroupInfo() {
   const cid = typeof params.id === 'string' ? params.id : '';
   const { user } = useAuth();
   const me = user?.id;
-  const data = useAsync(() => (cid && me ? loadAll(cid, me) : Promise.resolve(null)), [cid, me]);
+  const data = useAsync(() => (cid && me ? loadAll(cid, me) : Promise.resolve(null)), [cid, me], 'app/group-info:64');
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export default function GroupInfo() {
     const checks = await checkInvites(contacts.filter((c) => !memberIds.has(c.id)).map((c) => c.id)).catch(() => new Map<string, InviteCheck>());
     return { contacts, checks };
     // memberIds is derived from data; reloading on q/adding is enough.
-  }, [adding, q, me]);
+  }, [adding, q, me], 'app/group-info:83');
 
   const run = async (key: string, fn: () => Promise<void>, ok?: string) => {
     if (busy) return;

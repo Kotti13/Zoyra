@@ -1,38 +1,65 @@
 import { useState, useSyncExternalStore } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Button, ChipRow, Cover, EmptyState, Glass, Gradient, Icon, IconTile, ListRow, Loading, Row, Screen, ScreenHeader, SectionHeader, T, Tap, TextField, Toast, useAsync, useDebounced } from '../components';
+import { Button, Cover, EmptyState, Glass, Gradient, Icon, IconButton, IconTile, ListRow, Loading, Row, Screen, T, Tap, TextField, Toast, useAsync, useDebounced } from '../components';
 import { catalog, GENRES, MOOD_MAP } from '../lib/catalog';
 import { artistStation, contextFor, genreStation, historySeeds, mixStation, moodStation, radioState, startStation, stopStation, useRadioTopUp, type Station } from '../lib/radio';
 import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
 import { usePlayerPick } from '../state/player';
-import { art, colors, type ArtName } from '../theme/tokens';
+import { art, colors, withAlpha, type ArtName } from '../theme/tokens';
 
 const FILTERS = ['For you', 'Genres', 'Moods', 'Artists'] as const;
 const ARTS: ArtName[] = ['red', 'orange', 'rose', 'amber', 'blue', 'green'];
 const artAt = (i: number) => ARTS[i % ARTS.length];
 
-function StationCard({ s, i, busy, on, onPress }: { s: Station; i: number; busy: boolean; on: boolean; onPress: () => void }) {
+/** Board station row: frosted row, 64px rounded-square art, LIVE pill when on air, accent play circle. */
+function LivePill() {
   return (
-    <Tap onPress={onPress} accessibilityLabel={`${on ? 'Playing' : 'Start'} ${s.title}. ${s.subtitle}`} accessibilityState={{ busy, selected: on }} style={{ width: 150 }}>
-      <View style={{ gap: 8 }}>
-        <Gradient colors={art[artAt(i)]} style={{ width: 150, height: 150, borderRadius: 26, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
-          {s.image ? <Cover uri={s.image} id={s.seed} size={84} radius={42} /> : <Icon name={s.kind === 'mood' ? 'heart' : s.kind === 'mix' ? 'shuffle' : 'cast'} size={44} color={colors.white} strokeWidth={1.2} />}
-          <View style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: on ? colors.accent : colors.shade, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={busy ? 'clock' : on ? 'speaker' : 'play'} size={16} color={colors.white} />
-          </View>
-        </Gradient>
-        <View style={{ gap: 2 }}>
-          <T size={14} weight={600} numberOfLines={1}>
+    <View style={{ height: 26, paddingHorizontal: 10, borderRadius: 13, backgroundColor: colors.live, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.white }} />
+      <T size={11} weight={800} tracking={0.6} color={colors.white}>
+        LIVE
+      </T>
+    </View>
+  );
+}
+
+function StationRow({ s, i, busy, on, onPress }: { s: Station; i: number; busy: boolean; on: boolean; onPress: () => void }) {
+  return (
+    <Tap onPress={onPress} accessibilityLabel={`${on ? 'Playing' : 'Start'} ${s.title}. ${s.subtitle}`} accessibilityState={{ busy, selected: on }} pressScale={0.98}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: 26, backgroundColor: withAlpha(colors.white, 0.06), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12) }}>
+        {s.image ? (
+          <Cover uri={s.image} id={s.seed} size={64} radius={18} />
+        ) : (
+          <Gradient colors={art[artAt(i)]} style={{ width: 64, height: 64, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={s.kind === 'mood' ? 'heart' : s.kind === 'mix' ? 'shuffle' : 'cast'} size={28} color={colors.white} strokeWidth={1.4} />
+          </Gradient>
+        )}
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <T size={16} weight={600} numberOfLines={1}>
             {s.title}
           </T>
           <T size={12} color={colors.textSecondary} numberOfLines={1}>
             {s.subtitle}
           </T>
         </View>
+        {on ? <LivePill /> : null}
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={busy ? 'clock' : on ? 'speaker' : 'play'} size={18} color={colors.text} />
+        </View>
       </View>
     </Tap>
+  );
+}
+
+function StationList({ stations, busy, onAir, onStart }: { stations: Station[]; busy: string | null; onAir: string | null; onStart: (s: Station) => void }) {
+  return (
+    <View style={{ gap: 12 }}>
+      {stations.map((s, i) => (
+        <StationRow key={s.id} s={s} i={i} busy={busy === s.id} on={onAir === s.id} onPress={() => onStart(s)} />
+      ))}
+    </View>
   );
 }
 
@@ -40,15 +67,15 @@ function Shelf({ title, stations, busy, onAir, onStart }: { title: string; stati
   if (!stations.length) return null;
   return (
     <View style={{ gap: 12 }}>
-      <SectionHeader title={title} />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
-        {stations.map((s, i) => (
-          <StationCard key={s.id} s={s} i={i} busy={busy === s.id} on={onAir === s.id} onPress={() => onStart(s)} />
-        ))}
-      </ScrollView>
+      <T size={19} weight={500} tracking={-0.2} accessibilityRole="header">
+        {title}
+      </T>
+      <StationList stations={stations} busy={busy} onAir={onAir} onStart={onStart} />
     </View>
   );
 }
+
+const BARS = [8, 25, 10, 27, 12, 29, 14, 31, 16, 33, 18, 35, 20, 37, 22, 39, 24, 9, 26, 11, 28, 13, 30, 15, 32, 17, 34, 19, 36, 21];
 
 export default function Radio() {
   // Keeps the station endless while this screen is open; the root layout can mount it app-wide.
@@ -64,8 +91,8 @@ export default function Radio() {
   const [query, setQuery] = useState('');
   const q = useDebounced(query.trim(), 350);
 
-  const seeds = useAsync(async () => (user ? historySeeds(user.id) : null), [user?.id]);
-  const found = useAsync(async () => (q.length >= 2 ? catalog.searchArtists(q, 8) : []), [q]);
+  const seeds = useAsync(async () => (user ? historySeeds(user.id) : null), [user?.id], 'app/radio:94');
+  const found = useAsync(async () => (q.length >= 2 ? catalog.searchArtists(q, 8) : []), [q], 'app/radio:95');
 
   const start = async (s: Station) => {
     if (busy) return;
@@ -90,51 +117,69 @@ export default function Radio() {
   const cat = FILTERS[filter];
 
   return (
-    <Screen onRefresh={() => Promise.all([seeds.refresh(), found.refresh()])} top={4} gap={20} backdrop={{ pattern: 'none' }}>
-      <ScreenHeader title="" />
-      <View style={{ gap: 4 }}>
-        <T variant="displayLight" accessibilityRole="header">
+    <Screen onRefresh={() => Promise.all([seeds.refresh(), found.refresh()])} top={4} gap={16} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <IconButton icon="back" label="Back" href="back" bg={withAlpha(colors.white, 0.1)} />
+      </Row>
+      <View style={{ gap: 6 }}>
+        <T size={36} weight={300} tracking={-1} lineHeight={38} accessibilityRole="header">
           Radio
         </T>
-        <T size={15} color={colors.textSecondary}>
+        <T size={14} color={colors.textSecondary}>
           Endless stations from the Audius catalogue
         </T>
       </View>
 
-      <ChipRow options={[...FILTERS]} initial={0} onChange={setFilter} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+        {FILTERS.map((label, i) => (
+          <Tap key={label} onPress={() => setFilter(i)} accessibilityState={{ selected: filter === i }}>
+            <View
+              style={[
+                { height: 38, paddingHorizontal: 16, borderRadius: 19, justifyContent: 'center' },
+                filter === i ? { backgroundColor: colors.text } : { backgroundColor: withAlpha(colors.white, 0.06), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12) },
+              ]}
+            >
+              <T size={13} weight={600} color={filter === i ? colors.playerBg : colors.text}>
+                {label}
+              </T>
+            </View>
+          </Tap>
+        ))}
+      </ScrollView>
 
       {/* On air */}
       {onAir ? (
-        <Gradient colors={art.red} style={{ borderRadius: 32, padding: 20, gap: 10, overflow: 'hidden' }}>
-          <Row>
-            <View style={{ height: 24, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.shade, justifyContent: 'center' }}>
-              <T variant="overline" color={colors.white}>
-                ON AIR
-              </T>
-            </View>
+        <Gradient colors={[withAlpha(colors.accent, 0.3), withAlpha(colors.playerBg, 0.55)]} angle={135} style={{ borderRadius: 30, padding: 18, gap: 14, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.white, 0.14) }}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <T size={12} weight={700} tracking={0.8} color={colors.accentLight}>
+              ON AIR
+            </T>
+            <LivePill />
           </Row>
-          <T size={30} weight={300} tracking={-1} color={colors.white} numberOfLines={2}>
+          <T size={26} weight={300} tracking={-0.5} lineHeight={30} numberOfLines={2}>
             {onAir.title}
           </T>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 40 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            {BARS.map((h, k) => (
+              <View key={k} style={{ flex: 1, height: h, borderRadius: 2, backgroundColor: colors.accent, opacity: playing ? 0.8 : 0.4 }} />
+            ))}
+          </View>
           {track ? (
             <Row gap={10}>
-              <Cover artwork={track.artwork} id={track.id} size={44} radius={12} />
+              <Cover artwork={track.artwork} id={track.id} size={44} radius={14} />
               <View style={{ flex: 1, minWidth: 0 }}>
-                <T size={14} weight={600} color={colors.white} numberOfLines={1}>
-                  {track.title}
-                </T>
-                <T size={13} color={colors.white} style={{ opacity: 0.8 }} numberOfLines={1}>
-                  {track.artist.name}
+                <T size={13} color={colors.peach} numberOfLines={1}>
+                  Now: {track.title} · {track.artist.name}
                 </T>
               </View>
             </Row>
           ) : null}
           <Row gap={10}>
-            <Button label={playing ? 'Pause' : 'Play'} icon={playing ? 'pause' : 'play'} variant="light" height={44} onPress={toggle} style={{ flex: 1 }} />
+            <Button label={playing ? 'Pause' : 'Play'} icon={playing ? 'pause' : 'play'} height={44} onPress={toggle} style={{ flex: 1 }} />
             <Button label="Open player" variant="glass" height={44} href="/player" style={{ flex: 1 }} />
           </Row>
           <Tap onPress={stopStation} accessibilityLabel="Stop adding songs to this station">
-            <T size={13} color={colors.white} style={{ opacity: 0.8, textDecorationLine: 'underline' }}>
+            <T size={13} color={colors.peach} style={{ opacity: 0.8, textDecorationLine: 'underline' }}>
               Stop the station after the queued songs
             </T>
           </Tap>
@@ -158,26 +203,14 @@ export default function Radio() {
           ) : null}
           {seeds.loading ? <Loading label="Finding stations for you" /> : null}
           <Shelf title="From your listening" stations={[...artistStations.slice(0, 6), ...historyGenres]} busy={busy} onAir={onAir?.id ?? null} onStart={(s) => void start(s)} />
-          <Shelf title="Moods" stations={moodStations} busy={busy} onAir={onAir?.id ?? null} onStart={(s) => void start(s)} />
-          <Shelf title="Genres" stations={genreStations.slice(0, 8)} busy={busy} onAir={onAir?.id ?? null} onStart={(s) => void start(s)} />
+          <Shelf title="Moods" stations={moodStations.slice(0, 6)} busy={busy} onAir={onAir?.id ?? null} onStart={(s) => void start(s)} />
+          <Shelf title="Genres" stations={genreStations.slice(0, 6)} busy={busy} onAir={onAir?.id ?? null} onStart={(s) => void start(s)} />
         </>
       ) : null}
 
-      {cat === 'Genres' ? (
-        <Glass padding={4}>
-          {genreStations.map((s, i) => (
-            <ListRow key={s.id} divider={i > 0} icon="cast" title={s.title} subtitle={s.subtitle} onPress={() => void start(s)} right={<Icon name={busy === s.id ? 'clock' : onAir?.id === s.id ? 'speaker' : 'play'} size={20} color={colors.accentLight} />} />
-          ))}
-        </Glass>
-      ) : null}
+      {cat === 'Genres' ? <StationList stations={genreStations} busy={busy} onAir={onAir?.id ?? null} onStart={(s) => void start(s)} /> : null}
 
-      {cat === 'Moods' ? (
-        <Glass padding={4}>
-          {moodStations.map((s, i) => (
-            <ListRow key={s.id} divider={i > 0} icon="heart" title={s.title} subtitle={s.subtitle} onPress={() => void start(s)} right={<Icon name={busy === s.id ? 'clock' : onAir?.id === s.id ? 'speaker' : 'play'} size={20} color={colors.accentLight} />} />
-          ))}
-        </Glass>
-      ) : null}
+      {cat === 'Moods' ? <StationList stations={moodStations} busy={busy} onAir={onAir?.id ?? null} onStart={(s) => void start(s)} /> : null}
 
       {cat === 'Artists' ? (
         <>

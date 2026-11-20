@@ -38,7 +38,7 @@ export default function Blocked() {
   };
 
   return (
-    <Screen onRefresh={me ? res.refresh : undefined} top={4} gap={16} backdrop={{ pattern: 'lines', mesh: 'none', glows: [{ x: 0, y: 0, color: colors.sky, opacity: 0.32 }] }}>
+    <Screen onRefresh={me ? res.refresh : undefined} top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral', orbs: true }}>
       <ScreenHeader title="Blocked users" />
 
       {res.loading && !res.data ? (

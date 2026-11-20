@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { go, Screen, T } from '../components';
-import { ForeverPair, ForeverSteps, GoldBackdrop, GoldChip, GoldButton, PulsingInfinity, SoftButton } from '../components/forever';
+import { ForeverPair, ForeverSteps, GoldBackdrop, SoftButton } from '../components/forever';
 import { flash } from '../lib/flash';
 import {
   cancelForeverRequest,
@@ -90,14 +90,9 @@ export default function ForeverSent() {
             : 'This request is no longer open.'
           : `${first} just got your request. When they accept, you both see a celebration and the ∞ badge appears.`}
       </T>
-      {closed || info === undefined ? null : (
-        <View style={{ marginTop: 14 }} accessible accessibilityLabel={`Request sent. Waiting for ${first} to accept.`}>
-          <GoldChip label={`Request sent · waiting for ${first}`} leading={<PulsingInfinity size={16} />} />
-        </View>
-      )}
       <View style={{ flex: 1 }} />
       <View style={{ width: '100%', gap: 10 }}>
-        <GoldButton label="Back to chat" onPress={() => go('back')} />
+        <SoftButton label="Back to chat" onPress={() => go('back')} />
         {closed ? null : <SoftButton label="Cancel request" busy={busy} color={colors.error} onPress={() => void cancel()} />}
       </View>
     </Screen>

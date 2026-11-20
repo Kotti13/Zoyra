@@ -31,11 +31,11 @@ export default function WorkoutSummary() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { user, profile } = useAuth();
   const me = { id: user?.id, username: profile?.username };
-  const w = useAsync(() => (id ? getWorkout(id) : Promise.reject(new Error('This run could not be found.'))), [id]);
-  const recent = useAsync(() => (user ? listWorkouts(user.id, 7) : Promise.resolve([] as WorkoutSummaryRow[])), [user?.id]);
+  const w = useAsync(() => (id ? getWorkout(id) : Promise.reject(new Error('This run could not be found.'))), [id], 'app/workout-summary:34');
+  const recent = useAsync(() => (user ? listWorkouts(user.id, 7) : Promise.resolve([] as WorkoutSummaryRow[])), [user?.id], 'app/workout-summary:35');
 
   return (
-    <Screen backdrop={{ mesh: 'coral', pattern: 'none' }}>
+    <Screen backdrop={{ mesh: 'coral', pattern: 'dots', glows: [{ x: 1, y: 0, color: '#00B894', opacity: 0.25 }] }}>
       <ScreenHeader title="Run summary" right={w.data ? <IconButton icon="share" label="Share run" onPress={() => void shareRun(w.data!, me)} /> : undefined} />
       {w.loading ? (
         <Loading label="Loading your run" />
@@ -70,7 +70,7 @@ function Body({ w, recent }: { w: Workout; recent: WorkoutSummaryRow[] }) {
   const { createPlaylist, addToPlaylist } = useLibrary();
   const [busy, setBusy] = useState<'playlist' | 'delete' | null>(null);
   const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null);
-  const bpms = useAsync(() => fetchBpms(w.tracks.map((t) => t.id)), [w.id]);
+  const bpms = useAsync(() => fetchBpms(w.tracks.map((t) => t.id)), [w.id], 'app/workout-summary:73');
   const pace = formatPace(avgPace(w.duration_seconds, w.distance_m));
 
   const saveAsPlaylist = async () => {
@@ -108,36 +108,31 @@ function Body({ w, recent }: { w: Workout; recent: WorkoutSummaryRow[] }) {
 
   return (
     <>
-      <View style={{ gap: 6 }}>
-        <T variant="headlineLight" accessibilityRole="header">
+      <View style={{ alignItems: 'center', gap: 6 }}>
+        <T size={14} weight={300} color={colors.textSecondary} accessibilityRole="header">
           Run complete
         </T>
-        <T size={14} color={colors.textSecondary}>
+        <Row gap={8} align="baseline" style={{ justifyContent: 'center' }} accessible accessibilityLabel={`${formatKm(w.distance_m)} kilometres`}>
+          <T size={96} weight={200} tracking={-4} lineHeight={104}>
+            {formatKm(w.distance_m)}
+          </T>
+          <T size={18} color={colors.textSecondary}>
+            km
+          </T>
+        </Row>
+        <T size={13} color={colors.textSecondary} align="center">
           {longDate(w.started_at)}
           {w.playlist_title ? ` · ${w.playlist_title}` : ''}
         </T>
       </View>
 
-      <View style={{ gap: 2 }} accessible accessibilityLabel={`${formatKm(w.distance_m)} kilometres`}>
-        <Row gap={6} align="flex-end">
-          <T variant="displayLight" size={64}>
-            {formatKm(w.distance_m)}
-          </T>
-          <T size={20} color={colors.textSecondary} style={{ marginBottom: 12 }}>
-            km
-          </T>
-        </Row>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 }}>
+        <Stat label="Time" value={formatClock(w.duration_seconds)} />
+        <Stat label="Avg pace" value={pace === '--' ? '--' : `${pace} /km`} />
+        <Stat label="Steps" value={w.steps !== null ? w.steps.toLocaleString() : '--'} />
+        <Stat label="Avg cadence" value={w.avg_cadence ? `${w.avg_cadence} spm` : '--'} />
+        {w.target_bpm ? <Stat label="Target tempo" value={`${w.target_bpm} BPM`} /> : null}
       </View>
-
-      <Glass padding={16}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 }}>
-          <Stat label="Time" value={formatClock(w.duration_seconds)} />
-          <Stat label="Avg pace" value={pace === '--' ? '--' : `${pace} /km`} />
-          <Stat label="Steps" value={w.steps !== null ? w.steps.toLocaleString() : '--'} />
-          <Stat label="Avg cadence" value={w.avg_cadence ? `${w.avg_cadence} spm` : '--'} />
-          {w.target_bpm ? <Stat label="Target tempo" value={`${w.target_bpm} BPM`} /> : null}
-        </View>
-      </Glass>
 
       <View style={{ gap: 10 }}>
         <SectionHeader title="Route" />
@@ -146,26 +141,25 @@ function Body({ w, recent }: { w: Workout; recent: WorkoutSummaryRow[] }) {
 
       {recent.length > 1 ? (
         <View style={{ gap: 10 }}>
-          <SectionHeader title="Last runs" />
           <LastRuns runs={recent} current={w.id} />
         </View>
       ) : null}
 
       <View style={{ gap: 10 }}>
-        <SectionHeader title="Soundtrack that carried you" />
+        <T size={18} weight={600} accessibilityRole="header">Soundtrack that carried you</T>
         {!w.tracks.length ? (
           <T size={14} color={colors.textSecondary}>
             No catalogue songs played during this run.
           </T>
         ) : (
-          <View>
+          <Glass padding={4}>
             {w.tracks.map((t, i) => {
               const b = bpms.data?.get(t.id);
               return (
                 <TrackItem key={t.id} track={t} list={w.tracks} index={i} subtitle={b ? `${t.artist.name} · ${Math.round(b)} BPM` : undefined} />
               );
             })}
-          </View>
+          </Glass>
         )}
       </View>
 
@@ -188,8 +182,8 @@ function Body({ w, recent }: { w: Workout; recent: WorkoutSummaryRow[] }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <View style={{ width: '50%', gap: 2 }} accessible accessibilityLabel={`${label}: ${value === '--' ? 'not recorded' : value}`}>
-      <T size={20} weight={600}>
+    <View style={{ flexGrow: 1, flexBasis: '33%', alignItems: 'center', gap: 2 }} accessible accessibilityLabel={`${label}: ${value === '--' ? 'not recorded' : value}`}>
+      <T size={28} weight={300}>
         {value}
       </T>
       <T size={12} color={colors.textSecondary}>
@@ -253,7 +247,15 @@ function LastRuns({ runs, current }: { runs: WorkoutSummaryRow[]; current: strin
   const list = [...runs].slice(0, 7).reverse();
   const max = Math.max(...list.map((r) => r.distance_m), 1);
   return (
-    <Glass padding={16}>
+    <Glass padding={18}>
+      <Row style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+        <T size={15} weight={600}>
+          Last runs
+        </T>
+        <T size={12} color={colors.textSecondary}>
+          Last 7 runs
+        </T>
+      </Row>
       <Row align="flex-end" gap={8} style={{ height: 120 }}>
         {list.map((r) => {
           const on = r.id === current;

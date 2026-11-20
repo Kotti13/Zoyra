@@ -68,8 +68,8 @@ export default function GiftPremium() {
   const [offers, setOffers] = useState<GiftOffer[] | null>(null);
   const [offersError, setOffersError] = useState<string | null>(null);
 
-  const contacts = useAsync(() => (me ? searchContacts(q) : Promise.resolve([] as DmContact[])), [q, me]);
-  const gifts = useAsync(() => (me ? listMyGifts(me) : Promise.resolve([] as Gift[])), [me]);
+  const contacts = useAsync(() => (me ? searchContacts(q) : Promise.resolve([] as DmContact[])), [q, me], 'app/gift-premium:71');
+  const gifts = useAsync(() => (me ? listMyGifts(me) : Promise.resolve([] as Gift[])), [me], 'app/gift-premium:72');
   const people = useMemo(() => (contacts.data ?? []).filter((c) => c.access !== 'blocked' && c.id !== me).slice(0, 6), [contacts.data, me]);
   const unsent = (gifts.data ?? []).filter((g) => !g.sent_at && !g.redeemed_at);
 

@@ -10,6 +10,7 @@
  */
 import { router, usePathname } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { BlurView } from 'expo-blur';
 import { Animated, Easing, Platform, Vibration, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -261,10 +262,11 @@ function IncomingBanner({ call, onHide }: { call: Call; onHide: () => void }) {
           accessibilityRole="button"
           accessibilityLabel={`${name}. ${what}. Opens the call`}
           style={[
-            { borderRadius: 30, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(32,32,32,0.96)', borderWidth: 1, borderColor: withAlpha(colors.white, 0.16), flexDirection: 'row', alignItems: 'center', gap: 12 },
+            { borderRadius: 30, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(32,32,32,0.7)', overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.white, 0.16), flexDirection: 'row', alignItems: 'center', gap: 12 },
             shadow.sticker,
           ]}
         >
+          <BlurView intensity={30} tint="dark" pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
           <View>
             <ChatAvatar person={peer} size={50} radius={17} />
             <View style={{ position: 'absolute', right: -3, bottom: -3, width: 20, height: 20, borderRadius: 10, backgroundColor: CALL_GREEN, borderWidth: 2, borderColor: '#202020', alignItems: 'center', justifyContent: 'center' }}>

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, Linking, View } from 'react-native';
 
-import { Glass, Icon, ListRow, Screen, ScreenHeader, T, Toggle } from '../components';
+import { Glass, Icon, ListRow, Screen, ScreenHeader, T, Tap, Toggle } from '../components';
 import type { IconName } from '../components';
 import { showDialog } from '../lib/dialog';
 import { describePushResult, pushPermissionStatus, registerForPush, saveNotificationTimeZone, setAlertPrefsCache, type PushResult } from '../lib/push';
 import { useAuth } from '../state/auth';
-import { colors } from '../theme/tokens';
+import { colors, withAlpha } from '../theme/tokens';
 
 /** `key` is the field stored in user_settings.notifications; `on` is the default when unset. */
 const prefs: { key: string; title: string; subtitle: string; icon: IconName; on: boolean }[] = [
@@ -98,11 +99,7 @@ export default function NotifSettings() {
       gap={16}
       backdrop={{
         pattern: 'dots',
-        mesh: 'none',
-        glows: [
-          { x: 1, y: 0, color: colors.amber, opacity: 0.28 },
-          { x: 0, y: 0.3, color: colors.violet, opacity: 0.2 },
-        ],
+        mesh: 'amberRose',
       }}
     >
       <ScreenHeader title="Notifications" />
@@ -118,15 +115,27 @@ export default function NotifSettings() {
         />
       </Glass>
 
-      <Glass padding={4}>
-        <ListRow
-          title="Message alerts"
-          subtitle="Reply from notification, previews"
-          icon="mail"
-          href="/push-settings"
-          right={<Icon name="chevronRight" size={18} color={colors.textSecondary} />}
-        />
-      </Glass>
+      <Tap
+        href="/push-settings"
+        accessibilityRole="button"
+        accessibilityLabel="Message alerts. Reply from notification, previews"
+        style={{ borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.white, 0.16) }}
+      >
+        <LinearGradient colors={['rgba(229,9,20,0.32)', 'rgba(20,20,20,0.55)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="mail" size={20} color={colors.white} glow={false} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <T size={16} weight={600}>
+              Message alerts
+            </T>
+            <T size={13} color="#E5E5E5">
+              Reply from notification, previews
+            </T>
+          </View>
+          <Icon name="chevronRight" size={18} color={colors.textSecondary} />
+        </LinearGradient>
+      </Tap>
 
       <Glass padding={4}>
         {prefs.map((p, i) => (

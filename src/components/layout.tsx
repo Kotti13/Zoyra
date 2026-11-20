@@ -11,7 +11,8 @@ import { go, IconButton, LinkText, Tap, type NavTarget } from './controls';
 import type { IconName } from './icons';
 import { Cover } from './media';
 import { ThemedRefreshControl, useRefresh } from './refresh';
-import { decelerate, springy, Stagger, useReduceMotion, useSpin } from './motion';
+import { decelerate, springy, Stagger, useReduceMotion } from './motion';
+import { EqBars, LightSweep } from './art-fx';
 import { SkeletonScreen, useAfterTransition } from './Skeleton';
 import { Art, Glass, Icon, Row, T, TopHighlight } from './primitives';
 
@@ -67,6 +68,9 @@ const noop = () => undefined;
 export const TAB_CHROME_HEIGHT = 158;
 
 /** Root of every screen: dark bg, decorative backdrop, safe-area aware padded column. */
+/** Widest the main column of a screen gets (dp); phones are narrower, so this only affects tablets and foldables. */
+const CONTENT_MAX_WIDTH = 640;
+
 export function Screen({ children, backdrop = {}, bg = colors.bg, underlay, scroll = true, gap = 24, top = 12, bottom = 24, footer, contentStyle, tabbed, stagger = true, swipeDown = false, refreshControl, onRefresh, refreshing, defer = true, footerInset = true }: ScreenProps) {
   const insets = useSafeAreaInsets();
   const pull = useRefresh(onRefresh ?? noop);
@@ -74,6 +78,10 @@ export function Screen({ children, backdrop = {}, bg = colors.bg, underlay, scro
   const body = ready ? <Stagger enabled={stagger}>{children}</Stagger> : <SkeletonScreen />;
   const swipe = useSwipeDownToClose(swipeDown, insets.top);
   const pad: ViewStyle = {
+    // Tablets, foldables and landscape: keep content in a centred column instead of stretching edge to edge.
+    width: '100%',
+    maxWidth: CONTENT_MAX_WIDTH,
+    alignSelf: 'center',
     paddingTop: insets.top + top,
     paddingHorizontal: layout.gutter,
     paddingBottom: footer ? 12 : bottom + insets.bottom + (tabbed ? TAB_CHROME_HEIGHT : 0),
@@ -100,7 +108,7 @@ export function Screen({ children, backdrop = {}, bg = colors.bg, underlay, scro
           {body}
         </View>
       )}
-      {footer && ready ? <View style={{ paddingBottom: footerInset ? insets.bottom : 0 }}>{footer}</View> : null}
+      {footer && ready ? <View style={{ paddingBottom: footerInset ? insets.bottom : 0, width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }}>{footer}</View> : null}
     </Animated.View>
   );
 }
@@ -413,20 +421,22 @@ export const MiniPlayer = memo(function MiniPlayer({ accent = colors.accent }: {
   const playing = usePlayerSelector((s) => s.playing);
   const buffering = usePlayerSelector((s) => s.buffering);
   const { toggle, next } = usePlayerActions();
-  const spin = useSpin(playing && !buffering, 9000);
+  const live = playing && !buffering;
   if (!track) return null;
   return (
-    <View style={[{ marginHorizontal: 12, marginBottom: 10, height: 64, borderRadius: 32 }, shadow.float, { shadowOpacity: 0.45, shadowRadius: 12 }]}>
-      <View style={[styles.chrome, { borderColor: colors.hairline, justifyContent: 'center', paddingHorizontal: 8 }]}>
+    <View style={[{ marginHorizontal: 12, marginBottom: 10, height: 60, borderRadius: 16 }, shadow.float, { shadowOpacity: 0.45, shadowRadius: 12 }]}>
+      <View style={[styles.chrome, { borderRadius: 16, borderColor: colors.hairline, justifyContent: 'center', paddingHorizontal: 8 }]}>
         {Platform.OS === 'ios' ? <BlurView tint="dark" intensity={50} style={StyleSheet.absoluteFill} /> : null}
         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glassStrong }]} />
         <Row gap={4}>
           <Tap href="/player" accessibilityLabel="Open full player" style={{ flex: 1, minWidth: 0 }}>
             <Row>
-              {/* Round cover turns like a record while the song plays */}
-              <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                <Cover artwork={track.artwork} id={track.id} size={48} radius={24} />
-              </Animated.View>
+              {/* Rounded-square art with a light sweep and a tiny equaliser while playing */}
+              <View style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden' }}>
+                <Cover artwork={track.artwork} id={track.id} size={44} radius={8} />
+                <LightSweep active={live} width={44} periodMs={5000} opacity={0.3} />
+                <EqBars active={live} bars={3} height={10} barWidth={2} color={colors.white} style={{ position: 'absolute', right: 4, bottom: 4 }} />
+              </View>
               <View style={{ minWidth: 0, gap: 2, flex: 1 }}>
                 <T size={14} weight={600} numberOfLines={1}>
                   {track.title}
@@ -437,7 +447,7 @@ export const MiniPlayer = memo(function MiniPlayer({ accent = colors.accent }: {
               </View>
             </Row>
           </Tap>
-          <IconButton icon={playing ? 'pause' : 'play'} label={playing ? 'Pause' : 'Play'} bg={accent} color={colors.onAccent} iconSize={22} onPress={toggle} />
+          <IconButton icon={playing ? 'pause' : 'play'} label={playing ? 'Pause' : 'Play'} iconSize={24} onPress={toggle} />
           <IconButton icon="next" label="Next track" iconSize={22} onPress={next} />
         </Row>
         <MiniProgress accent={accent} />
@@ -449,8 +459,8 @@ export const MiniPlayer = memo(function MiniPlayer({ accent = colors.accent }: {
 function MiniProgress({ accent }: { accent: string }) {
   const { progress } = usePlaybackProgress();
   return (
-    <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: colors.track }}>
-      <View style={{ width: `${progress * 100}%`, height: 3, backgroundColor: accent }} />
+    <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, backgroundColor: withAlpha(colors.white, 0.12) }}>
+      <View style={{ width: `${progress * 100}%`, height: 2, backgroundColor: accent }} />
     </View>
   );
 }

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { Button, Cover, EmptyState, ErrorState, Icon, Loading, Sheet, T, Tap, Toast, useAsync } from '../components';
+import { Button, Cover, EmptyState, ErrorState, Glass, Icon, Loading, Sheet, T, Tap, Toast, useAsync } from '../components';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
@@ -36,7 +36,7 @@ export default function AddToPlaylist() {
     const { data, error } = await supabase.from('playlist_tracks').select('playlist_id').eq('track_id', track.id);
     if (error) throw new Error(error.message);
     return new Set((data ?? []).map((r) => r.playlist_id as string));
-  }, [track?.id, user?.id]);
+  }, [track?.id, user?.id], 'app/add-to-playlist:34');
 
   const mine = useMemo(() => playlists.filter((p) => p.owner_id === user?.id), [playlists, user?.id]);
   const q = query.trim().toLowerCase();
@@ -110,7 +110,7 @@ export default function AddToPlaylist() {
       </T>
 
       {/* Search */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, borderRadius: 24, backgroundColor: colors.bgTertiary, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 }}>
+      <Glass radius={24} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 14 }}>
         <Icon name="search" size={20} color={colors.textSecondary} />
         <TextInput
           value={query}
@@ -120,7 +120,7 @@ export default function AddToPlaylist() {
           accessibilityLabel="Find a playlist"
           style={{ flex: 1, minWidth: 0, height: 44, color: colors.text, fontFamily: fonts.regular, fontSize: 16 }}
         />
-      </View>
+      </Glass>
 
       {creating ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 }}>

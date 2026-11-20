@@ -29,13 +29,13 @@ export default function ConfirmClear() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const stats = useAsync(() => (cid && me ? loadClearStats(cid, me) : Promise.resolve(null)), [cid, me]);
+  const stats = useAsync(() => (cid && me ? loadClearStats(cid, me) : Promise.resolve(null)), [cid, me], 'app/confirm-clear:32');
   const kind = useAsync(async () => {
     if (params.group === '1') return 'group';
     if (!cid) return 'direct';
     const { data } = await supabase.from('conversations').select('kind').eq('id', cid).maybeSingle();
     return (data as { kind?: string } | null)?.kind === 'group' ? 'group' : 'direct';
-  }, [cid, params.group]);
+  }, [cid, params.group], 'app/confirm-clear:33');
   const group = kind.data === 'group';
   const s = stats.data;
   const media = s ? s.photos + s.voice : 0;

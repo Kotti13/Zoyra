@@ -25,17 +25,22 @@ export default function VideoSettings() {
   const net = !online ? 'offline' : connection === 'wifi' || connection === 'ethernet' ? 'on Wi-Fi' : connection === 'unknown' ? 'on an unknown network' : 'on mobile data';
 
   return (
-    <Screen top={4} gap={18} backdrop={{ pattern: 'lines', mesh: 'none', glows: [{ x: 0.9, y: 0.1, color: colors.accent, opacity: 0.3 }] }}>
-      <ScreenHeader title="Video" />
+    <Screen top={4} gap={18} backdrop={{ pattern: 'dots', mesh: 'coral', orbs: true }}>
+      <ScreenHeader />
+      <T variant="display" size={36} weight={300} tracking={-1} lineHeight={38} accessibilityRole="header">
+        Video
+      </T>
 
       <ListGroup title="AUTOPLAY">
         <ListRow
+          icon="play"
           title="Autoplay next video"
           subtitle="Start the first Up next video when one ends"
           minHeight={72}
           right={<Toggle value={autoNext} onChange={setAutoNext} label="Autoplay next video" />}
         />
         <ListRow
+          icon="video"
           title="Autoplay shorts on scroll"
           subtitle="Each short starts as you swipe to it"
           minHeight={72}
@@ -43,6 +48,7 @@ export default function VideoSettings() {
           right={<Toggle value={shorts} onChange={setShorts} label="Autoplay shorts on scroll" />}
         />
         <ListRow
+          icon="wifi"
           title="Wi-Fi only autoplay"
           subtitle={`Nothing starts by itself on mobile data. You’re ${net} now.`}
           minHeight={72}
@@ -54,6 +60,7 @@ export default function VideoSettings() {
       <View style={{ gap: 8 }}>
         <ListGroup title="CAPTIONS">
           <ListRow
+            icon="file"
             title="Captions"
             subtitle="Show YouTube captions when the video has them"
             minHeight={72}

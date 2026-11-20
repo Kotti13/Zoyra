@@ -328,11 +328,6 @@ type RowHandlers = {
   onDelete: (t: Thread) => void;
 };
 
-/** Hairline between rows inside a glass list card (inset past the avatar). */
-function RowDivider() {
-  return <View style={{ height: StyleSheet.hairlineWidth, marginLeft: 12 + AVATAR + 12, marginRight: 12, backgroundColor: colors.hairline }} />;
-}
-
 /** Spoken summary of a row (the list row and the menu title). */
 function rowLabel(t: Thread, isBlock: boolean, online: boolean) {
   const unread = t.unreadCount > 0 && !isBlock;
@@ -357,7 +352,7 @@ const RowBody = memo(function RowBody({ t, isBlock, online }: { t: Thread; isBlo
   const kind = isBlock ? { icon: null, text: 'You blocked this person' } : splitKind(t.preview);
   const tone = unread ? colors.text : colors.textSecondary;
   return (
-    <Row gap={14} style={{ minHeight: ROW_H, paddingVertical: 10 }}>
+    <Row gap={14} style={{ minHeight: ROW_H, paddingVertical: 8 }}>
       <View style={isBlock ? { opacity: 0.45 } : undefined}>
         <ForeverRing uid={t.group ? null : t.other?.id} radius={AVATAR_R}>
           <ThreadAvatar t={t} online={online} />
@@ -368,7 +363,6 @@ const RowBody = memo(function RowBody({ t, isBlock, online }: { t: Thread; isBlo
           <T size={16} weight={unread ? 700 : 600} tracking={-0.1} numberOfLines={1} style={{ flexShrink: 1 }}>
             {name}
           </T>
-          {t.pinned ? <Icon name="pushPin" size={12} color={colors.textTertiary} strokeWidth={1.8} /> : null}
           <View style={{ flex: 1 }} />
           <T size={12} color={unread ? colors.accentLight : colors.textSecondary} accessibilityElementsHidden importantForAccessibility="no">
             {when(t.at)}
@@ -388,6 +382,7 @@ const RowBody = memo(function RowBody({ t, isBlock, online }: { t: Thread; isBlo
           {isBlock ? <RowPill label="Blocked" /> : t.requestSent ? <RowPill label="Request sent" /> : null}
           {t.muted && !isBlock ? <Icon name="bellOff" size={14} color={colors.textSecondary} strokeWidth={1.8} /> : null}
           {unread ? <CountPill count={t.unreadCount} light={t.muted} /> : null}
+          {t.pinned ? <Icon name="pushPin" size={15} color={colors.textSecondary} strokeWidth={1.8} /> : null}
         </Row>
       </View>
       {t.cover && !isBlock ? <Cover uri={t.cover} size={44} radius={22} /> : null}
@@ -439,19 +434,16 @@ const ThreadRow = memo(function ThreadRow({ t, isBlock, online, locked, handlers
   );
 });
 
-/** Rows stacked in one frosted glass card with hairline dividers (one blur for the whole list). */
+/** Rows stacked straight on the backdrop (MsgHome: no card, no dividers). */
 function RowGroup({ label, threads, render }: { label?: string; threads: Thread[]; render: (t: Thread) => ReactNode }) {
   return (
     <View style={{ gap: 8 }}>
       {label ? <SectionLabel>{label}</SectionLabel> : null}
-      <Glass radius={26} style={{ paddingVertical: 2 }}>
-        {threads.map((t, i) => (
-          <Fragment key={t.id}>
-            {i ? <RowDivider /> : null}
-            {render(t)}
-          </Fragment>
+      <View>
+        {threads.map((t) => (
+          <Fragment key={t.id}>{render(t)}</Fragment>
         ))}
-      </Glass>
+      </View>
     </View>
   );
 }
@@ -862,7 +854,6 @@ export default function Messages() {
     { key: 'unread', label: 'Unread', badge: unreadChats.length || undefined },
     { key: 'groups', label: 'Groups' },
     { key: 'jams', label: 'Jams' },
-    { key: 'requests', label: 'Requests', badge: requestCount || undefined, onPress: () => router.push('/message-requests') },
   ];
 
   const changeTab = (k: Filter) => {
@@ -1018,66 +1009,29 @@ export default function Messages() {
       <Row gap={10} style={{ minHeight: 56 }}>
         {router.canGoBack() ? <IconButton icon="back" label="Back" size={40} iconSize={18} glass href="back" /> : null}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <T size={38} weight={300} tracking={-1} lineHeight={42} accessibilityRole="header" numberOfLines={1}>
+          <T size={34} weight={300} tracking={-0.8} lineHeight={40} accessibilityRole="header" numberOfLines={1} accessibilityLabel={loading && !threads.length ? 'Messages, syncing' : unreadChats.length ? `Messages, ${unreadChats.length} unread${onlineCount ? `, ${onlineCount} online` : ''}` : 'Messages'}>
             Messages
           </T>
-          <Row gap={6}>
-            {loading && !threads.length ? (
-              <T size={13} color={colors.textSecondary}>
-                Syncing…
-              </T>
-            ) : (
-              <>
-                <T size={13} color={unreadChats.length ? colors.peach : colors.textSecondary}>
-                  {unreadChats.length ? `${unreadChats.length} unread` : 'All caught up'}
-                </T>
-                {onlineCount ? (
-                  <>
-                    <T size={13} color={colors.peach}>
-                      ·
-                    </T>
-                    <OnlineDot size={8} ring="transparent" style={{ borderWidth: 0 }} />
-                    <T size={13} color={colors.peach}>
-                      {onlineCount} online
-                    </T>
-                  </>
-                ) : null}
-              </>
-            )}
-          </Row>
         </View>
         <View>
           <IconButton icon="users" label={requestCount ? `Message requests, ${requestCount}` : 'Message requests'} size={44} iconSize={20} glass href="/message-requests" />
           {requestCount ? (
-            <View pointerEvents="none" style={{ position: 'absolute', top: -3, right: -3 }}>
-              <CountPill count={requestCount} />
-            </View>
+            <View pointerEvents="none" style={{ position: 'absolute', top: 8, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent, borderWidth: 2, borderColor: colors.bg }} />
           ) : null}
         </View>
         <IconButton icon="edit" label="New message" size={44} iconSize={20} bg={colors.accent} color={colors.onAccent} href="/new-message" />
       </Row>
 
-      <Tap href="/chat-search" pressScale={0.98} accessibilityRole="search" accessibilityLabel="Search people, songs and messages" style={{ height: 48 }}>
-        <GlassCard radius={24} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
+      <Tap href="/chat-search" pressScale={0.98} accessibilityRole="search" accessibilityLabel="Search people, songs and messages" style={{ height: 46 }}>
+        <GlassCard radius={23} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
           <Icon name="search" size={18} color={colors.textSecondary} />
           <T size={15} weight={400} color={colors.textSecondary} numberOfLines={1} style={{ flex: 1 }}>
-            Search people, songs, messages
+            Search
           </T>
         </GlassCard>
       </Tap>
 
       <View style={{ gap: 10 }}>
-        <SectionLabel
-          right={
-            friendNotes.length ? (
-              <T size={11} mono color={colors.textTertiary}>
-                {friendNotes.length} {friendNotes.length === 1 ? 'note' : 'notes'}
-              </T>
-            ) : null
-          }
-        >
-          Now playing with friends
-        </SectionLabel>
         {/* Items reserve a fixed, clipped bubble row above the avatar, so nothing rises under the Search pill. */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, flexGrow: 0 }} contentContainerStyle={{ gap: 4, paddingHorizontal: 12, paddingTop: 4 }} onScrollBeginDrag={closeOpenSwipeRow}>
           <NoteFace
@@ -1148,12 +1102,12 @@ export default function Messages() {
         emptyCard(<EmptyState icon="mail" title="No conversations yet" body="Send a song or say hi to someone you follow." action="New message" href="/new-message" />)
       ) : (
         <>
-          {pinnedShown.length ? <RowGroup key="pinned" label="Pinned" threads={pinnedShown} render={renderRow} /> : null}
           {shown.length === 0 ? (
             <View key="empty">{emptyCard(filterEmpty)}</View>
-          ) : restShown.length ? (
-            <RowGroup key="chats" label={pinnedShown.length ? 'Chats' : undefined} threads={restShown} render={renderRow} />
-          ) : null}
+          ) : (
+            // Pinned and Forever chats sit at the top of the one normal list; pinned rows carry a pin icon on the right.
+            <RowGroup key="chats" threads={[...pinnedShown, ...restShown]} render={renderRow} />
+          )}
           {filter === 'primary' && hiddenLocked.length > 0 ? (
             <Tap
               key="locked"
@@ -1165,8 +1119,8 @@ export default function Messages() {
               accessibilityLabel={lockedOpen ? 'Hide locked chats' : `Locked chats, ${hiddenLocked.length}`}
             >
               <Row gap={12} style={{ minHeight: 52, paddingVertical: 12, paddingHorizontal: 4 }}>
-                <Icon name="lock" size={20} color={colors.text} />
-                <T size={15} weight={600} style={{ flex: 1 }}>
+                <Icon name="lock" size={20} color={colors.textSecondary} />
+                <T size={14} color={colors.textSecondary} style={{ flex: 1 }}>
                   {lockedOpen ? 'Hide locked chats' : `Locked chats (${hiddenLocked.length})`}
                 </T>
                 <Icon name="chevronRight" size={18} color={colors.textSecondary} />
@@ -1184,9 +1138,9 @@ export default function Messages() {
               accessibilityLabel={`Archived chats, ${archived.length}${archivedUnread ? `, ${archivedUnread} unread` : ''}`}
             >
               <Row gap={12} style={{ minHeight: 52, paddingVertical: 12, paddingHorizontal: 4 }}>
-                <Icon name="storage" size={20} color={colors.text} />
-                <T size={15} weight={600} style={{ flex: 1 }}>
-                  Archived chats ({archived.length})
+                <Icon name="storage" size={20} color={colors.textSecondary} />
+                <T size={14} color={colors.textSecondary} style={{ flex: 1 }}>
+                  Archived ({archived.length})
                 </T>
                 {archivedUnread ? <CountPill count={archivedUnread} /> : null}
                 <Icon name="chevronRight" size={18} color={colors.textSecondary} />

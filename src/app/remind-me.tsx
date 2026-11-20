@@ -22,8 +22,8 @@ export default function RemindMe() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const msg = useAsync(() => (mid ? loadMessage(mid) : Promise.resolve(null)), [mid]);
-  const existing = useAsync(() => (mid ? getMessageReminder(mid) : Promise.resolve(null)), [mid]);
+  const msg = useAsync(() => (mid ? loadMessage(mid) : Promise.resolve(null)), [mid], 'app/remind-me:25');
+  const existing = useAsync(() => (mid ? getMessageReminder(mid) : Promise.resolve(null)), [mid], 'app/remind-me:26');
   const preview = msg.data ? messagePreview(msg.data) : '';
 
   const custom = sel === presets.length;
@@ -45,7 +45,7 @@ export default function RemindMe() {
     }
   };
 
-  const labels = [...presets.map((p) => ({ label: p.label, time: clockLabel(p.at) })), { label: 'In a custom time', time: custom && customOk ? clockLabel(at) : '' }];
+  const labels = [...presets.map((p) => ({ label: p.label, time: clockLabel(p.at) })), { label: 'Pick date and time', time: custom && customOk ? clockLabel(at) : '' }];
 
   return (
     <Sheet>

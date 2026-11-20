@@ -96,11 +96,11 @@ export default function Downloads() {
             style={{ flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: colors.track }}
           >
             <View style={{ width: `${dlPct}%`, backgroundColor: colors.accent }} />
-            <View style={{ width: `${cachePct}%`, backgroundColor: colors.amber }} />
+            <View style={{ width: `${cachePct}%`, backgroundColor: colors.orange }} />
           </View>
           <Row gap={16}>
             <Legend color={colors.accent} label={`Downloads ${formatBytes(dl.totalBytes)}`} />
-            <Legend color={colors.amber} label={`Cache ${cacheBytes == null ? '…' : formatBytes(cacheBytes)}`} />
+            <Legend color={colors.orange} label={`Cache ${cacheBytes == null ? '…' : formatBytes(cacheBytes)}`} />
           </Row>
           <T size={13} color={colors.textSecondary} lineHeight={18}>
             Downloads are kept privately inside Zoyra for offline listening. They can’t be exported or opened in other apps.
@@ -143,7 +143,7 @@ export default function Downloads() {
         </>
       ) : null}
 
-      <SectionHeader title="Downloaded songs" />
+      <SectionHeader title="Downloaded" />
       {!dl.ready ? null : tracks.length === 0 ? (
         <EmptyState icon="download" title="No downloads yet" body="Tap Download on an album or playlist, or pick Download from any song’s ⋯ menu." />
       ) : (
@@ -163,7 +163,7 @@ export default function Downloads() {
                   title={e.track.title}
                   titleColor={current ? colors.accentLight : colors.text}
                   subtitle={`${e.track.artist.name} · ${mins(e.track.duration)} · ${formatBytes(e.bytes)}`}
-                  leading={<Cover uri={e.artworkPath} artwork={e.track.artwork} id={e.track.id} size={44} radius={12} />}
+                  leading={<Cover uri={e.artworkPath} artwork={e.track.artwork} id={e.track.id} size={48} radius={14} />}
                   onPress={() => player.playTracks(tracks, i, CONTEXT)}
                   right={
                     <IconButton

@@ -93,7 +93,7 @@ function MyPlaylists({ me, name }: { me?: string; name: string }) {
 }
 
 function TheirPlaylists({ id, me }: { id: string; me: string }) {
-  const res = useAsync(() => loadPublicPlaylists(id, me), [id, me]);
+  const res = useAsync(() => loadPublicPlaylists(id, me), [id, me], 'app/profile-playlists:96');
   const d = res.data;
   const pullControl = usePullRefresh(res.loading, res.refresh);
   return (

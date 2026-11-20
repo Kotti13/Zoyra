@@ -4,7 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Button, Chip, Cover, EmptyState, ErrorState, Glass, Icon, IconButton, ListRow, Loading, ProgressBar, Row, Screen, ScreenHeader, SectionHeader, T, Tap, TextField, Toast, useAsync, useDebounced, useRefreshGroup, useRefreshWith } from '../components';
+import { Button, Cover, EmptyState, ErrorState, Glass, Icon, IconButton, ListRow, Loading, ProgressBar, Row, Screen, ScreenHeader, SectionHeader, T, Tap, TextField, Toast, useAsync, useDebounced, useRefreshGroup, useRefreshWith } from '../components';
 import { formatDuration } from '../lib/catalog';
 import {
   ATTRIBUTION,
@@ -22,7 +22,8 @@ import {
   type Chapter,
 } from '../lib/audiobooks';
 import { usePlayerPick } from '../state/player';
-import { colors } from '../theme/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, withAlpha } from '../theme/tokens';
 
 const PAGE = 20;
 
@@ -45,11 +46,11 @@ function Attribution() {
 
 function BookCard({ b }: { b: Book }) {
   return (
-    <Tap onPress={() => router.push({ pathname: '/audiobooks', params: { id: b.id } })} accessibilityLabel={`${b.title} by ${b.authors}${b.totalSecs ? `, ${formatLength(b.totalSecs)}` : ''}`} style={{ width: 140 }}>
+    <Tap onPress={() => router.push({ pathname: '/audiobooks', params: { id: b.id } })} accessibilityLabel={`${b.title} by ${b.authors}${b.totalSecs ? `, ${formatLength(b.totalSecs)}` : ''}`} style={{ width: 150 }}>
       <View style={{ gap: 8 }}>
-        <Cover uri={b.cover} id={b.id} width={140} height={180} radius={22} />
+        <Cover uri={b.cover} id={b.id} width={150} height={190} radius={26} />
         <View style={{ gap: 2 }}>
-          <T size={14} weight={600} numberOfLines={2}>
+          <T size={14} weight={600} lineHeight={18} numberOfLines={2}>
             {b.title}
           </T>
           <T size={12} color={colors.textSecondary} numberOfLines={1}>
@@ -57,6 +58,31 @@ function BookCard({ b }: { b: Book }) {
           </T>
         </View>
       </View>
+    </Tap>
+  );
+}
+
+function GenreChip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Tap
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={{
+        height: 38,
+        paddingHorizontal: 16,
+        borderRadius: 19,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: active ? colors.text : withAlpha(colors.white, 0.06),
+        borderWidth: active ? 0 : 1,
+        borderColor: withAlpha(colors.white, 0.12),
+      }}
+    >
+      <T size={13} weight={600} color={active ? colors.playerBg : colors.text}>
+        {label}
+      </T>
     </Tap>
   );
 }
@@ -82,6 +108,7 @@ function Browse() {
   const [extra, setExtra] = useState<Book[]>([]);
   const [more, setMore] = useState<{ busy: boolean; done: boolean; error: string | null; next: number }>({ busy: false, done: false, error: null, next: 0 });
   const [progress, setProgress] = useState<BookProgress[]>([]);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     void loadProgress().then(setProgress);
@@ -93,8 +120,8 @@ function Browse() {
     const page = await booksByGenre(g, 0, PAGE);
     setMore({ busy: false, done: page.end, error: null, next: page.next });
     return page.books;
-  }, [g]);
-  const found = useAsync(async () => (q.length >= 2 ? searchBooks(q) : null), [q]);
+  }, [g], 'app/audiobooks:118');
+  const found = useAsync(async () => (q.length >= 2 ? searchBooks(q) : null), [q], 'app/audiobooks:124');
   useRefreshWith(() => Promise.all([list.refresh(), found.refresh(), loadProgress().then(setProgress)]));
 
   const loadMore = async () => {
@@ -116,16 +143,23 @@ function Browse() {
 
   return (
     <>
-      <View style={{ gap: 4 }}>
-        <T variant="displayLight" accessibilityRole="header">
+      <Row style={{ justifyContent: 'space-between' }}>
+        <IconButton icon="back" label="Back" href="back" bg={colors.chipGhost} />
+        <IconButton icon="search" label="Search" bg={colors.chipGhost} onPress={() => setSearching((x) => !x)} />
+      </Row>
+
+      <View style={{ gap: 6 }}>
+        <T size={36} weight={300} tracking={-1} lineHeight={38} accessibilityRole="header">
           Audiobooks
         </T>
-        <T size={15} color={colors.textSecondary}>
-          Free public-domain classics from LibriVox
+        <T size={14} color={colors.textSecondary}>
+          Stories, self growth and more
         </T>
       </View>
 
-      <TextField label="Search audiobooks" icon="search" value={query} onChangeText={setQuery} placeholder="Title or author" returnKeyType="search" autoCapitalize="none" />
+      {searching || query ? (
+        <TextField label="Search audiobooks" icon="search" value={query} onChangeText={setQuery} placeholder="Title or author" returnKeyType="search" autoCapitalize="none" autoFocus={searching && !query} />
+      ) : null}
 
       {q.length >= 2 ? (
         found.loading ? (
@@ -145,29 +179,34 @@ function Browse() {
         <>
           {latest ? (
             <Tap onPress={() => router.push({ pathname: '/audiobooks', params: { id: latest.bookId } })} accessibilityLabel={`Continue ${latest.title}, ${latest.chapterTitle}`}>
-              <Glass padding={14}>
-                <Row gap={14}>
-                  <Cover uri={latest.cover} id={latest.bookId} width={64} height={84} radius={14} />
-                  <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-                    <T variant="overline" color={colors.accentLight}>
-                      CONTINUE LISTENING
-                    </T>
-                    <T size={17} weight={600} numberOfLines={2}>
-                      {latest.title}
-                    </T>
-                    <T size={13} color={colors.textSecondary} numberOfLines={1}>
-                      {latest.chapterTitle} · at {formatDuration(latest.position)}
-                    </T>
+              <LinearGradient
+                colors={[withAlpha(colors.accent, 0.3), 'rgba(20,20,20,0.55)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ borderRadius: 30, borderWidth: 1, borderColor: withAlpha(colors.white, 0.14), padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16, overflow: 'hidden' }}
+              >
+                <Cover uri={latest.cover} id={latest.bookId} width={104} height={150} radius={22} />
+                <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+                  <T size={11} weight={700} tracking={0.8} color={colors.accentLight}>
+                    CONTINUE LISTENING
+                  </T>
+                  <T size={18} weight={600} lineHeight={22} numberOfLines={2}>
+                    {latest.title}
+                  </T>
+                  <T size={13} color={colors.peach} numberOfLines={1}>
+                    {latest.chapterTitle} · at {formatDuration(latest.position)}
+                  </T>
+                  <View style={{ marginTop: 4, width: 40, height: 40, borderRadius: 28, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name="play" size={22} color={colors.onAccent} filled />
                   </View>
-                  <Icon name="play" size={22} color={colors.accentLight} />
-                </Row>
-              </Glass>
+                </View>
+              </LinearGradient>
             </Tap>
           ) : null}
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
             {BOOK_GENRES.map((x, i) => (
-              <Chip key={x.label} label={x.label} active={i === genre} onPress={() => setGenre(i)} />
+              <GenreChip key={x.label} label={x.label} active={i === genre} onPress={() => setGenre(i)} />
             ))}
           </ScrollView>
 
@@ -179,7 +218,9 @@ function Browse() {
             <EmptyState icon="search" title="Nothing here yet" body="LibriVox has no books in this shelf right now." />
           ) : (
             <>
-              <SectionHeader title={BOOK_GENRES[genre].label} />
+              <T size={19} weight={500} tracking={-0.2} accessibilityRole="header">
+                {BOOK_GENRES[genre].label}
+              </T>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
                 {books.slice(0, 8).map((b) => (
                   <BookCard key={b.id} b={b} />
@@ -187,7 +228,9 @@ function Browse() {
               </ScrollView>
               {books.length > 8 ? (
                 <>
-                  <SectionHeader title="More to explore" />
+                  <T size={19} weight={500} tracking={-0.2} accessibilityRole="header">
+                    More to explore
+                  </T>
                   <Glass padding={4}>
                     {books.slice(8).map((b, i) => (
                       <BookRow key={b.id} b={b} divider={i > 0} />
@@ -301,8 +344,8 @@ function useChapterPlayer(book: Book | undefined, chapters: Chapter[]) {
 }
 
 function BookView({ id }: { id: string }) {
-  const res = useAsync(() => bookDetail(id), [id]);
-  const progress = useAsync(async () => (await loadProgress()).find((p) => p.bookId === id) ?? null, [id]);
+  const res = useAsync(() => bookDetail(id), [id], 'app/audiobooks:347');
+  const progress = useAsync(async () => (await loadProgress()).find((p) => p.bookId === id) ?? null, [id], 'app/audiobooks:348');
   useRefreshWith(() => Promise.all([res.refresh(), progress.refresh()]));
   const book = res.data?.book;
   const chapters = res.data?.chapters ?? [];
@@ -430,8 +473,8 @@ export default function Audiobooks() {
   const group = useRefreshGroup();
   return (
     <group.Provider value={group.value}>
-      <Screen top={4} gap={18} backdrop={{ pattern: 'none' }} onRefresh={group.run}>
-        <ScreenHeader title={id ? 'Audiobook' : ''} />
+      <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral' }} onRefresh={group.run}>
+        {id ? <ScreenHeader title="Audiobook" /> : null}
         {id ? <BookView key={id} id={id} /> : <Browse />}
       </Screen>
     </group.Provider>

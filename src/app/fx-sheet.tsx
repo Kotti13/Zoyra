@@ -1,57 +1,111 @@
 import { View } from 'react-native';
 
-import { Button, ChipRow, Icon, Sheet, T, Tap, type IconName } from '../components';
+import { Button, Icon, Sheet, T, Tap, type IconName } from '../components';
 import { usePlayerPick } from '../state/player';
-import { colors } from '../theme/tokens';
+import { colors, withAlpha } from '../theme/tokens';
 
 const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
-const speedLabel = (r: number) => `${Number.isInteger(r * 10) ? r.toFixed(1) : r.toFixed(2)}x`;
+const speedLabel = (r: number) => `${Number.isInteger(r) ? r.toFixed(r === 1 ? 1 : 0) : String(r)}×`;
 
 /**
- * Sound controls that work in this build: speed (persisted), Equalizer and Smooth transition / normalisation
- * (Settings › Playback). Pitch shifting (Nightcore, Slowed), reverb, 8D and spatial audio need a real-time DSP
- * stage; expo-audio's playlist player has none (no pitch toggle, no effect nodes), so they are listed as
- * unavailable with the reason instead of as switches that do nothing.
+ * Sound controls that work in this build: speed (persisted), the Equalizer (incl. bass boost) and Smooth
+ * transition / normalisation (Settings › Playback). Pitch shifting (Nightcore, Slowed), reverb, 8D and spatial audio
+ * need a real-time DSP stage; expo-audio's playlist player has none, so those tiles are shown dimmed and marked
+ * unavailable instead of as switches that do nothing.
  */
+const GLASS = { backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' } as const;
+
+type Tile = { label: string; icon: IconName; href?: '/equalizer' | '/playback-settings'; reset?: boolean };
+const tiles: Tile[] = [
+  { label: 'Normal', icon: 'play', reset: true },
+  { label: 'Slowed', icon: 'moon' },
+  { label: 'Nightcore', icon: 'bolt' },
+  { label: '8D audio', icon: 'headphones' },
+  { label: 'Bass boost', icon: 'speaker', href: '/equalizer' },
+  { label: 'Spatial', icon: 'spatial' },
+];
+
 const links: { title: string; sub: string; icon: IconName; href: '/equalizer' | '/playback-settings' }[] = [
-  { title: 'Equalizer', sub: '10 bands, presets and bass boost', icon: 'speaker', href: '/equalizer' },
-  { title: 'Smooth transition', sub: 'Crossfade between songs', icon: 'bolt', href: '/playback-settings' },
+  { title: 'Equalizer', sub: '10 bands, presets and bass boost', icon: 'sliders', href: '/equalizer' },
+  { title: 'Smooth transition', sub: 'Crossfade between songs and normalise volume', icon: 'bolt', href: '/playback-settings' },
 ];
 const unavailable = ['Nightcore and Slowed', 'Reverb', '8D audio', 'Spatial audio'];
 
 export default function FxSheet() {
   const { rate, setRate } = usePlayerPick('rate');
-  const current = Math.max(0, speeds.findIndex((s) => Math.abs(s - rate) < 0.001));
+  const normal = Math.abs(rate - 1) < 0.001;
 
   return (
     <Sheet>
-      <T variant="section" accessibilityRole="header">
+      <T size={18} weight={600} accessibilityRole="header">
         Speed and sound
       </T>
 
-      <T size={12} weight={600} tracking={0.5} color={colors.textSecondary}>
-        {`PLAYBACK SPEED · ${speedLabel(rate)}`}
-      </T>
-      <View style={{ marginTop: -8 }}>
-        <ChipRow wrap options={speeds.map(speedLabel)} initial={current} onChange={(i) => setRate(speeds[i])} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {tiles.map((t) => {
+          const available = !!t.href || !!t.reset;
+          const on = t.reset && normal;
+          return (
+            <Tap
+              key={t.label}
+              href={t.href}
+              onPress={t.reset ? () => setRate(1) : undefined}
+              disabled={!available}
+              accessibilityLabel={available ? t.label : `${t.label}, not available`}
+              accessibilityState={{ disabled: !available, ...(t.reset ? { selected: !!on } : null) }}
+              style={[
+                { width: '31.5%', flexGrow: 1, height: 78, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 6 },
+                on ? { backgroundColor: colors.accent, shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 11, shadowOffset: { width: 0, height: 8 } } : GLASS,
+                !available && { opacity: 0.4 },
+              ]}
+            >
+              <Icon name={t.icon} size={22} color={colors.white} />
+              <T size={12} weight={600}>
+                {t.label}
+              </T>
+            </Tap>
+          );
+        })}
       </View>
 
-      <View style={{ gap: 4 }}>
+      <T size={11} weight={700} tracking={1.4} color={colors.textSecondary} style={{ marginHorizontal: 4, marginTop: 2, marginBottom: -6 }}>
+        PLAYBACK SPEED
+      </T>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {speeds.map((s) => {
+          const on = Math.abs(s - rate) < 0.001;
+          return (
+            <Tap
+              key={s}
+              onPress={() => setRate(s)}
+              accessibilityLabel={`Speed ${speedLabel(s)}`}
+              accessibilityState={{ selected: on }}
+              style={[{ flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' }, on ? { backgroundColor: colors.accent } : GLASS]}
+            >
+              <T size={13} weight={700}>
+                {speedLabel(s)}
+              </T>
+            </Tap>
+          );
+        })}
+      </View>
+
+      <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 26 }, GLASS]}>
         {links.map((e, i) => (
           <Tap
             key={e.title}
             href={e.href}
             accessibilityLabel={`${e.title}. ${e.sub}`}
-            style={[{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60 }, i > 0 && { borderTopWidth: 1, borderTopColor: colors.divider }]}
+            style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4, minHeight: 62 }, i > 0 && { borderTopWidth: 1, borderTopColor: withAlpha(colors.white, 0.07) }]}
           >
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={e.icon} size={20} color={colors.accentLight} />
+            <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: withAlpha(colors.white, 0.08), alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={e.icon} size={20} color={colors.text} />
             </View>
-            <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-              <T size={16} weight={500}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <T size={15} weight={600}>
                 {e.title}
               </T>
-              <T size={14} color={colors.textSecondary}>
+              <T size={12} color={colors.textSecondary} numberOfLines={1}>
                 {e.sub}
               </T>
             </View>
@@ -60,11 +114,11 @@ export default function FxSheet() {
         ))}
       </View>
 
-      <T size={13} color={colors.textSecondary}>
+      <T size={12} color={colors.textSecondary}>
         {`${unavailable.join(', ')} are not available: they need real-time audio processing that this player does not have.`}
       </T>
 
-      <Button label="Done" href="back" />
+      <Button label="Done" href="back" height={52} />
     </Sheet>
   );
 }

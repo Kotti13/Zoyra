@@ -98,7 +98,7 @@ export default function Insights() {
       heat[d.getDay() * 12 + Math.floor(d.getHours() / 2)] += Math.max(1, h.seconds_listened);
     }
     return { cur, prevMinutes: Math.max(0, (Number(twice.minutes) || 0) - (Number(cur.minutes) || 0)), heat };
-  }, [user?.id, days]);
+  }, [user?.id, days], 'app/insights:80');
 
   const data = q.data;
   const chart = useMemo(() => (data ? buckets(data.cur.by_day ?? [], period) : null), [data, period]);

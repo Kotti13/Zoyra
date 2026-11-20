@@ -59,7 +59,7 @@ export default function GroupCallScreen() {
   const s = useGroupCallSession();
   const mine = s && s.callId === id ? s : null;
   const cid = room.call?.conversation_id ?? '';
-  const members = useAsync(() => (cid ? loadGroupMembers(cid) : Promise.resolve([] as GroupMember[])), [cid]);
+  const members = useAsync(() => (cid ? loadGroupMembers(cid) : Promise.resolve([] as GroupMember[])), [cid], 'app/group-call:62');
   const byUser = useMemo(() => new Map((members.data ?? []).map((m) => [m.user_id, m])), [members.data]);
   const live = room.call?.status === 'live';
   const ended = !!room.call && !live;

@@ -10,7 +10,7 @@ import { loadStoryGroups } from './stories';
 export function StoriesRail() {
   const { user, profile } = useAuth();
   const me = user?.id;
-  const res = useAsync(() => (me ? loadStoryGroups(me) : Promise.resolve([])), [me]);
+  const res = useAsync(() => (me ? loadStoryGroups(me) : Promise.resolve([])), [me], 'lib/stories-ui:13');
   if (!me || res.error) return null;
   const groups = res.data ?? [];
   const mine = groups.find((g) => g.mine);

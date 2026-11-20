@@ -47,7 +47,7 @@ export default function Leaderboard() {
     if (error) throw new Error(error.message);
     const secs = ((data ?? []) as { seconds_listened: number }[]).reduce((n, r) => n + (r.seconds_listened || 0), 0);
     return [{ user_id: user.id, display_name: profile?.display_name ?? 'You', avatar_url: profile?.avatar_url ?? null, xp: Math.floor(secs / 60) }];
-  }, [user?.id, period]);
+  }, [user?.id, period], 'app/leaderboard:33');
 
   const list = q.data ?? [];
   const ranked = list.map((e, i) => ({ ...e, rank: i + 1 }));

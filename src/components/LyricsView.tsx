@@ -14,6 +14,7 @@
 import { router } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, ScrollView, StyleSheet, View, type LayoutChangeEvent, type ScrollViewInstance, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 
 import { useReduceLyricMotion } from '../lib/a11y';
@@ -153,9 +154,20 @@ type RowProps = {
   clock: Animated.Value | null;
   onSeek: (line: TimedLine) => void;
   onLayout: (index: number, e: LayoutChangeEvent) => void;
+  /** Card style (Lyrics screen): highlighted card on the active line, distance fade + blur, optional line underneath. */
+  card?: boolean;
+  /** Distance in lines from the active one (card style). */
+  dist?: number;
+  /** Translation / romanization shown under the line (card style). */
+  sub?: string;
 };
 
-const LyricRow = memo(function LyricRow({ line, index, state, size, compact, reduce, highlight, clock, onSeek, onLayout }: RowProps) {
+/** A line that is only a section tag, e.g. "[Chorus]" or "(Verse 2)". Real data only: nothing is invented. */
+const SECTION_RE = /^[[(]\s*((?:pre-?|post-?)?(?:verse|chorus|bridge|intro|outro|hook|refrain|interlude|breakdown|solo)[^\])]*)[\])]$/i;
+const DIST_OPACITY = [1, 0.75, 0.5, 0.32, 0.2];
+const DIST_BLUR = [0, 0, 0.8, 1.6, 2.2];
+
+const LyricRow = memo(function LyricRow({ line, index, state, size, compact, reduce, highlight, clock, onSeek, onLayout, card, dist = 0, sub }: RowProps) {
   const on = state === 'active';
   const level = on ? 1 : state === 'past' ? 0 : 0.5; // 0 = past, 0.5 = future, 1 = active
   const anim = useState(() => new Animated.Value(level))[0];
@@ -170,24 +182,67 @@ const LyricRow = memo(function LyricRow({ line, index, state, size, compact, red
   const scale = reduce ? 1 : anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [INACTIVE_SCALE, INACTIVE_SCALE, 1] });
   const lh = Math.round(size * 1.28);
   const empty = !line.text.trim();
+  const section = card ? SECTION_RE.exec(line.text.trim())?.[1] : undefined;
 
+  if (section) {
+    return (
+      <View onLayout={(e) => onLayout(index, e)} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, paddingHorizontal: 16, opacity: on ? 1 : 0.7 }}>
+        <View style={{ width: 18, height: 2, backgroundColor: colors.accentLight }} />
+        <T size={11} weight={700} tracking={1.6} color={colors.accentLight}>
+          {section.toUpperCase()}
+        </T>
+      </View>
+    );
+  }
+
+  const body = (
+    <Animated.View style={{ opacity, transform: [{ scale }], transformOrigin: 'left center' }}>
+      {on && clock && !empty && highlight !== 'static' ? (
+        <WordFill words={line.words} clock={clock} size={size} lineHeight={lh} weight={700} reduce={reduce} highlight={highlight} />
+      ) : (
+        <T size={size} weight={700} tracking={-0.5} lineHeight={lh} color={colors.text} numberOfLines={compact ? 2 : undefined} style={on ? GLOW : null}>
+          {empty ? '♪' : line.text}
+        </T>
+      )}
+      {card && sub && !empty ? (
+        <T size={Math.round(size * 0.47)} color="#FFD9A8" lineHeight={Math.round(size * 0.65)} style={{ marginTop: 4 }}>
+          {sub}
+        </T>
+      ) : null}
+    </Animated.View>
+  );
+
+  if (!card) {
+    return (
+      <Tap
+        accessibilityLabel={`${line.text || 'Instrumental break'}, at ${formatDuration(line.time)}. Tap to jump here.`}
+        accessibilityState={{ selected: on }}
+        onPress={() => onSeek(line)}
+        onLayout={(e) => onLayout(index, e)}
+        style={{ paddingVertical: compact ? 4 : 10 }}
+      >
+        {body}
+      </Tap>
+    );
+  }
+
+  const d = Math.min(DIST_OPACITY.length - 1, dist);
+  const blur = reduce ? 0 : DIST_BLUR[d];
   return (
     <Tap
-      accessibilityLabel={`${line.text || 'Instrumental break'}, at ${formatDuration(line.time)}. Tap to jump here.`}
+      accessibilityLabel={`${line.text || 'Instrumental break'}${sub ? `. ${sub}` : ''}, at ${formatDuration(line.time)}. Tap to jump here.`}
       accessibilityState={{ selected: on }}
       onPress={() => onSeek(line)}
       onLayout={(e) => onLayout(index, e)}
-      style={{ paddingVertical: compact ? 4 : 10 }}
+      style={{ marginVertical: 4 }}
     >
-      <Animated.View style={{ opacity, transform: [{ scale }], transformOrigin: 'left center' }}>
-        {on && clock && !empty && highlight !== 'static' ? (
-          <WordFill words={line.words} clock={clock} size={size} lineHeight={lh} weight={700} reduce={reduce} highlight={highlight} />
-        ) : (
-          <T size={size} weight={700} tracking={-0.5} lineHeight={lh} color={colors.text} numberOfLines={compact ? 2 : undefined} style={on ? GLOW : null}>
-            {empty ? '♪' : line.text}
-          </T>
-        )}
-      </Animated.View>
+      <View style={[{ paddingVertical: 12, paddingHorizontal: 16, borderRadius: 26, opacity: DIST_OPACITY[d] }, blur ? { filter: [{ blur }] } : null]}>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: 26, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.white, 0.1), opacity: anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] }) }]}>
+          <LinearGradient colors={[withAlpha(colors.accent, 0.22), withAlpha(colors.accent, 0.04)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[colors.orange, colors.accent]} style={{ position: 'absolute', left: 0, top: 14, bottom: 14, width: 4, borderRadius: 2 }} />
+        </Animated.View>
+        {body}
+      </View>
     </Tap>
   );
 });
@@ -205,10 +260,14 @@ export type LyricsViewProps = {
   /** Rendered below the last line (full mode only), e.g. attribution. */
   footer?: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Lyrics-screen card style: highlighted active card, lines fade and blur with distance, section labels. */
+  card?: boolean;
+  /** Lines shown under each line (translation / romanization), same order and count as `lines`. */
+  subLines?: string[] | null;
 };
 
 /** Word-synced, auto-following lyrics for the current track. `lines` must be sorted by time. */
-export function LyricsView({ lines, size, compact = false, height, highlight: highlightProp, footer, style }: LyricsViewProps) {
+export function LyricsView({ lines, size, compact = false, height, highlight: highlightProp, footer, style, card = false, subLines }: LyricsViewProps) {
   const prefHighlight = useLyricsHighlight();
   // Accessibility › Reduce lyric motion: a static line highlight, no word fill, scaling or animated follow.
   const [calmLyrics] = useReduceLyricMotion();
@@ -304,6 +363,9 @@ export function LyricsView({ lines, size, compact = false, height, highlight: hi
           clock={i === current ? clock : null}
           onSeek={onSeek}
           onLayout={onLayout}
+          card={card}
+          dist={card ? (current < 0 ? i + 1 : Math.abs(i - current)) : 0}
+          sub={subLines?.[i]}
         />
       ))}
       {!compact && footer ? footer : null}

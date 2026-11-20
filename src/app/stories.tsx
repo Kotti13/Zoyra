@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Cover, EmptyState, ErrorState, Gradient, Icon, Loading, SongPicker, T, Tap, flash, useAsync } from '../components';
+import { Button, Cover, EmptyState, ErrorState, Gradient, Icon, Loading, SongPicker, T, Tap, ToggleBurst, flash, useAsync } from '../components';
 import type { CatalogTrack } from '../lib/catalog';
 import { chatPeerParams, sendChatMessage } from '../lib/chat';
 import { startChat } from '../lib/dm';
@@ -286,7 +286,9 @@ function Frame({ group, story, index, me, next, prev, close, onAdd, onChanged, e
             ) : (
               <>
                 <Tap onPress={() => void toggleLike()} accessibilityLabel={liked ? 'Unlike' : 'Like'} accessibilityState={{ selected: liked }} style={round}>
-                  <Icon name="heart" size={22} color={liked ? colors.like : colors.white} />
+                  <ToggleBurst active={liked} kind="like" size={44}>
+                    <Icon name="heart" size={22} filled={liked} color={liked ? colors.like : colors.white} />
+                  </ToggleBurst>
                 </Tap>
                 <Tap onPress={() => void share()} accessibilityLabel="Share" style={round}>
                   <Icon name="share" size={20} color={colors.white} />

@@ -46,7 +46,7 @@ export default function ChatMedia() {
   const { playTracks } = usePlayerPick();
   const [tab, setTab] = useState<MediaTab>('media');
   const [viewing, setViewing] = useState<number | null>(null);
-  const data = useAsync(() => (cid && me ? loadSharedMedia(cid) : Promise.resolve(null)), [cid, me]);
+  const data = useAsync(() => (cid && me ? loadSharedMedia(cid) : Promise.resolve(null)), [cid, me], 'app/chat-media:49');
   const first = peer?.display_name?.split(' ')[0];
 
   const photos = useMemo<ViewerPhoto[]>(

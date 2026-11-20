@@ -39,13 +39,13 @@ export default function Blend() {
   const [mode, setMode] = useState<Mode>('all');
   const [saving, setSaving] = useState(false);
 
-  const friends = useAsync<BlendPerson[]>(() => (me ? listMutualFriends(me) : Promise.resolve([])), [me]);
+  const friends = useAsync<BlendPerson[]>(() => (me ? listMutualFriends(me) : Promise.resolve([])), [me], 'app/blend:42');
   const other = useMemo(() => {
     const list = friends.data ?? [];
     return list.find((f) => f.id === picked) ?? (picked ? null : list[0] ?? null);
   }, [friends.data, picked]);
 
-  const blend = useAsync(() => (me && other ? loadBlend(me, other) : Promise.resolve(null)), [me, other?.id]);
+  const blend = useAsync(() => (me && other ? loadBlend(me, other) : Promise.resolve(null)), [me, other?.id], 'app/blend:48');
   const b = blend.data;
   const myName = profile?.display_name ?? 'You';
   const meFace = { id: me ?? '', display_name: myName, avatar_url: profile?.avatar_url ?? null };
@@ -87,7 +87,7 @@ export default function Blend() {
 
   if (!me || friends.loading) {
     return (
-      <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'rose' }}>
+      <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral' }}>
         <ScreenHeader title="Blend" />
         {me ? <Loading /> : <EmptyState icon="users" title="Sign in to make a Blend" />}
       </Screen>
@@ -95,7 +95,7 @@ export default function Blend() {
   }
   if (friends.error) {
     return (
-      <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'rose' }}>
+      <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral' }}>
         <ScreenHeader title="Blend" />
         <ErrorState message={friends.error} onRetry={friends.reload} />
       </Screen>
@@ -103,7 +103,7 @@ export default function Blend() {
   }
   if (!friends.data?.length) {
     return (
-      <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'rose' }}>
+      <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral' }}>
         <ScreenHeader title="Blend" />
         <EmptyState icon="users" title="No friends to blend with yet" body="A Blend needs someone you follow who follows you back." action="Find people" href="/followers" />
       </Screen>
@@ -117,7 +117,7 @@ export default function Blend() {
   ];
 
   return (
-    <Screen top={4} gap={16} backdrop={{ pattern: 'grid', mesh: 'rose' }} onRefresh={blend.refresh}>
+    <Screen top={4} gap={16} backdrop={{ pattern: 'none', mesh: 'coral' }} onRefresh={blend.refresh}>
       <ScreenHeader title="Blend" />
       <T size={14} color={colors.textSecondary} style={{ marginTop: -8 }}>
         One playlist from your taste and a friend’s.

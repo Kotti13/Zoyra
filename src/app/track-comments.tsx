@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, TextInput, View } from 'react-native';
 
-import { ChipRow, EmptyState, ErrorState, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, Tap, useAsync } from '../components';
+import { ChipRow, EmptyState, ErrorState, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, Tap, ToggleBurst, useAsync } from '../components';
 import { ChatAvatar } from '../lib/chat-ui';
 import { loadTrackDetail } from '../lib/premieres';
 import { confirmAction } from '../lib/social';
@@ -50,8 +50,8 @@ export default function TrackComments() {
   const [likeOverride, setLikeOverride] = useState<Record<string, { liked: boolean; count: number }>>({});
   const { track: current, playTrack, seekTo } = usePlayerPick('track');
 
-  const detail = useAsync(() => (id ? loadTrackDetail(id) : Promise.resolve(null)), [id]);
-  const list = useAsync(async () => (id ? listTrackComments(id, sort) : { comments: [], more: false }), [id, sort]);
+  const detail = useAsync(() => (id ? loadTrackDetail(id) : Promise.resolve(null)), [id], 'app/track-comments:53');
+  const list = useAsync(async () => (id ? listTrackComments(id, sort) : { comments: [], more: false }), [id, sort], 'app/track-comments:54');
   const key = `${id}|${sort}`;
   const comments = [...(list.data?.comments ?? []), ...(extra?.key === key ? extra.items : [])].filter((c) => !gone.has(c.id));
   const hasMore = extra?.key === key ? extra.more : !!list.data?.more;
@@ -146,7 +146,7 @@ export default function TrackComments() {
       gap={14}
       scroll
       onRefresh={() => list.refresh()}
-      backdrop={{ pattern: 'dots', mesh: 'coral' }}
+      backdrop={{ pattern: 'none', mesh: 'coral' }}
       footer={
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Composer trackId={id} signedIn={!!me} onPosted={() => void list.refresh()} onError={(t) => setNote({ ok: false, text: t })} />
@@ -204,7 +204,9 @@ export default function TrackComments() {
               </View>
               <View style={{ alignItems: 'center' }}>
                 <Tap onPress={() => void toggleLike(c)} accessibilityLabel={like.liked ? 'Unlike comment' : 'Like comment'} accessibilityState={{ selected: like.liked }} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="heart" size={20} filled={like.liked} color={like.liked ? colors.accent : colors.textSecondary} />
+                  <ToggleBurst active={like.liked} kind="like" size={40}>
+                    <Icon name="heart" size={20} filled={like.liked} color={like.liked ? colors.like : colors.textSecondary} />
+                  </ToggleBurst>
                 </Tap>
                 {like.count > 0 ? (
                   <T size={11} color={colors.textSecondary} style={{ marginTop: -8 }}>

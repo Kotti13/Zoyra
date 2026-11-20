@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, EmptyState, Glass, Icon, ListGroup, ListRow, Loading, PageTitle, Row, Screen, T, TrackItem } from '../components';
+import { Button, EmptyState, Glass, Icon, ListRow, Loading, PageTitle, Row, Screen, T, TrackItem } from '../components';
+import { SectionLabel } from '../components/settings-ui';
 import type { IconName, NavTarget } from '../components';
 import { downloads, formatBytes } from '../lib/downloads';
 import { describeConnection } from '../lib/network';
@@ -60,7 +61,7 @@ export default function OfflineHome() {
   const playingLine = all.length ? `${all.length} ${all.length === 1 ? 'song' : 'songs'} ready offline · ${formatBytes(dl.totalBytes)}` : 'Nothing saved offline yet';
 
   return (
-    <Screen onRefresh={() => downloads.rescan()} top={8} gap={16} backdrop={{ pattern: 'dots', mesh: 'coral' }}>
+    <Screen onRefresh={() => downloads.rescan()} top={8} gap={16} backdrop={{ pattern: 'grid', mesh: 'rose' }}>
       <PageTitle title="Offline mode" />
       <T size={14} color={colors.textSecondary} style={{ marginTop: -10 }}>
         Your downloads and device files
@@ -124,7 +125,9 @@ export default function OfflineHome() {
         <EmptyState icon="download" title="No offline music yet" body="Download songs, albums or playlists while you’re online, or add music files from your device." action="Local files" href="/local-music" />
       )}
 
-      <ListGroup title="ONLINE ONLY">
+      <View style={{ gap: 8 }}>
+        <SectionLabel>Online only</SectionLabel>
+        <Glass padding={4}>
         {ONLINE_ONLY.map((r, i) => (
           <ListRow
             key={r.title}
@@ -139,7 +142,8 @@ export default function OfflineHome() {
             right={c.online ? undefined : <Icon name="lock" size={16} color={colors.textSecondary} />}
           />
         ))}
-      </ListGroup>
+      </Glass>
+      </View>
     </Screen>
   );
 }

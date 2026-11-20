@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { View } from 'react-native';
 
-import { Chip, Glass, ListGroup, ListRow, Overline, Screen, ScreenHeader, T, Toggle } from '../components';
+import { Chip, Screen, Segmented, T, Toggle } from '../components';
+import { BigHeader, Panel, PanelRow, SectionLabel } from '../components/settings-ui';
 import { LyricsView, useTrackLyrics } from '../components/LyricsView';
 import { LYRICS_SIZES, usePlayPref, type LyricsHighlightPref, type LyricsSizePref } from '../lib/play-prefs';
 import { useAuth } from '../state/auth';
@@ -32,8 +33,7 @@ function Preview({ size }: { size: number }) {
   const { lyrics } = useTrackLyrics(track, 'original', '');
   const synced = lyrics?.synced.length ? lyrics.synced : null;
   return (
-    <Glass padding={16} style={{ gap: 8 }}>
-      <Overline color={colors.textSecondary}>PREVIEW</Overline>
+    <Panel padding={{ v: 24, h: 20 }} style={{ gap: 6 }}>
       {synced ? (
         <LyricsView key={track?.id} lines={synced} compact size={size} />
       ) : (
@@ -45,7 +45,7 @@ function Preview({ size }: { size: number }) {
               : 'The song that’s playing has no synced lyrics, so there’s nothing to preview right now.'}
         </T>
       )}
-    </Glass>
+    </Panel>
   );
 }
 
@@ -64,24 +64,20 @@ export default function LyricsSettings() {
   const languages = useMemo(() => [...new Set([...LANGUAGES, ...(settings?.languages ?? []).filter(Boolean), target].filter(Boolean))], [settings?.languages, target]);
 
   return (
-    <Screen top={4} gap={18} backdrop={{ pattern: 'grid', mesh: 'none', glows: [{ x: 0.1, y: 0, color: colors.accent, opacity: 0.3 }] }}>
-      <ScreenHeader title="Lyrics" />
+    <Screen top={4} gap={18} backdrop={{ pattern: 'none', mesh: 'coral' }}>
+      <BigHeader title="Lyrics" />
       <Preview size={Math.round(20 * (LYRICS_SIZES[size] ?? LYRICS_SIZES[0]).scale)} />
 
       <View style={{ gap: 8 }}>
-        <Overline color={colors.textSecondary}>STYLE</Overline>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8 }}>
-          {STYLES.map((s) => (
-            <Chip key={s.key} label={s.label} active={highlight === s.key} onPress={() => setHighlight(s.key)} />
-          ))}
-        </View>
+        <SectionLabel size={12} tracking={1.2}>Style</SectionLabel>
+        <Segmented key={highlight} options={STYLES.map((s) => s.label)} initial={Math.max(0, STYLES.findIndex((s) => s.key === highlight))} onChange={(i) => setHighlight(STYLES[i].key)} />
         <T size={12} color={colors.textTertiary}>
           {STYLES.find((s) => s.key === highlight)?.hint}. With Reduce Motion on, words switch without animating.
         </T>
       </View>
 
       <View style={{ gap: 8 }}>
-        <Overline color={colors.textSecondary}>TEXT SIZE</Overline>
+        <SectionLabel size={12} tracking={1.2}>Text size</SectionLabel>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8 }}>
           {LYRICS_SIZES.map((s, i) => (
             <Chip key={s.label} label={s.label} active={size === i} onPress={() => setSize(i as LyricsSizePref)} />
@@ -90,7 +86,7 @@ export default function LyricsSettings() {
       </View>
 
       <View style={{ gap: 8 }}>
-        <Overline color={colors.textSecondary}>BLUETOOTH / AUDIO DELAY</Overline>
+        <SectionLabel size={12} tracking={1.2}>Bluetooth / audio delay</SectionLabel>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8 }}>
           {DELAYS.map((d) => (
             <Chip key={d.ms} label={d.label} active={delayMs === d.ms} onPress={() => setDelayMs(d.ms)} />
@@ -101,24 +97,27 @@ export default function LyricsSettings() {
         </T>
       </View>
 
-      <ListGroup title="BEHAVIOUR">
-        <ListRow
+      <View style={{ gap: 8 }}>
+        <SectionLabel size={12} tracking={1.2}>Behaviour</SectionLabel>
+        <Panel padding={{ v: 4, h: 16 }}>
+        <PanelRow
           title="Open lyrics automatically"
           subtitle="Show the lyrics screen when you open the player and the song has lyrics"
           minHeight={72}
           right={<Toggle value={autoOpen} onChange={setAutoOpen} label="Open lyrics automatically" />}
         />
-        <ListRow
+        <PanelRow
           title="Romanized by default"
           subtitle="Latin letters for other scripts when lyrics open (AI)"
           minHeight={72}
           divider
           right={<Toggle value={romanize} onChange={setRomanize} label="Romanized by default" />}
         />
-      </ListGroup>
+      </Panel>
+      </View>
 
       <View style={{ gap: 8 }}>
-        <Overline color={colors.textSecondary}>TRANSLATE TO</Overline>
+        <SectionLabel size={12} tracking={1.2}>Translate to</SectionLabel>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 8 }}>
           {languages.map((l) => (
             <Chip key={l} label={l} active={target === l} onPress={() => setTarget(l)} />

@@ -162,7 +162,7 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
           <Row gap={8}>
             <Glass radius={32} padding={6} style={{ flex: 1, minWidth: 0 }}>
               <Row gap={8}>
-                <HostAvatar p={host} size={36} />
+                <HostAvatar p={host} size={36} round />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <T size={13} weight={600} numberOfLines={1}>
                     {hostName}
@@ -190,7 +190,7 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
               </Row>
             </Glass>
             <Row gap={6} style={{ height: 40, paddingHorizontal: 12, borderRadius: 20, backgroundColor: DARK }} accessible accessibilityLabel={`${api.listeners} listening now`}>
-              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent }} />
+              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.live }} />
               <T size={12} weight={700}>
                 {formatCount(api.listeners)}
               </T>
@@ -225,11 +225,11 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
               })}
             </View>
             <View style={{ gap: 12 }}>
-              <IconButton icon="heart" label="React" bg={DARK} filled={picker} color={picker ? colors.like : colors.text} onPress={() => setPicker((v) => !v)} />
-              <IconButton icon="share" label="Share live session" bg={DARK} onPress={() => void share()} />
+              <IconButton icon="heart" label="React" size={48} bg={DARK} filled={picker} color={picker ? colors.like : colors.text} onPress={() => setPicker((v) => !v)} />
+              <IconButton icon="share" label="Share live session" size={48} bg={DARK} onPress={() => void share()} />
               {canRequest ? (
                 <View>
-                  <IconButton icon="queue" label={api.isHost ? `Requests and songs, ${api.requests.length} requests` : 'Request a song'} bg={panel === 'requests' ? colors.accentTint : DARK} onPress={() => setPanel((p) => (p === 'requests' ? null : 'requests'))} />
+                  <IconButton icon="queue" label={api.isHost ? `Requests and songs, ${api.requests.length} requests` : 'Request a song'} size={48} bg={panel === 'requests' ? colors.accentTint : DARK} onPress={() => setPanel((p) => (p === 'requests' ? null : 'requests'))} />
                   {api.isHost && api.requests.length ? (
                     <View pointerEvents="none" style={{ position: 'absolute', top: -2, right: -2, minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
                       <T size={10} weight={700} color={colors.white}>
@@ -239,7 +239,7 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
                   ) : null}
                 </View>
               ) : null}
-              {api.isHost ? <IconButton icon="sliders" label="Session settings" bg={panel === 'settings' ? colors.accentTint : DARK} onPress={() => setPanel((p) => (p === 'settings' ? null : 'settings'))} /> : null}
+              {api.isHost ? <IconButton icon="sliders" label="Session settings" size={48} bg={panel === 'settings' ? colors.accentTint : DARK} onPress={() => setPanel((p) => (p === 'settings' ? null : 'settings'))} /> : null}
             </View>
           </Row>
 
@@ -269,7 +269,7 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
           <View style={{ gap: 10, marginTop: 12 }}>
             <Glass radius={36} padding={10}>
               <Row gap={12}>
-                {nowTrack ? <Cover artwork={nowTrack.artwork} id={nowTrack.id} size={48} radius={24} /> : <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: colors.chipGhost, alignItems: 'center', justifyContent: 'center' }}><Icon name="music" size={22} color={colors.textSecondary} /></View>}
+                {nowTrack ? <Cover artwork={nowTrack.artwork} id={nowTrack.id} size={44} radius={14} /> : <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.chipGhost, alignItems: 'center', justifyContent: 'center' }}><Icon name="music" size={22} color={colors.textSecondary} /></View>}
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <T size={15} weight={600} numberOfLines={1}>
                     {nowTrack?.title ?? (api.isHost ? 'Play a song to start' : 'Waiting for the host…')}
@@ -310,19 +310,21 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
             </Glass>
 
             {canChat ? (
-              <Row gap={8} style={{ height: 48, borderRadius: 24, backgroundColor: DARK, borderWidth: 1, borderColor: colors.glassBorder, paddingLeft: 16, paddingRight: 4 }}>
+              <Row gap={10}>
+              <Row style={{ flex: 1, height: 52, borderRadius: 26, backgroundColor: withAlpha(colors.white, 0.12), borderWidth: 1, borderColor: withAlpha(colors.white, 0.18), paddingHorizontal: 18 }}>
                 <TextInput
                   value={draft}
                   onChangeText={setDraft}
                   placeholder="Say something…"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={colors.peach}
                   accessibilityLabel="Chat message"
                   maxLength={500}
                   returnKeyType="send"
                   onSubmitEditing={() => void send()}
-                  style={{ flex: 1, height: 44, color: colors.text, fontFamily: fonts.regular, fontSize: 15 }}
+                  style={{ flex: 1, height: 44, color: colors.text, fontFamily: fonts.regular, fontSize: 14 }}
                 />
-                <IconButton icon="next" label={sending ? 'Sending' : 'Send message'} size={40} iconSize={18} color={draft.trim() ? colors.white : colors.textSecondary} bg={draft.trim() ? colors.accent : undefined} onPress={() => void send()} />
+              </Row>
+              <IconButton icon="send" label={sending ? 'Sending' : 'Send message'} size={52} iconSize={22} color={colors.white} bg={colors.accent} onPress={() => void send()} />
               </Row>
             ) : null}
           </View>
@@ -369,7 +371,7 @@ function SettingsPanel({ api }: { api: LiveApi }) {
 function RequestsPanel({ api, me }: { api: LiveApi; me: string | undefined }) {
   const [query, setQuery] = useState('');
   const q = useDebounced(query.trim());
-  const results = useAsync<CatalogTrack[]>(() => (q ? catalog.searchTracks(q, { limit: 8 }) : Promise.resolve([])), [q]);
+  const results = useAsync<CatalogTrack[]>(() => (q ? catalog.searchTracks(q, { limit: 8 }) : Promise.resolve([])), [q], 'app/live-room:374');
   const host = api.isHost;
 
   return (
@@ -618,7 +620,7 @@ function Scheduled({ session, api, me }: { session: LiveSession; api: LiveApi; m
 function Ended({ session, me }: { session: LiveSession; me: string | undefined }) {
   const isHost = session.host_id === me;
   const player = usePlayer();
-  const tracks = useAsync(() => (session.save_replay ? loadTracks(session.id) : Promise.resolve([])), [session.id, session.save_replay]);
+  const tracks = useAsync(() => (session.save_replay ? loadTracks(session.id) : Promise.resolve([])), [session.id, session.save_replay], 'app/live-room:623');
   const [note, setNote] = useState<string | null>(null);
   const [now] = useState(() => Date.now());
   const exp = replayExpiresAt(session);

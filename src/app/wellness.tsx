@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Animated, Easing, View } from 'react-native';
 
-import { Button, Chip, ChipRow, ErrorState, Glass, Icon, ListRow, Loading, Row, Screen, ScreenHeader, SectionHeader, T, Toast, Toggle, TrackItem, useAsync, useReduceMotion, EmptyState } from '../components';
+import { Button, Chip, ChipRow, ErrorState, Glass, Icon, ListRow, Loading, Row, Screen, ScreenHeader, T, Toast, Toggle, TrackItem, useAsync, useReduceMotion, EmptyState } from '../components';
 import { catalog, formatDuration, type CatalogTrack } from '../lib/catalog';
 import { usePlayerPick, type SleepTimer } from '../state/player';
 import { colors, withAlpha } from '../theme/tokens';
@@ -86,7 +86,7 @@ function Breathing() {
   const running = endsAt !== null;
 
   return (
-    <Glass padding={22} radius={32}>
+    <Glass padding={22} radius={32} style={{ backgroundColor: withAlpha('#3C145A', 0.35) }}>
       <View style={{ alignItems: 'center', gap: 14 }}>
         <View style={{ width: 170, height: 170, alignItems: 'center', justifyContent: 'center' }} accessibilityLiveRegion="polite" accessibilityLabel={running ? (phase === 'in' ? 'Breathe in' : 'Breathe out') : 'Breathing exercise'}>
           <Animated.View
@@ -139,7 +139,7 @@ function Breathing() {
 
 function SessionView({ s }: { s: Session }) {
   const { playTracks, setSleepTimer, setSleepFade, sleep, context } = usePlayerPick('context', 'sleep');
-  const res = useAsync(() => loadSession(s), [s.key]);
+  const res = useAsync(() => loadSession(s), [s.key], 'app/wellness:142');
   const [minutes, setMinutes] = useState(s.minutes);
   const [fade, setFade] = useState(true);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
@@ -178,8 +178,10 @@ function SessionView({ s }: { s: Session }) {
 
       {note ? <Toast icon={note.ok ? 'check' : 'info'} iconColor={note.ok ? colors.success : colors.accentLight} message={note.text} /> : null}
 
-      <SectionHeader title="Sleep timer" />
-      <Glass padding={4}>
+      <T size={19} weight={500} tracking={-0.2} accessibilityRole="header">
+        Sleep timer
+      </T>
+      <Glass padding={4} radius={36}>
         <ListRow
           icon="moon"
           title="Fade out at the end"
@@ -205,7 +207,9 @@ function SessionView({ s }: { s: Session }) {
         {sleep ? <ListRow divider icon="close" title="Cancel the timer" subtitle="Keep the music playing" onPress={() => setSleepTimer(null)} right={false} /> : null}
       </Glass>
 
-      <SectionHeader title="In this session" />
+      <T size={19} weight={500} tracking={-0.2} accessibilityRole="header">
+        In this session
+      </T>
       {res.loading ? (
         <Loading label="Finding calm music" />
       ) : res.error ? (
@@ -229,14 +233,14 @@ export default function Wellness() {
   const session = SESSIONS.find((s) => s.label === key);
 
   return (
-    <Screen top={4} gap={18} backdrop={{ pattern: 'none' }}>
+    <Screen top={4} gap={18} backdrop={{ pattern: 'dots', glows: [{ x: 0.2, y: 0.3, color: '#6C3AA8', opacity: 0.18 }] }}>
       <ScreenHeader title="" />
       <View style={{ gap: 4 }}>
-        <T variant="displayLight" accessibilityRole="header">
+        <T size={36} weight={300} tracking={-1} lineHeight={38} accessibilityRole="header">
           Wind down
         </T>
-        <T size={15} color={colors.textSecondary}>
-          Sleep, focus, meditation and breathing
+        <T size={14} color={colors.textSecondary}>
+          Sleep stories, breathing and focus
         </T>
       </View>
       <ChipRow options={[...TABS]} initial={0} onChange={setTab} />

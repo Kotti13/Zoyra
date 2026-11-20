@@ -268,9 +268,14 @@ export async function fetchLyrics(track: CatalogTrack, opts?: { duration?: numbe
   let lyrics: Lyrics | null = null;
 
   // 0) Zoyra (YouTube) songs: the backend cleans noisy video titles before matching on LRCLIB.
+  let zoyraLate: Awaited<ReturnType<typeof zoyra.lyrics>> = null;
   if (isZoyraId(track.id)) {
     const z = await zoyra.lyrics({ ...track, duration }).catch(() => null);
-    if (z) {
+    // Backend timing is only trusted when its recording is as long as this audio (±2 s). A YouTube cut with
+    // a different length would drift, so then fall through to LRCLIB search for a closer version.
+    const timingOk = !!z && (!z.synced || !duration || !z.duration || durationMatches(z.duration, duration));
+    if (z && !timingOk) zoyraLate = z;
+    if (z && timingOk) {
       const synced = z.synced ? z.lines.map((l) => ({ time: l.time, text: l.text })) : [];
       lyrics = {
         synced,
@@ -278,6 +283,7 @@ export async function fetchLyrics(track: CatalogTrack, opts?: { duration?: numbe
         instrumental: z.instrumental,
         source: 'exact',
         wordSynced: false,
+        timedDuration: z.duration && z.duration > 0 ? z.duration : undefined,
         matchedTitle: z.track ?? undefined,
         matchedArtist: z.artist ?? undefined,
       };
@@ -311,6 +317,20 @@ export async function fetchLyrics(track: CatalogTrack, opts?: { duration?: numbe
       }
     }
     lyrics = lyrics ?? fallback;
+  }
+
+  // Backend lyrics rejected for timing and nothing better found: keep the words, drop the fake sync.
+  if (!lyrics && zoyraLate) {
+    lyrics = {
+      synced: [],
+      plain: (zoyraLate.plain || zoyraLate.lines.map((l) => l.text).join('\n')).split(/\r?\n/),
+      instrumental: zoyraLate.instrumental,
+      source: 'exact',
+      wordSynced: false,
+      timingMismatch: zoyraLate.synced,
+      matchedTitle: zoyraLate.track ?? undefined,
+      matchedArtist: zoyraLate.artist ?? undefined,
+    };
   }
 
   const usable = lyrics && (lyrics.instrumental || lyrics.synced.length || lyrics.plain.some((l) => l.trim())) ? lyrics : null;

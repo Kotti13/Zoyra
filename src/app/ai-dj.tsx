@@ -114,7 +114,7 @@ export default function AiDj() {
       return [...c.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? genres[0];
     })();
     return { tracks, topGenre, fromLikes: liked.length, fromHistory: history.length };
-  }, [uid, genres.join('|'), liked.length]);
+  }, [uid, genres.join('|'), liked.length], 'app/ai-dj:97');
 
   const name = profile?.display_name ?? 'there';
 

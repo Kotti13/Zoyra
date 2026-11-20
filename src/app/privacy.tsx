@@ -236,11 +236,7 @@ export default function Privacy() {
       gap={16}
       backdrop={{
         pattern: 'lines',
-        mesh: 'none',
-        glows: [
-          { x: 0, y: 0, color: colors.sky, opacity: 0.32 },
-          { x: 1, y: 0.5, color: colors.accent, opacity: 0.25 },
-        ],
+        mesh: 'peach',
       }}
     >
       <ScreenHeader title="Privacy and security" />
@@ -270,7 +266,7 @@ export default function Privacy() {
             right={
               <Row gap={12}>
                 {l.value ? (
-                  <T mono size={13} color={colors.textSecondary}>
+                  <T size={13} color={colors.textSecondary}>
                     {l.value}
                   </T>
                 ) : null}

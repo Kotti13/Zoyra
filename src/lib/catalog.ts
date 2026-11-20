@@ -212,6 +212,15 @@ export type TimeRange = 'week' | 'month' | 'year' | 'allTime';
 
 export const catalog = {
   async trending(opts: { genre?: string; time?: TimeRange; limit?: number } = {}) {
+    // Plain "popular now" comes from the Zoyra backend; genre-specific charts stay on Audius.
+    if (zoyraEnabled && !opts.genre) {
+      try {
+        const songs = await zoyra.popular('popular', opts.limit ?? 30);
+        if (songs.length) return songs;
+      } catch (e) {
+        console.warn('Zoyra popular failed, using Audius', e);
+      }
+    }
     const raw = await get<RawTrack[]>('/tracks/trending', { genre: opts.genre, time: opts.time ?? 'week', limit: opts.limit ?? 30 });
     return raw.filter(playable).map(toTrack);
   },

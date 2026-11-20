@@ -223,7 +223,7 @@ function SelectedTrack({ track, right }: { track: CatalogTrack; right?: ReactNod
 function CatalogSearch({ selectedId, onPick }: { selectedId?: string; onPick: (t: CatalogTrack) => void }) {
   const [q, setQ] = useState('');
   const dq = useDebounced(q, 350);
-  const res = useAsync(() => catalog.searchTracks(dq, { limit: 15 }), [dq]);
+  const res = useAsync(() => catalog.searchTracks(dq, { limit: 15 }), [dq], 'app/create-tool:226');
   return (
     <View style={{ gap: 8 }}>
       <TextField label="Search songs" hideLabel placeholder="Search songs" value={q} onChangeText={setQ} icon="search" returnKeyType="search" autoCorrect={false} />
@@ -382,7 +382,7 @@ const POLL_LIMIT = 150; // ~10 minutes
 function RemixableSearch({ selectedId, onPick }: { selectedId?: string; onPick: (t: CatalogTrack, basis: string) => void }) {
   const [q, setQ] = useState('');
   const dq = useDebounced(q, 350);
-  const res = useAsync(() => searchRemixable(dq), [dq]);
+  const res = useAsync(() => searchRemixable(dq), [dq], 'app/create-tool:385');
   return (
     <View style={{ gap: 8 }}>
       <TextField label="Search remixable tracks" hideLabel placeholder="Search remixable tracks" value={q} onChangeText={setQ} icon="search" returnKeyType="search" autoCorrect={false} />

@@ -27,7 +27,7 @@ export default function VideoFull() {
   const last = useRef(start);
   const [landscape, setLandscape] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const info = useAsync(() => fetchVideo(id), [id]);
+  const info = useAsync(() => fetchVideo(id), [id], 'app/video-full:30');
 
   // Remember the position so the player screen resumes there.
   useEffect(() => {
@@ -64,10 +64,10 @@ export default function VideoFull() {
       <Row gap={8} style={{ height: chrome, paddingHorizontal: 8 }}>
         <IconButton icon="close" label="Close full screen" onPress={() => go('back')} />
         <View style={{ flex: 1 }}>
-          <T size={14} weight={600} numberOfLines={1}>
+          <T size={16} weight={600} numberOfLines={1}>
             {info.data?.video.title ?? ' '}
           </T>
-          <T size={12} color={colors.textSecondary} numberOfLines={1}>
+          <T size={12} color={colors.peach} numberOfLines={1}>
             {info.data?.video.channel ?? ''}
           </T>
         </View>

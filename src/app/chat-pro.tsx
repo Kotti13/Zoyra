@@ -75,6 +75,7 @@ import { friendlySocialError, isBlockedWith, useBlocks } from '../lib/social';
 import { claimTopic, dropTopic, privateChannel } from '../lib/realtime';
 import { supabase } from '../lib/supabase';
 import { useChatGate } from '../lib/chat-lock';
+import { CatchUpCard } from '../lib/chat-catchup';
 import { useAuth } from '../state/auth';
 import { usePlayerPick } from '../state/player';
 import { colors, fonts, shadow, withAlpha } from '../theme/tokens';
@@ -133,6 +134,7 @@ function ChatProScreen() {
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [note, setNote] = useState<string | null>(null);
+  const [catchUp, setCatchUp] = useState<ChatMessage[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -151,6 +153,7 @@ function ChatProScreen() {
   const [stars, setStars] = useState<Set<string>>(new Set());
   const reveal = useTimeReveal(useReduceMotion());
   const rowY = useRef(new Map<string, number>());
+  const catchH = useRef(0);
   const subscribed = useRef(false);
   const scroll = useRef<ScrollViewInstance>(null);
   const channel = useRef<RealtimeChannel | null>(null);
@@ -274,6 +277,12 @@ function ChatProScreen() {
       setError(null);
       try {
         const s = await loadChat(id, me);
+        if (!quiet) {
+          // Unread baseline from before markRead runs below: drives the catch-up card.
+          const since = s.mine?.last_read_at ?? null;
+          const fresh = since ? s.messages.filter((m) => m.sender_id !== me && m.created_at > since && !callMeta(m)) : [];
+          setCatchUp(fresh.length >= 5 ? fresh : null);
+        }
         setSnap((prev) => {
           if (!prev) return s;
           // Keep optimistic rows that haven't been echoed yet.
@@ -1928,6 +1937,26 @@ function ChatProScreen() {
             }}
           >
             <E2EEChatNotice uid={otherId} name={name} />
+            {catchUp ? (
+              <View onLayout={(e) => (catchH.current = e.nativeEvent.layout.height + 10)}>
+              <CatchUpCard
+                unread={catchUp}
+                name={name}
+                onDismiss={() => setCatchUp(null)}
+                onReply={(t) => {
+                  setCatchUp(null);
+                  onDraft(t);
+                  inputRef.current?.focus();
+                }}
+                onJump={() => {
+                  const y = rowY.current.get(catchUp[0].id);
+                  setCatchUp(null);
+                  // Row offsets were measured with the card above them.
+                  if (y !== undefined) setTimeout(() => scroll.current?.scrollTo({ y: Math.max(0, y - catchH.current - 80), animated: !reduce }), 50);
+                }}
+              />
+              </View>
+            ) : null}
             {visible.length === 0 ? <EmptyState icon="mail" title={`Say hi to ${name}`} body="Send a message, a voice note or the song you're playing." /> : rows}
             {!cantSend && reqState === 'none' ? <ForeverPromptCard uid={otherId} name={name} /> : null}
           </ScrollView>

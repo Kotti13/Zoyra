@@ -89,11 +89,7 @@ export default function AudioSettings() {
       gap={16}
       backdrop={{
         pattern: 'lines',
-        mesh: 'none',
-        glows: [
-          { x: 0.9, y: 0, color: colors.violet, opacity: 0.38 },
-          { x: 0, y: 0.4, color: colors.accent, opacity: 0.2 },
-        ],
+        mesh: 'amber',
       }}
     >
       <ScreenHeader title="Audio" />

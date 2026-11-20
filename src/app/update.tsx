@@ -9,7 +9,7 @@ import { colors } from '../theme/tokens';
 const titles = { up_to_date: "You're up to date", available: 'Update available', required: 'Update required' } as const;
 
 export default function Update() {
-  const check = useAsync(checkForUpdate, []);
+  const check = useAsync(checkForUpdate, [], 'app/update:12');
   const [openError, setOpenError] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
   const info = check.data;
@@ -91,7 +91,7 @@ export default function Update() {
           <>
             {required ? null : <Button label="Later" variant="glass" style={{ flex: 1 }} onPress={home} />}
             <Button
-              label={opening ? 'Opening…' : 'Open store'}
+              label={opening ? 'Opening…' : 'Update now'}
               variant={info.storeUrl && !opening ? 'primary' : 'disabled'}
               style={{ flex: 1 }}
               onPress={() => void openStore()}

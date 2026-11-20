@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { Button, Cover, EmptyState, ErrorState, Icon, LinkText, Loading, Row, Screen, T, Tap, useAsync, useDebounced } from '../components';
+import { Button, Cover, EmptyState, ErrorState, Glass, Icon, LinkText, Loading, Row, Screen, T, Tap, useAsync, useDebounced } from '../components';
 import { catalog, type Artist, type CatalogTrack } from '../lib/catalog';
 import { permissionsPending } from '../lib/permissions';
 import { useAuth } from '../state/auth';
@@ -107,8 +107,8 @@ export default function Artists() {
   const [error, setError] = useState<string>();
 
   const genresKey = (settings?.genres ?? []).join('|');
-  const trending = useAsync(() => trendingArtists(settings?.genres ?? []), [genresKey]);
-  const search = useAsync(() => (q ? catalog.searchArtists(q, 12) : Promise.resolve<Artist[]>([])), [q]);
+  const trending = useAsync(() => trendingArtists(settings?.genres ?? []), [genresKey], 'app/artists:110');
+  const search = useAsync(() => (q ? catalog.searchArtists(q, 12) : Promise.resolve<Artist[]>([])), [q], 'app/artists:111');
   const state = q ? search : trending;
   const list = state.data ?? [];
 
@@ -189,7 +189,8 @@ export default function Artists() {
         </T>
       </View>
 
-      <Row gap={8} style={{ height: 48, borderRadius: 24, backgroundColor: colors.bgTertiary, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 14 }}>
+      <Glass radius={24} intensity={18}>
+      <Row gap={8} style={{ height: 46, paddingHorizontal: 14 }}>
         <Icon name="search" size={20} color={colors.textSecondary} />
         <TextInput
           accessibilityLabel="Search artists"
@@ -208,6 +209,7 @@ export default function Artists() {
           </Tap>
         ) : null}
       </Row>
+      </Glass>
 
       {state.loading && !state.data ? (
         <Loading label={q ? 'Searching artists' : 'Finding trending artists'} height={240} />

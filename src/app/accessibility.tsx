@@ -1,6 +1,7 @@
 import { Animated, View } from 'react-native';
 
-import { Chip, Cover, Glass, Icon, ListGroup, ListRow, Overline, Row, Screen, ScreenHeader, T, Tap, Toggle, useSpin } from '../components';
+import { Chip, Cover, Icon, Row, Screen, T, Tap, Toggle, useSpin } from '../components';
+import { BigHeader, Panel, PanelRow, SectionLabel } from '../components/settings-ui';
 import {
   TEXT_SCALE_MAX,
   TEXT_SCALE_MIN,
@@ -47,19 +48,21 @@ function Preview({ scale, bold, reduce, lyricStatic, contrast, cbSafe }: { scale
   const artist = track ? track.artist.name : 'Play a song to preview it here';
 
   return (
-    <View style={contrast ? { borderRadius: 28, borderWidth: 2, borderColor: colors.text } : undefined}>
-      <Glass padding={16} radius={28}>
+    <View style={contrast ? { borderRadius: 36, borderWidth: 2, borderColor: colors.text } : undefined}>
+      <Panel padding={18} radius={36}>
         <View style={{ gap: 12 }} accessible accessibilityLabel={`Preview. ${title}. ${artist}`}>
-          <Overline color={contrast ? colors.text : colors.accentLight}>PREVIEW</Overline>
+          <T size={12} color={contrast ? colors.text : colors.textSecondary}>
+            Preview
+          </T>
           <Row gap={14}>
             <Animated.View style={{ transform: [{ rotate }] }}>
               <Cover artwork={track?.artwork} id={track?.id} size={64} radius={32} />
             </Animated.View>
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-              <T size={s(17)} weight={w(600)} numberOfLines={1}>
+              <T size={s(22)} weight={w(600)} numberOfLines={1}>
                 {title}
               </T>
-              <T size={s(13)} weight={w(400)} color={secondary} numberOfLines={2}>
+              <T size={s(15)} weight={w(400)} color={contrast ? colors.text : colors.peach} numberOfLines={2}>
                 {artist}
               </T>
             </View>
@@ -90,7 +93,7 @@ function Preview({ scale, bold, reduce, lyricStatic, contrast, cbSafe }: { scale
             </T>
           </Row>
         </View>
-      </Glass>
+      </Panel>
     </View>
   );
 }
@@ -109,13 +112,13 @@ export default function Accessibility() {
 
   return (
     <Screen top={4} gap={16} bottom={24} backdrop={{ pattern: 'none', mesh: 'coral' }}>
-      <ScreenHeader title="Accessibility" />
+      <BigHeader title="Accessibility" />
 
       <Preview scale={scale} bold={bold} reduce={reduce} lyricStatic={lyricStatic || reduce} contrast={contrast} cbSafe={cbSafe} />
 
       <View style={{ gap: 8 }}>
-        <Overline color={colors.textSecondary}>TEXT</Overline>
-        <Glass padding={12}>
+        <SectionLabel size={12} tracking={1.2}>Text</SectionLabel>
+        <Panel padding={{ v: 12, h: 16 }}>
           <View style={{ gap: 10 }}>
             <Row>
               <View style={{ flex: 1, gap: 2 }}>
@@ -144,47 +147,53 @@ export default function Accessibility() {
               <StepButton label="Larger text" size={20} onPress={() => setScale(pct + TEXT_SCALE_STEP)} />
             </Row>
           </View>
-        </Glass>
-        <Glass padding={4}>
-          <ListRow title="Bold text" subtitle="Heavier weights everywhere" minHeight={60} right={<Toggle value={bold} onChange={setBold} label="Bold text" />} />
-        </Glass>
+        </Panel>
+        <Panel padding={{ v: 4, h: 16 }}>
+          <PanelRow title="Bold text" subtitle="Heavier weights everywhere" minHeight={60} right={<Toggle value={bold} onChange={setBold} label="Bold text" />} />
+        </Panel>
       </View>
 
-      <ListGroup title="MOTION">
-        <ListRow
+      <View style={{ gap: 8 }}>
+        <SectionLabel size={12} tracking={1.2}>Motion</SectionLabel>
+        <Panel padding={{ v: 4, h: 16 }}>
+        <PanelRow
           title="Reduce motion"
           subtitle={system ? 'Already on in your phone settings' : 'Calm transitions, no spinning disc'}
           minHeight={64}
           right={<Toggle value={appReduce} onChange={setAppReduce} label="Reduce motion" />}
         />
-        <ListRow
+        <PanelRow
           title="Reduce lyric animation"
           subtitle="Static highlight instead of fill"
           minHeight={64}
           divider
           right={<Toggle value={lyricStatic} onChange={setLyricStatic} label="Reduce lyric animation" />}
         />
-      </ListGroup>
+      </Panel>
+      </View>
 
-      <ListGroup title="VISION">
-        <ListRow title="High contrast" subtitle="Stronger borders and text" minHeight={64} right={<Toggle value={contrast} onChange={setContrast} label="High contrast" />} />
-        <ListRow
+      <View style={{ gap: 8 }}>
+        <SectionLabel size={12} tracking={1.2}>Vision and hearing</SectionLabel>
+        <Panel padding={{ v: 4, h: 16 }}>
+        <PanelRow title="High contrast" subtitle="Stronger borders and text" minHeight={64} right={<Toggle value={contrast} onChange={setContrast} label="High contrast" />} />
+        <PanelRow
           title="Colour blind friendly"
           subtitle="Blue and orange instead of red and green cues"
           minHeight={64}
           divider
           right={<Toggle value={cbSafe} onChange={setCbSafe} label="Colour blind friendly" />}
         />
-        <ListRow
+        <PanelRow
           title="Screen reader hints"
           subtitle="Extra spoken hints on buttons and artwork"
           minHeight={64}
           divider
           right={<Toggle value={hints} onChange={setHints} label="Screen reader hints" />}
         />
-      </ListGroup>
+      </Panel>
+      </View>
 
-      <Glass padding={14}>
+      <Panel padding={14} radius={32}>
         <Row gap={10} align="flex-start">
           <Icon name="info" size={18} color={colors.textSecondary} />
           <T size={13} color={colors.textSecondary} style={{ flex: 1 }}>
@@ -192,7 +201,7 @@ export default function Accessibility() {
             (in its accessibility settings) still works with Zoyra.
           </T>
         </Row>
-      </Glass>
+      </Panel>
     </Screen>
   );
 }

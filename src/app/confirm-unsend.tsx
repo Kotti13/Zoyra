@@ -42,7 +42,7 @@ export default function ConfirmUnsend() {
   const [busy, setBusy] = useState<'all' | 'me' | 'edit' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const ctx = useAsync(() => (mid && cid && me ? loadCtx(mid, cid, me, groupHint) : Promise.resolve(null)), [mid, cid, me, groupHint]);
+  const ctx = useAsync(() => (mid && cid && me ? loadCtx(mid, cid, me, groupHint) : Promise.resolve(null)), [mid, cid, me, groupHint], 'app/confirm-unsend:45');
   const m = ctx.data?.message ?? null;
 
   const run = async (key: 'all' | 'me', fn: () => Promise<void>) => {

@@ -66,8 +66,8 @@ export default function Merch() {
   const q = useDebounced(query.trim(), 350);
   const [note, setNote] = useState<string | null>(null);
 
-  const history = useAsync(async () => (user ? (await historySeeds(user.id)).artists.slice(0, 10) : []), [user?.id]);
-  const found = useAsync(async () => (q.length >= 2 ? catalog.searchArtists(q, 8) : []), [q]);
+  const history = useAsync(async () => (user ? (await historySeeds(user.id)).artists.slice(0, 10) : []), [user?.id], 'app/merch:69');
+  const found = useAsync(async () => (q.length >= 2 ? catalog.searchArtists(q, 8) : []), [q], 'app/merch:70');
 
   const picks: ArtistPick[] = [];
   const seen = new Set<string>();
@@ -77,7 +77,7 @@ export default function Merch() {
     picks.push(a);
   }
   const active = chosen ?? picks[0]?.id ?? null;
-  const detail = useAsync(async () => (active ? artistLinks(active) : null), [active]);
+  const detail = useAsync(async () => (active ? artistLinks(active) : null), [active], 'app/merch:80');
 
   const open = async (url: string) => {
     setNote(null);

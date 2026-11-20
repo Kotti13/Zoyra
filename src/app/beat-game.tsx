@@ -74,16 +74,16 @@ export default function BeatGame() {
 
 function Picker({ onStart }: { onStart: (p: BeatTrack) => void }) {
   const [genre, setGenre] = useState(0);
-  const list = useAsync(() => loadBeatTracks(genre === 0 ? undefined : GENRES[genre]), [genre]);
+  const list = useAsync(() => loadBeatTracks(genre === 0 ? undefined : GENRES[genre]), [genre], 'app/beat-game:77');
 
   return (
-    <Screen top={4} gap={18} backdrop={{ pattern: 'none' }}>
+    <Screen top={4} gap={18}>
       <ScreenHeader title="" />
       <View style={{ gap: 4 }}>
-        <T variant="displayLight" accessibilityRole="header">
+        <T size={36} weight={300} tracking={-1} lineHeight={38} accessibilityRole="header">
           Beat Rush
         </T>
-        <T size={15} color={colors.textSecondary} lineHeight={21}>
+        <T size={14} color={colors.textSecondary} lineHeight={20}>
           Notes fall to the beat. Tap the matching pad as each one hits the line.
         </T>
       </View>
@@ -98,11 +98,11 @@ function Picker({ onStart }: { onStart: (p: BeatTrack) => void }) {
       ) : !list.data?.length ? (
         <EmptyState icon="music" title="No songs with a known tempo" body="Audius doesn’t list a BPM for these songs. Try another genre." action="Try again" onAction={list.reload} />
       ) : (
-        <Glass padding={4}>
+        <Glass radius={36} style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
           {list.data.slice(0, 25).map((p, i) => (
             <Tap key={p.track.id} onPress={() => onStart(p)} accessibilityLabel={`Play ${p.track.title} by ${p.track.artist.name}, ${Math.round(p.bpm)} BPM`}>
-              <Row gap={12} style={[{ minHeight: 64, paddingHorizontal: 12 }, i > 0 && { borderTopWidth: 1, borderTopColor: colors.divider }]}>
-                <Cover artwork={p.track.artwork} id={p.track.id} size={44} />
+              <Row gap={12} style={[{ minHeight: 64 }, i > 0 && { borderTopWidth: 1, borderTopColor: colors.divider }]}>
+                <Cover artwork={p.track.artwork} id={p.track.id} size={44} radius={14} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <T size={15} weight={500} numberOfLines={1}>
                     {p.track.title}
@@ -309,7 +309,7 @@ function Game({ pick, onQuit, onDone }: { pick: BeatTrack; onQuit: () => void; o
 
   if (startError) {
     return (
-      <Screen top={4} backdrop={{ pattern: 'none' }}>
+      <Screen top={4}>
         <ScreenHeader title="Beat Rush" back={false} />
         <ErrorState message={startError} />
         <Button label="Pick another song" variant="glass" onPress={onQuit} />
@@ -318,7 +318,7 @@ function Game({ pick, onQuit, onDone }: { pick: BeatTrack; onQuit: () => void; o
   }
 
   return (
-    <Screen top={4} gap={12} scroll={false} stagger={false} backdrop={{ pattern: 'none' }}>
+    <Screen top={4} gap={12} scroll={false} stagger={false}>
       <Row style={{ justifyContent: 'space-between' }}>
         <IconButton icon={playing ? 'pause' : 'play'} label={playing ? 'Pause' : 'Resume'} bg={withAlpha(colors.white, 0.1)} onPress={() => (playing ? pause() : play())} />
         <View style={{ alignItems: 'center' }} accessibilityLabel={`Score ${stats.score}`}>
@@ -437,7 +437,7 @@ function Results({ pick, stats, onAgain, onPick }: { pick: BeatTrack; stats: Sta
     const prev = await personalBests(user.id);
     await saveScore({ game: 'beat', score: stats.score, accuracy, maxCombo: stats.maxCombo, perfect: stats.perfect, good: stats.good, miss: stats.miss, track: pick.track });
     return { prevBest: prev.beat?.score ?? null };
-  }, [user?.id]);
+  }, [user?.id], 'app/beat-game:435');
   const newBest = !!save.data && (save.data.prevBest === null || stats.score > save.data.prevBest);
 
   const tiles = [
@@ -449,7 +449,7 @@ function Results({ pick, stats, onAgain, onPick }: { pick: BeatTrack; stats: Sta
   ];
 
   return (
-    <Screen top={4} gap={18} backdrop={{ pattern: 'none' }}>
+    <Screen top={4} gap={18}>
       <ScreenHeader title="Round complete" />
       <View style={{ alignItems: 'center', gap: 4 }}>
         <T size={11} color={colors.textSecondary} tracking={1}>
