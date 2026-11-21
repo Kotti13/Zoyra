@@ -8,32 +8,33 @@ const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const speedLabel = (r: number) => `${Number.isInteger(r) ? r.toFixed(r === 1 ? 1 : 0) : String(r)}×`;
 
 /**
- * Sound controls that work in this build: speed (persisted), the Equalizer (incl. bass boost) and Smooth
- * transition / normalisation (Settings › Playback). Pitch shifting (Nightcore, Slowed), reverb, 8D and spatial audio
- * need a real-time DSP stage; expo-audio's playlist player has none, so those tiles are shown dimmed and marked
- * unavailable instead of as switches that do nothing.
+ * What really works in this build: playback speed (applied to the native player and remembered), and Smooth
+ * transition / normalisation (Settings › Playback). Slowed and Nightcore are speed presets: the native player
+ * keeps the pitch where it is, so they change tempo only. The Equalizer screen saves bands to the account but the
+ * native player has no equalizer stage yet, so it (and Bass boost) does not change the sound; reverb, 8D and
+ * spatial audio need a real-time audio engine too. Those tiles are shown dimmed and marked unavailable instead of
+ * as switches that do nothing.
  */
 const GLASS = { backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' } as const;
 
-type Tile = { label: string; icon: IconName; href?: '/equalizer' | '/playback-settings'; reset?: boolean };
+type Tile = { label: string; icon: IconName; sub?: string; rate?: number };
 const tiles: Tile[] = [
-  { label: 'Normal', icon: 'play', reset: true },
-  { label: 'Slowed', icon: 'moon' },
-  { label: 'Nightcore', icon: 'bolt' },
+  { label: 'Normal', icon: 'play', rate: 1 },
+  { label: 'Slowed', icon: 'moon', rate: 0.85, sub: '0.85× tempo' },
+  { label: 'Nightcore', icon: 'bolt', rate: 1.25, sub: '1.25× tempo' },
   { label: '8D audio', icon: 'headphones' },
-  { label: 'Bass boost', icon: 'speaker', href: '/equalizer' },
+  { label: 'Bass boost', icon: 'speaker' },
   { label: 'Spatial', icon: 'spatial' },
 ];
 
 const links: { title: string; sub: string; icon: IconName; href: '/equalizer' | '/playback-settings' }[] = [
-  { title: 'Equalizer', sub: '10 bands, presets and bass boost', icon: 'sliders', href: '/equalizer' },
+  { title: 'Equalizer', sub: 'Saved to your account, not applied to the sound yet', icon: 'sliders', href: '/equalizer' },
   { title: 'Smooth transition', sub: 'Crossfade between songs and normalise volume', icon: 'bolt', href: '/playback-settings' },
 ];
-const unavailable = ['Nightcore and Slowed', 'Reverb', '8D audio', 'Spatial audio'];
+const unavailable = ['Equalizer and Bass boost', 'Reverb', '8D audio', 'Spatial audio'];
 
 export default function FxSheet() {
   const { rate, setRate } = usePlayerPick('rate');
-  const normal = Math.abs(rate - 1) < 0.001;
 
   return (
     <Sheet>
@@ -43,16 +44,15 @@ export default function FxSheet() {
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {tiles.map((t) => {
-          const available = !!t.href || !!t.reset;
-          const on = t.reset && normal;
+          const available = t.rate !== undefined;
+          const on = available && Math.abs(rate - (t.rate as number)) < 0.001;
           return (
             <Tap
               key={t.label}
-              href={t.href}
-              onPress={t.reset ? () => setRate(1) : undefined}
+              onPress={available ? () => setRate(t.rate as number) : undefined}
               disabled={!available}
-              accessibilityLabel={available ? t.label : `${t.label}, not available`}
-              accessibilityState={{ disabled: !available, ...(t.reset ? { selected: !!on } : null) }}
+              accessibilityLabel={available ? `${t.label}${t.sub ? `, ${t.sub}` : ''}` : `${t.label}, not available`}
+              accessibilityState={{ disabled: !available, ...(available ? { selected: on } : null) }}
               style={[
                 { width: '31.5%', flexGrow: 1, height: 78, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 6 },
                 on ? { backgroundColor: colors.accent, shadowColor: colors.accent, shadowOpacity: 0.4, shadowRadius: 11, shadowOffset: { width: 0, height: 8 } } : GLASS,
@@ -63,6 +63,11 @@ export default function FxSheet() {
               <T size={12} weight={600}>
                 {t.label}
               </T>
+              {t.sub ? (
+                <T size={10} color={on ? colors.white : colors.textSecondary} style={{ marginTop: -4 }}>
+                  {t.sub}
+                </T>
+              ) : null}
             </Tap>
           );
         })}
@@ -115,7 +120,7 @@ export default function FxSheet() {
       </View>
 
       <T size={12} color={colors.textSecondary}>
-        {`${unavailable.join(', ')} are not available: they need real-time audio processing that this player does not have.`}
+        {`${unavailable.join(', ')} are not available yet: they need a real-time audio engine that this player does not have. Slowed and Nightcore change the tempo only.`}
       </T>
 
       <Button label="Done" href="back" height={52} />

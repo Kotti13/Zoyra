@@ -78,7 +78,9 @@ export default function Artist() {
   const radioCtx = `artist-radio:${id}`;
   const playingHere = player.context === ctx && player.playing;
   const radioOn = player.context === radioCtx;
-  const heroImg = a?.cover ?? a?.image.large ?? a?.image.medium;
+  // Original hero: the banner (cover) fills it, else the artist's picture. Last resort: the cover of their top song,
+  // so the hero is never empty when an artist has neither.
+  const heroImg = a?.cover ?? a?.image.large ?? a?.image.medium ?? tracks[0]?.artwork.large ?? tracks[0]?.artwork.medium;
 
   const onPlay = () => {
     if (player.context === ctx && player.track) return player.toggle();

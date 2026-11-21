@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { Glass, Icon, ListRow, Row, Screen, ScreenHeader, SectionHeader, T, Tap, Toggle } from '../components';
 import { usePref } from '../lib/prefs';
 import { useAuth, type Settings } from '../state/auth';
-import { colors } from '../theme/tokens';
+import { ACCENT_PRESETS, colors } from '../theme/tokens';
 
 /** Device-only preference (shared live store in `prefs.ts`). */
 function useDevicePref<V>(key: string, fallback: V) {
@@ -20,13 +20,14 @@ const themes: ThemeOpt[] = [
   { name: 'Auto', preview: 'auto' },
 ];
 
+// Literal values (not `colors.*`): the live palette is rewritten when an accent is applied, and these swatches must stay put.
 const accents: { label: string; color: string }[] = [
-  { label: 'Accent cyan', color: colors.accent },
-  { label: 'Accent violet', color: colors.violet },
-  { label: 'Accent pink', color: colors.like },
-  { label: 'Accent amber', color: colors.amber },
-  { label: 'Accent blue', color: colors.info },
-  { label: 'Accent green', color: colors.success },
+  { label: 'Accent red', color: ACCENT_PRESETS[0] },
+  { label: 'Accent rose', color: ACCENT_PRESETS[1] },
+  { label: 'Accent pink', color: ACCENT_PRESETS[2] },
+  { label: 'Accent amber', color: ACCENT_PRESETS[3] },
+  { label: 'Accent blue', color: ACCENT_PRESETS[4] },
+  { label: 'Accent green', color: ACCENT_PRESETS[5] },
 ];
 
 function Preview({ kind }: { kind: ThemeOpt['preview'] }) {
@@ -144,7 +145,7 @@ export default function Theme() {
         })}
       </Row>
       <T size={12} color={colors.textSecondary} lineHeight={17}>
-        Theme and accent are saved to your account. The app-wide theming switch arrives in a later update.
+        Dark, AMOLED black and the accent color apply across the app. Light and Auto are saved but still use the dark look for now.
       </T>
       {error ? (
         <T size={13} color={colors.error}>

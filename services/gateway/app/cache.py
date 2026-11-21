@@ -31,6 +31,7 @@ class CacheResult:
 class Backend(Protocol):
     async def get(self, key: str) -> Entry | None: ...
     async def set(self, key: str, entry: Entry) -> None: ...
+    async def delete(self, key: str) -> None: ...
     async def close(self) -> None: ...
 
 
@@ -57,6 +58,9 @@ class MemoryBackend:
         while len(self._data) > self.max_items:
             self._data.popitem(last=False)
 
+    async def delete(self, key: str) -> None:
+        self._data.pop(key, None)
+
     async def close(self) -> None:
         self._data.clear()
 
@@ -81,6 +85,9 @@ class RedisBackend:
         ttl_ms = max(1, int((entry.stale_until - time.time()) * 1000))
         await self._r.set(self._prefix + key, json.dumps({"v": entry.value, "f": entry.fresh_until, "s": entry.stale_until}), px=ttl_ms)
 
+    async def delete(self, key: str) -> None:
+        await self._r.delete(self._prefix + key)
+
     async def close(self) -> None:
         await self._r.aclose()
 
@@ -94,6 +101,12 @@ class Cache:
     @property
     def kind(self) -> str:
         return getattr(self.backend, "kind", "custom")
+
+    async def delete(self, key: str) -> None:
+        try:
+            await self.backend.delete(key)
+        except Exception:
+            pass
 
     async def get_or_load(
         self,

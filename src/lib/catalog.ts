@@ -243,8 +243,26 @@ export const catalog = {
     const raw = await get<RawTrack[]>('/tracks/search', { query, genre: opts.genre, mood: opts.mood, limit: opts.limit ?? 25 });
     return raw.filter(playable).map(toTrack);
   },
+  /** Suggestions to show while the user types; never throws (a failed lookup just shows none). */
+  async suggest(query: string): Promise<string[]> {
+    if (!zoyraEnabled || !query.trim()) return [];
+    try {
+      return await zoyra.suggest(query);
+    } catch {
+      return [];
+    }
+  },
   async searchArtists(query: string, limit = 15) {
     if (!query.trim()) return [];
+    // Artists come from the same backend as the songs (with pictures); Audius is the fallback.
+    if (zoyraEnabled) {
+      try {
+        const found = await zoyra.searchArtists(query, limit);
+        if (found.length) return found;
+      } catch (e) {
+        console.warn('Zoyra artist search failed, using Audius', e);
+      }
+    }
     const raw = await get<RawUser[]>('/users/search', { query, limit });
     return raw.map(toArtist);
   },

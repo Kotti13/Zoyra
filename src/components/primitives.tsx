@@ -87,6 +87,8 @@ export type IconProps = {
   /** Override solid vs outline rendering (e.g. liked heart). */
   filled?: boolean;
   strokeWidth?: number;
+  /** Outline icons only: colour poured inside the closed shapes (e.g. the active tab: stroke + tinted fill). */
+  fill?: string;
   /**
    * Soft neon glow in the icon's colour (CSS `drop-shadow(0 0 5px currentColor/50%)`).
    * Defaults to on for coloured icons on iOS; neutral text-coloured icons skip it (invisible there and costs an offscreen pass).
@@ -98,12 +100,12 @@ export type IconProps = {
 /** Neutral colours whose glow would be invisible: skip the shadow pass for them. */
 const NO_GLOW = new Set<string>([colors.text, colors.textSecondary, colors.textTertiary, colors.white, colors.onAccent, colors.playerBg, colors.bg]);
 
-export function Icon({ name, size = 24, color = colors.text, filled, strokeWidth = 1.6, glow }: IconProps) {
+export function Icon({ name, size = 24, color = colors.text, filled, strokeWidth = 1.6, fill, glow }: IconProps) {
   const def = icons[name];
   const solid = filled ?? def.filled;
   const common = solid
     ? { fill: color }
-    : { fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+    : { fill: fill ?? 'none', stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
   const svg = (
     <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden importantForAccessibility="no">
       {def.p.map((p, i) => {

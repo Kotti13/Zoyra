@@ -3,6 +3,12 @@ services:
   redis:
     image: redis:7-alpine
     ports: ["6379:6379"]
+  # Optional: NewPipeExtractor sidecar. Internal only (no published port). To use it, set in .env:
+  #   NEWPIPE_BASE=http://newpipe:8090   NEWPIPE_TOKEN=<long random string>
+  newpipe:
+    build: ../newpipe
+    environment:
+      NEWPIPE_TOKEN: ${NEWPIPE_TOKEN:-}
   gateway:
     build: .
     ports: ["8080:8080"]

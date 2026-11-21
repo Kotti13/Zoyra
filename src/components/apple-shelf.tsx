@@ -90,6 +90,8 @@ export const ShelfCard = memo(function ShelfCard({
   id,
   art,
   size = APPLE.card,
+  height,
+  fit,
   radius = APPLE.radius,
   round,
   onPress,
@@ -104,6 +106,9 @@ export const ShelfCard = memo(function ShelfCard({
   id: string;
   art?: ArtName;
   size?: number;
+  /** Art height when it is not square (e.g. a 16:9 thumbnail tile: size 160, height 90). */
+  height?: number;
+  fit?: 'auto' | 'cover' | 'contain';
   radius?: number;
   round?: boolean;
   onPress: () => void;
@@ -119,7 +124,7 @@ export const ShelfCard = memo(function ShelfCard({
           {children}
         </Art>
       ) : (
-        <Cover artwork={artwork} uri={uri} id={id} size={size} radius={r}>
+        <Cover artwork={artwork} uri={uri} id={id} size={size} height={height} radius={r} fit={fit}>
           {children}
         </Cover>
       )}

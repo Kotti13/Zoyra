@@ -11,7 +11,7 @@ from .cache import build_cache
 from .config import Settings, get_settings
 from .errors import install_error_handlers
 from .ratelimit import build_limiter
-from .routers import audius, concerts, lastfm, librivox, listenbrainz, lyrics, meta, spotify, youtube
+from .routers import audius, concerts, lastfm, librivox, listenbrainz, lyrics, meta, newpipe, spotify, youtube, zoyra_compat
 from .upstream import Upstream
 
 _STD = set(logging.makeLogRecord({}).__dict__) | {"message", "asctime"}
@@ -85,7 +85,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def healthz():
         return {"ok": True}
 
-    for r in (audius, lyrics, librivox, listenbrainz, lastfm, concerts, youtube, spotify, meta):
+    for r in (audius, lyrics, librivox, listenbrainz, lastfm, concerts, youtube, newpipe, zoyra_compat, spotify, meta):
         app.include_router(r.router)
     return app
 

@@ -3,12 +3,14 @@
  * pinned songs. Stored on `profiles` (migration 20261113210000_profile_custom.sql):
  *   avatar_art   text   — preset gradient key, used when avatar_url is null
  *   banner_art   text   — banner gradient key
+ *   banner_url   text   — optional banner photo (migration 20261121100000_profile_banner_image); wins over banner_art
  *   avatar_frame text   — ring around the avatar
  *   showcase     jsonb  — { pinned, badges, taste } toggles
  *   pinned_tracks jsonb — up to 3 CatalogTrack snapshots
  * `avatar_url` stays an image URL only, so every existing <Cover uri={avatar_url}> keeps working.
  */
 import { useCallback, useMemo, type ReactNode } from 'react';
+import { Image } from 'expo-image';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Art, Cover, Gradient, Sticker, T, artFor } from '../components';
@@ -68,17 +70,19 @@ export type Showcase = { pinned: boolean; badges: boolean; taste: boolean };
 export type ProfileCustom = {
   avatar_art: PresetArt | null;
   banner_art: PresetArt;
+  banner_url: string | null;
   avatar_frame: FrameKey;
   showcase: Showcase;
   pinned_tracks: CatalogTrack[];
 };
 
 /** Columns to select when reading another user's profile (public-profile). */
-export const CUSTOM_COLS = 'avatar_art, banner_art, avatar_frame, showcase, pinned_tracks';
+export const CUSTOM_COLS = 'avatar_art, banner_art, banner_url, avatar_frame, showcase, pinned_tracks';
 
 export const DEFAULT_CUSTOM: ProfileCustom = {
   avatar_art: null,
   banner_art: 'coral',
+  banner_url: null,
   avatar_frame: 'glow',
   showcase: { pinned: true, badges: true, taste: true },
   pinned_tracks: [],
@@ -95,6 +99,7 @@ export function parseCustom(row: unknown): ProfileCustom {
   return {
     avatar_art: isPreset(r.avatar_art) ? r.avatar_art : null,
     banner_art: isPreset(r.banner_art) ? r.banner_art : DEFAULT_CUSTOM.banner_art,
+    banner_url: typeof r.banner_url === 'string' && /^https:\/\//i.test(r.banner_url) ? r.banner_url : null,
     avatar_frame: isFrame(r.avatar_frame) ? r.avatar_frame : DEFAULT_CUSTOM.avatar_frame,
     showcase: {
       pinned: typeof sc.pinned === 'boolean' ? sc.pinned : true,
@@ -185,10 +190,11 @@ export function FramedAvatar({
 }
 
 /** Profile banner strip in the chosen gradient. */
-export function ProfileBanner({ banner, height = 120, children }: { banner: string; height?: number; children?: ReactNode }) {
+export function ProfileBanner({ banner, uri, height = 120, children }: { banner: string; uri?: string | null; height?: number; children?: ReactNode }) {
   const [a, b] = artStops(banner);
   return (
     <Gradient colors={[a, b, violet]} style={{ height, borderRadius: radius.xxl, overflow: 'hidden' }}>
+      {uri ? <Image source={{ uri }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} contentFit="cover" accessibilityIgnoresInvertColors /> : null}
       {children}
     </Gradient>
   );

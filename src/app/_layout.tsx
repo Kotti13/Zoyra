@@ -32,7 +32,7 @@ import { AuthProvider, isRecoveryPending, takeAfterSignOutRoute, useAuth } from 
 import { DownloadsProvider } from '../state/downloads';
 import { LibraryProvider } from '../state/library';
 import { PlayerProvider } from '../state/player';
-import { colors } from '../theme/tokens';
+import { applyPalette, colors } from '../theme/tokens';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,6 +40,11 @@ const theme = {
   ...DarkTheme,
   colors: { ...DarkTheme.colors, background: colors.bg, card: colors.bg, primary: colors.accent, text: colors.text, border: colors.border },
 };
+
+/** Point the navigation theme at the live palette (it is built once at load, before a saved theme applies). */
+function syncNavTheme() {
+  Object.assign(theme.colors, { background: colors.bg, card: colors.bg, primary: colors.accent, border: colors.border });
+}
 
 /** Routes drawn over the previous screen (bottom sheets and centered modals). */
 const overlays = [
@@ -218,8 +223,13 @@ function AuthGate({ children }: { children: ReactNode }) {
   // End-to-end encryption keys for this phone, created silently (no PIN, nothing routed from here).
   useE2EEBootstrap(session && mfa === false ? (userId ?? null) : null, pushOn);
 
+  // Apply the saved theme + accent to the shared palette during render (before any child reads it), and remount
+  // the tree under a new key when it changes so every screen re-reads the colors.
+  const paletteKey = applyPalette(settings?.theme, settings?.accent);
+  syncNavTheme();
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View key={paletteKey} style={{ flex: 1, backgroundColor: colors.bg }}>
       {ready ? children : null}
       {/* Incoming calls open /call (signed in, past 2FA); a minimized call shows "Return to call". */}
       {ready ? <CallHost me={session && mfa === false ? session.user.id : null} /> : null}

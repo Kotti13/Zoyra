@@ -1,22 +1,23 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Animated, Easing, StyleSheet, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { useEffect, useState } from 'react';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { BufferingNotice } from '../lib/buffering';
 import { EmptyState, Cover, Icon, IconButton, Row, Screen, ScreenHeader, T, Tap, Toast, ToggleBurst, useAsync } from '../components';
 import { GlowBackdrop } from '../components/art-fx';
+import { LiveSeekBar, TransportControls } from '../components/PlayerControls';
 import type { IconName } from '../components';
 import { LyricTicker } from '../components/LyricTicker';
+import { isZoyraId, zoyra } from '../lib/zoyra-api';
 import { useLyricsForTrack } from '../components/lyric-sync';
-import { useReduceMotion, useLyricsAutoOpen } from '../components/LyricsView';
+import { useLyricsAutoOpen } from '../components/LyricsView';
 import { formatDuration, type CatalogTrack } from '../lib/catalog';
 import { isLocalTrack } from '../lib/local-music';
 import { countTrackComments } from '../lib/track-comments';
-import { isZoyraId, zoyra } from '../lib/zoyra-api';
 import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
-import { usePlaybackProgress, usePlayerPick, type SleepTimer } from '../state/player';
+import { usePlayerPick, type SleepTimer } from '../state/player';
 import { setSheetTrack } from '../state/selection';
 import { colors, withAlpha } from '../theme/tokens';
 
@@ -53,28 +54,14 @@ function LiveLyricLine({ track }: { track: CatalogTrack }) {
 
 /**
  * Full-bleed cover art across the top of the screen, fading into the dark background below it (no hard edges,
- * no blur effect, so it renders the same on every phone). It eases slightly smaller when paused.
+ * no blur effect, so it renders the same on every phone). The cover stays still, paused or playing.
  */
-function ArtBlend({ track, playing }: { track: CatalogTrack; playing: boolean }) {
+function ArtBlend({ track }: { track: CatalogTrack }) {
   const { width } = useWindowDimensions();
-  const reduce = useReduceMotion();
-  const [scale] = useState(() => new Animated.Value(playing ? 1 : 0.94));
-  useEffect(() => {
-    const to = playing ? 1 : 0.94;
-    if (reduce) {
-      scale.setValue(to);
-      return;
-    }
-    const a = Animated.timing(scale, { toValue: to, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true });
-    a.start();
-    return () => a.stop();
-  }, [playing, reduce, scale]);
   const h = Math.round(width * 1.2);
   return (
     <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: h, overflow: 'hidden' }}>
-      <Animated.View style={{ width, height: h, transform: [{ scale }] }}>
-        <Cover artwork={track.artwork} id={track.id} width={width} height={h} radius={0} />
-      </Animated.View>
+      <Cover artwork={track.artwork} id={track.id} width={width} height={h} radius={0} fit="cover" />
       {/* Soft top for the status bar, then a long fade into the background colour. */}
       <LinearGradient colors={[withAlpha(colors.playerBg, 0.55), withAlpha(colors.playerBg, 0)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '22%' }} />
       <LinearGradient
@@ -82,73 +69,6 @@ function ArtBlend({ track, playing }: { track: CatalogTrack; playing: boolean })
         locations={[0, 0.14, 0.3, 0.46, 0.62, 0.78, 0.92, 1]}
         style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '78%' }}
       />
-    </View>
-  );
-}
-
-/** Large plain play/pause button. */
-function PlayButton({ playing, onPress }: { playing: boolean; onPress: () => void }) {
-  return (
-    <Tap onPress={onPress} accessibilityLabel={playing ? 'Pause' : 'Play'} style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' }}>
-      <Icon name={playing ? 'pause' : 'play'} size={44} color={colors.white} filled />
-    </Tap>
-  );
-}
-
-/* ------------------------------------------------------------------ seek */
-
-/** Thin scrubber driven by live playback progress; tap or drag anywhere on it to seek. */
-function LiveSeekBar() {
-  const { seekTo } = usePlayerPick();
-  const { position, duration, progress } = usePlaybackProgress();
-  const ref = useRef<ComponentRef<typeof View>>(null);
-  const box = useRef({ x: 0, w: 1 });
-  const [drag, setDrag] = useState<number | null>(null);
-
-  const measure = () => ref.current?.measureInWindow((x, _y, w) => (box.current = { x, w: Math.max(1, w) }));
-  const fracAt = (e: GestureResponderEvent) => Math.min(1, Math.max(0, (e.nativeEvent.pageX - box.current.x) / box.current.w));
-  const value = drag ?? progress;
-  const shown = value * duration;
-
-  return (
-    <View
-      ref={ref}
-      onLayout={measure}
-      onStartShouldSetResponder={() => duration > 0}
-      onMoveShouldSetResponder={() => duration > 0}
-      onResponderTerminationRequest={() => false}
-      onResponderGrant={(e) => {
-        measure();
-        setDrag(fracAt(e));
-      }}
-      onResponderMove={(e) => setDrag(fracAt(e))}
-      onResponderRelease={(e) => {
-        seekTo(fracAt(e) * duration);
-        setDrag(null);
-      }}
-      onResponderTerminate={() => setDrag(null)}
-      accessible
-      accessibilityRole="adjustable"
-      accessibilityLabel="Seek"
-      accessibilityValue={{ min: 0, max: Math.round(duration), now: Math.round(position), text: `${formatDuration(position)} of ${formatDuration(duration)}` }}
-      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-      onAccessibilityAction={(e) => seekTo(Math.min(duration, Math.max(0, position + (e.nativeEvent.actionName === 'increment' ? 10 : -10))))}
-    >
-      <View style={{ gap: 6 }}>
-        <View style={{ height: 24, justifyContent: 'center' }}>
-          <View style={{ height: 5, borderRadius: 3, backgroundColor: withAlpha(colors.white, 0.22), overflow: 'hidden' }}>
-            <View style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, height: 5, backgroundColor: colors.white }} />
-          </View>
-        </View>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <T size={12} weight={500} color={colors.textSecondary}>
-            {formatDuration(shown)}
-          </T>
-          <T size={12} weight={500} color={colors.textSecondary}>
-            {`-${formatDuration(Math.max(0, duration - shown))}`}
-          </T>
-        </Row>
-      </View>
     </View>
   );
 }
@@ -169,13 +89,13 @@ function InfoChip({ onPress, label, icon, children }: { onPress: () => void; lab
 const QUALITY_CHIP = { low: 'LOW', normal: 'NORMAL', high: 'HIGH', lossless: 'LOSSLESS' } as const;
 
 export default function Player() {
-  const { track, context, playing, toggle, next, previous, shuffle, setShuffle, repeat, cycleRepeat, rate, sleep, playlist } = usePlayerPick('track', 'playing', 'shuffle', 'repeat', 'rate', 'context', 'sleep', 'playlist');
+  const { track, context, playing, rate, sleep, playlist } = usePlayerPick('track', 'playing', 'rate', 'context', 'sleep', 'playlist');
   const { isLiked, toggleLike } = useLibrary();
   const { settings } = useAuth();
   const sleepLabel = useSleepLabel(sleep);
   const { width } = useWindowDimensions();
   const [note, setNote] = useState<string | null>(null);
-  const repeatLabel = repeat === 'off' ? 'Repeat off' : repeat === 'all' ? 'Repeat all' : 'Repeat one';
+  const [videoBusy, setVideoBusy] = useState(false);
   const trackId = track?.id ?? '';
   const local = !!track && isLocalTrack(track);
   const comments = useAsync<number | null>(async () => (trackId && !local ? countTrackComments(trackId).catch(() => null) : null), [trackId, local]);
@@ -195,20 +115,28 @@ export default function Player() {
     );
   }
 
+  // Top-right video button (YouTube songs): opens the video screen on the song's official music video, or on the
+  // song's own upload when YouTube Music has no matching video. That screen pauses this audio when it starts.
+  const watchVideo = isZoyraId(track.id)
+    ? async () => {
+        if (videoBusy) return;
+        setVideoBusy(true);
+        try {
+          const own = zoyra.videoId(track.id);
+          const mv = await zoyra.musicVideoId(track).catch(() => null);
+          // Same upload as the audio: pick up at the same second. A different video starts from the beginning.
+          router.push({ pathname: '/video-player', params: mv && mv !== own ? { id: mv } : { id: own, t: String(Math.floor(playlist.currentTime || 0)) } });
+        } finally {
+          setVideoBusy(false);
+        }
+      }
+    : null;
+
   const liked = isLiked(track.id);
   const openSheet = (href: string) => {
     setSheetTrack(track);
     router.push(href as Parameters<typeof router.push>[0]);
   };
-  // YouTube songs from the Zoyra backend: the audio *is* the video's soundtrack, so the
-  // video can pick up at the same second. The video player pauses this audio when it starts.
-  const watchVideo = isZoyraId(track.id)
-    ? () =>
-        router.push({
-          pathname: '/video-player',
-          params: { id: zoyra.videoId(track.id), t: String(Math.floor(playlist.currentTime || 0)) },
-        })
-    : null;
   const quality = settings?.audio_quality ?? 'normal';
   const dock: { label: string; a11y?: string; icon: IconName; onPress: () => void; on?: boolean; mono?: boolean }[] = [
     { label: 'Lyrics', a11y: 'Open synced lyrics', icon: 'file', onPress: () => router.push('/lyrics') },
@@ -229,7 +157,7 @@ export default function Player() {
       underlay={
         <View pointerEvents="none" style={StyleSheet.absoluteFill}>
           <GlowBackdrop active={playing} plain />
-          <ArtBlend track={track} playing={playing} />
+          <ArtBlend track={track} />
         </View>
       }
       // The dock is pinned to the bottom edge; the rest scrolls above it if the screen is short.
@@ -259,7 +187,7 @@ export default function Player() {
             {context ?? 'Your queue'}
           </T>
         </View>
-        {watchVideo ? <IconButton icon="video" label="Watch video" onPress={watchVideo} /> : <View style={{ width: 44 }} />}
+        {watchVideo ? <IconButton icon="video" label={videoBusy ? 'Finding the video' : 'Watch video'} onPress={() => void watchVideo()} /> : <View style={{ width: 44 }} />}
       </Row>
 
       {/* The artwork itself is the full-bleed image behind; this keeps the title and controls below it. */}
@@ -302,22 +230,7 @@ export default function Player() {
       <BufferingNotice />
 
       {/* Transport */}
-      <Row style={{ justifyContent: 'space-between' }}>
-        <IconButton icon="shuffle" label={shuffle ? 'Shuffle on' : 'Shuffle off'} size={52} color={shuffle ? colors.accentLight : colors.textSecondary} onPress={() => setShuffle(!shuffle)} />
-        <IconButton icon="prev" label="Previous track" size={56} iconSize={32} onPress={previous} />
-        <PlayButton playing={playing} onPress={toggle} />
-        <IconButton icon="next" label="Next track" size={56} iconSize={32} onPress={next} />
-        <View>
-          <IconButton icon="repeat" label={repeatLabel} size={52} color={repeat === 'off' ? colors.textSecondary : colors.accentLight} onPress={cycleRepeat} />
-          {repeat === 'one' ? (
-            <View pointerEvents="none" style={styles.repeatOne}>
-              <T size={9} weight={700} color={colors.onAccent}>
-                1
-              </T>
-            </View>
-          ) : null}
-        </View>
-      </Row>
+      <TransportControls />
 
       <Row style={{ justifyContent: 'center' }} gap={8}>
         <InfoChip onPress={() => openSheet('/stats-nerds')} label={`Audio quality ${QUALITY_CHIP[quality]}. Open stats for nerds`}>
