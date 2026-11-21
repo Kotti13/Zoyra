@@ -6,6 +6,7 @@ import { ScrollView, View } from 'react-native';
 import { Chip, Cover, EmptyState, ErrorState, Glass, Icon, ListRow, Loading, Row, Screen, ScreenHeader, SectionHeader, T, Tap, TextField, Toast, useAsync, useDebounced, type IconName } from '../components';
 import { catalog } from '../lib/catalog';
 import { historySeeds } from '../lib/radio';
+import { isZoyraArtistId, zoyra } from '../lib/zoyra-api';
 import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
 import { colors } from '../theme/tokens';
@@ -36,7 +37,17 @@ const webUrl = (raw: string | null | undefined): string | null => {
 const handleOf = (raw: string | null | undefined) => raw?.trim().replace(/^@/, '').replace(/[^A-Za-z0-9._]/g, '') || null;
 const hostOf = (u: string) => u.replace(/^https?:\/\//i, '').replace(/\/$/, '');
 
+const YT_ICON: Record<string, IconName> = { tip: 'heart', site: 'globe', ig: 'camera', x: 'link', tt: 'music', fb: 'link', music: 'music', yt: 'play' };
+
+/** YouTube artists have no Audius profile: their links come from the channel description (tips, website, socials). */
+async function youtubeArtistLinks(id: string): Promise<ArtistLinks> {
+  const a = await zoyra.artistLinks(id);
+  const links: SupportLink[] = a.links.map((l) => ({ key: `${l.key}:${l.url}`, label: l.label, detail: l.detail, url: l.url, icon: YT_ICON[l.key] ?? 'link' }));
+  return { id, name: a.name, handle: a.name, image: a.image, links };
+}
+
 async function artistLinks(id: string): Promise<ArtistLinks> {
+  if (isZoyraArtistId(id)) return youtubeArtistLinks(id);
   const res = await fetch(`https://api.audius.co/v1/users/${encodeURIComponent(id)}?app_name=zoyra`, { headers: { Accept: 'application/json' } });
   if (!res.ok) throw new Error(`Could not load this artist (${res.status})`);
   const u = ((await res.json()) as { data: RawProfile }).data;

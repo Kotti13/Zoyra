@@ -5,9 +5,11 @@ import { View, useWindowDimensions } from 'react-native';
 import { Art, Avatar, ChipRow, Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, Sticker, T, Tap, Toast, artFor, useAsync, SignInBanner, useFocusEffectAfterTransition, AppleTitle, Shelf, ShelfCard, ShelfHeader as H2, AppleTrackList, APPLE } from '../../components';
 import { loadHub } from '../../lib/live';
 import { useConnection } from '../../lib/network';
-import { isZoyraId } from '../../lib/zoyra-api';
+import { isZoyraId, zoyra, zoyraEnabled } from '../../lib/zoyra-api';
+import { fetchChart, type YouTubeVideo } from '../../lib/youtube';
+import { VideoThumb } from '../../lib/video-ui';
 import type { IconName } from '../../components';
-import { GENRES, catalog, formatCount, type CatalogTrack } from '../../lib/catalog';
+import { GENRES, catalog, formatCount, type Artwork, type CatalogTrack } from '../../lib/catalog';
 import { useContentFilter } from '../../lib/content-filter';
 import { inboxUnreadTotal } from '../../lib/dm';
 import { Poster } from '../../lib/poster';
@@ -216,6 +218,27 @@ export default function Home() {
   const liveNow = useAsync(async () => (uid ? (await loadHub(uid)).live : []), [uid], 'home.live');
   const trending = useAsync(() => catalog.trending({ limit: 12 }), [], { id: 'home.trending', persist: true });
   const premieres = useAsync(() => loadPremieres(30), [], { id: 'home.premieres', persist: true });
+  // Trending YouTube music videos for the "Made for you" row under the Music videos card. The YouTube chart first;
+  // when it is unavailable (not set up / quota), the backend's popular songs, shown with their video thumbnails.
+  const musicVideos = useAsync<YouTubeVideo[]>(
+    async () => {
+      try {
+        const page = await fetchChart();
+        const list = page.videos.filter((v) => !v.live && v.thumbnail).slice(0, 12);
+        if (list.length) return list;
+      } catch {
+        // fall through to the backend
+      }
+      if (!zoyraEnabled) return [];
+      const songs = await zoyra.popular('popular', 12).catch(() => []);
+      return songs.map((t) => {
+        const vid = zoyra.videoId(t.id);
+        return { id: vid, title: t.title, channel: t.artist.name, channelId: null, thumbnail: `https://i.ytimg.com/vi/${vid}/hq720.jpg`, publishedAt: null, live: false, views: t.plays || null, likes: null, comments: null, durationSec: t.duration || null };
+      });
+    },
+    [],
+    'app/(tabs)/index:musicvideos',
+  );
   const weekMinutes = useAsync(async () => {
     if (!uid) return null;
     const { data, error } = await supabase.rpc('listening_insights', { days: 7 });
@@ -277,13 +300,21 @@ export default function Home() {
   };
 
   const genres = settings?.genres?.length ? settings.genres : GENRES.slice(0, 3);
-  const madeForYou: { title: string; sub: string; art: ArtName; onPress: () => void }[] = genres.slice(0, 4).map((g, i) => ({
+  // One real cover per mix (the genre's top song), so the cards show a picture; the gradient shows until it loads.
+  const mixGenres = genres.slice(0, 4);
+  const mixTracks = useAsync<CatalogTrack[][]>(
+    () => Promise.all(mixGenres.map((g) => catalog.searchTracks(`${g} songs`, { limit: 4 }).catch(() => [] as CatalogTrack[]))),
+    [mixGenres.join('|')],
+    'app/(tabs)/index:mixart',
+  );
+  const madeForYou: { title: string; sub: string; art: ArtName; artwork?: () => Artwork | undefined; onPress: () => void }[] = mixGenres.map((g, i) => ({
     title: `Daily Mix ${i + 1}`,
     sub: `${g} picks for you`,
     art: mixArts[i % mixArts.length],
+    artwork: () => hideFilter(mixTracks.data?.[i] ?? [])[0]?.artwork,
     onPress: () => router.push({ pathname: '/playlist', params: { mix: g, title: `Daily Mix ${i + 1}` } }),
   }));
-  madeForYou.splice(1, 0, { title: 'Release Radar', sub: 'From artists you follow', art: 'amber', onPress: () => router.push('/new-releases') });
+  madeForYou.splice(1, 0, { title: 'Release Radar', sub: 'From artists you follow', art: 'amber', artwork: () => premieres.data?.albums[0]?.artwork ?? hideFilter(mixTracks.data?.[0] ?? [])[1]?.artwork, onPress: () => router.push('/new-releases') });
 
   const playMood = async (mood: string) => {
     try {
@@ -319,7 +350,7 @@ export default function Home() {
       {/* Guests: sign-in invitation (renders nothing once signed in) */}
       <SignInBanner />
 
-      {/* Large title with connection, messages, notifications and the profile avatar */}
+      {/* Large title with connection, messages and notifications (Profile is a bottom tab) */}
       <View style={{ gap: 2 }}>
         <T size={13} weight={500} color={colors.textSecondary} numberOfLines={1}>
           Hi {firstName}
@@ -345,10 +376,6 @@ export default function Home() {
                 <IconButton icon="bell" label={unreadNotifs ? `Notifications, ${unreadNotifs} unread` : 'Notifications'} bg={withAlpha(colors.white, 0.1)} href="/notifications" />
                 <HeaderBadge count={unreadNotifs} />
               </View>
-              <Tap href="/profile" accessibilityLabel="Profile" style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden' }}>
-                <Avatar initial={firstName[0]?.toUpperCase()} art={artFor(uid)} size={40} />
-                {profile?.avatar_url ? <Cover uri={profile.avatar_url} id={uid ?? 'me'} size={40} radius={20} style={{ position: 'absolute', left: 0, top: 0 }} /> : null}
-              </Tap>
             </>
           }
         />
@@ -387,7 +414,7 @@ export default function Home() {
         </Tap>
       ) : null}
 
-      {/* Recently played: small square tiles (fallback: trending) */}
+      {/* Recently played: tiles (fallback: trending). Each tile takes its picture's shape, so the image fills it exactly. */}
       <View style={shelfBase}>
         <H2 title={shortcuts.data?.recent === false ? 'Start listening' : 'Recently played'} action="History" href="/recent" />
         {shortcuts.loading && !shortcuts.data ? (
@@ -397,7 +424,7 @@ export default function Home() {
         ) : (
           <Shelf
             data={shortcutList}
-            itemWidth={112}
+            itemWidth={128}
             keyExtractor={(t) => t.id}
             renderItem={({ item: t, index }) => (
               <ShelfCard
@@ -405,7 +432,7 @@ export default function Home() {
                 subtitle={t.artist.name}
                 artwork={t.artwork}
                 id={t.id}
-                size={112}
+                size={128}
                 radius={10}
                 accessibilityLabel={`Play ${t.title} by ${t.artist.name}`}
                 onPress={() => playTracks(shortcutList, index, shortcuts.data?.recent ? 'Recently played' : 'Trending now')}
@@ -442,13 +469,16 @@ export default function Home() {
         )}
       </View>
 
-      {/* Made for you */}
+      {/* Daily mixes */}
       <View style={shelfBase}>
-        <H2 title="Made for you" action="See all" href="/daily-mix" />
+        <H2 title="Daily mixes" action="See all" href="/daily-mix" />
         <Shelf
           data={madeForYou}
           keyExtractor={(m) => m.title}
-          renderItem={({ item: m }) => <ShelfCard title={m.title} subtitle={m.sub} id={m.title} art={m.art} onPress={m.onPress} />}
+          renderItem={({ item: m }) => {
+            const artwork = m.artwork?.();
+            return <ShelfCard title={m.title} subtitle={m.sub} id={m.title} artwork={artwork} art={artwork ? undefined : m.art} onPress={m.onPress} />;
+          }}
         />
       </View>
 
@@ -603,6 +633,36 @@ export default function Home() {
       <View style={{ gap: 12 }}>
         <H2 title="More to explore" />
         <EntryCard title="Music videos" subtitle="Watch, shorts and live sets" href="/videos" color={colors.accent} glow />
+        {/* Made for you: trending YouTube music videos, straight under the Music videos card */}
+        {musicVideos.data?.length ? (
+          <View style={shelfBase}>
+            <H2 title="Made for you" action="See all" href="/videos" />
+            <Shelf
+              data={musicVideos.data}
+              itemWidth={232}
+              keyExtractor={(v) => v.id}
+              renderItem={({ item: v }) => (
+                <Tap
+                  onPress={() => router.push({ pathname: '/video-player', params: { id: v.id } })}
+                  accessibilityLabel={`Watch ${v.title} by ${v.channel}`}
+                  style={{ width: 232, gap: 8 }}
+                >
+                  <VideoThumb video={v} width={232} radius={14} />
+                  <View style={{ gap: 1 }}>
+                    <T size={14} weight={600} numberOfLines={2} lineHeight={18}>
+                      {v.title}
+                    </T>
+                    <T size={13} color={colors.textSecondary} numberOfLines={1}>
+                      {v.channel}
+                    </T>
+                  </View>
+                </Tap>
+              )}
+            />
+          </View>
+        ) : musicVideos.loading ? (
+          <Loading height={150} />
+        ) : null}
         <EntryCard title="Entertainment" subtitle="Games, audiobooks, radio, tickets" href="/entertain-hub" color={colors.orange} />
         <Row gap={12} align="stretch">
           <Tap href="/live-hub" accessibilityLabel="Live hub: listening sessions happening now" style={{ flex: 1 }}>

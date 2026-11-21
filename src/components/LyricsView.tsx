@@ -23,7 +23,7 @@ import { formatDuration, type CatalogTrack } from '../lib/catalog';
 import { getPlayPref, usePlayPref } from '../lib/play-prefs';
 import { activeLine, timedLines, transformLyrics, type LyricLine, type Lyrics, type LyricsView as LyricsMode, type LyricWord, type TimedLine } from '../lib/lyrics';
 import { seekTargetFor } from '../lib/lyrics-sync';
-import { useLoadedDuration, usePlaybackProgress, usePlayerPick } from '../state/player';
+import { useLoadedDuration, usePlaybackProgress, usePlayerPick, usePlaybackClockStore } from '../state/player';
 import { colors, fontForWeight, withAlpha, type Weight } from '../theme/tokens';
 import { Tap } from './controls';
 import { resolveFont } from './fonts';
@@ -305,6 +305,29 @@ export function LyricsView({ lines, size, compact = false, height, highlight: hi
   }, [current, follow, reduce]);
 
   useEffect(() => () => void (resumeTimer.current && clearTimeout(resumeTimer.current)), []);
+
+  // Any seek (seek bar, skip, tapping a line elsewhere) ends the "you scrolled" pause and brings the list to the
+  // line now playing. Without this the highlight moved but the list stayed put for up to 4 s after a touch.
+  const clockStore = usePlaybackClockStore();
+  useEffect(() => {
+    let last = clockStore.state().seek;
+    let settle: ReturnType<typeof setTimeout> | null = null;
+    const off = clockStore.subscribe(() => {
+      const seek = clockStore.state().seek;
+      const fresh = !!seek && seek !== last;
+      last = seek;
+      if (!fresh) return;
+      followAt.current = 0;
+      if (resumeTimer.current) clearTimeout(resumeTimer.current);
+      // `latest` updates once the new line has rendered; follow right after, also when the line didn't change.
+      if (settle) clearTimeout(settle);
+      settle = setTimeout(() => void follow(latest.current, !reduce), 60);
+    });
+    return () => {
+      off();
+      if (settle) clearTimeout(settle);
+    };
+  }, [clockStore, follow, reduce]);
 
   const pauseFollow = useCallback(() => {
     followAt.current = Date.now() + FOLLOW_PAUSE_MS;

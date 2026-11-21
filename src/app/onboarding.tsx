@@ -46,7 +46,7 @@ export default function Onboarding() {
     try {
       const mapped = [...new Set(genres.filter((x) => selected.includes(x.t)).map((x) => x.g))];
       await updateSettings({ genres: mapped });
-      router.push('/artists');
+      router.push('/languages');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save your genres');
     } finally {

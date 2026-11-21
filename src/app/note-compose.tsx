@@ -1,39 +1,143 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, TextInput, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 
-import { Cover, ErrorState, flash, Glass, Icon, ListRow, Overline, Row, Screen, ScreenHeader, SongPicker, T, Tap } from '../components';
+import { Avatar, Button, Cover, ErrorState, flash, Glass, Gradient, Icon, Overline, Row, Screen, ScreenHeader, SongPicker, T, Tap, artFor } from '../components';
 import type { CatalogTrack } from '../lib/catalog';
 import { confirmDialog } from '../lib/dialog';
 import { isLocalTrack } from '../lib/local-music';
-import { NoteFace } from '../lib/inbox-ui';
 import { ClipPicker } from '../lib/note-clip';
 import { clipLenFor, defaultClipStart, noteClip, useNotePreview } from '../lib/note-preview';
-import { deleteNote, listNotes, NOTE_MAX, noteSongLine, noteTrackOf, postNote, withClip, type NoteTrack, type UserNote } from '../lib/notes';
+import { deleteNote, listNotes, NOTE_MAX, noteTrackOf, postNote, withClip, type NoteTrack, type UserNote } from '../lib/notes';
 import { useAuth } from '../state/auth';
 import { usePlayerPick } from '../state/player';
 import { colors, fonts, radius, withAlpha } from '../theme/tokens';
 
 /**
- * Compose / edit your inbox note (Instagram Notes, MsgNoteCompose): up to 60 characters and/or a song, visible
- * to mutual followers (people you follow who follow you back) for 24 hours. Posting replaces your current
- * note (and starts its views / reactions over). Layout: close · "Your note" · Share, live preview bubble,
- * TEXT (20 / 60), SONG CLIP · 30 SECONDS (song + Change, then the always-open ClipPicker "0:42 to 1:12 ·
- * drag to pick", saved as track.clip_start / clip_len), "Visible to · Mutuals" and "Disappears · 24 h"
- * (fixed), Delete note. Opened from the "Your note" bubble / my NoteSheet in Messages
+ * Compose / edit your inbox note: up to 60 characters and/or a song, visible to mutual followers for 24 hours.
+ * Posting replaces your current note (and starts its views / reactions over). Layout: a large live preview card
+ * (avatar, speech bubble with the text and the song, "Mutuals · 24 h"), the text box with a character ring,
+ * "Add a song" (now playing / search, then the song card and the 30-second ClipPicker, saved as track.clip_start /
+ * clip_len), Delete note, and a pinned Share button. Opened from the "Your note" bubble / my NoteSheet in Messages
  * (`?fresh=1` = "New note": starts empty instead of filling in the current note).
  */
 
-/** Small pill action (Add current song / Pick a song). */
-function Pill({ icon, label, onPress, active, hint }: { icon: 'music' | 'search' | 'close'; label: string; onPress: () => void; active?: boolean; hint?: string }) {
+const AVATAR = 76;
+
+/** Ring that fills as the 60 characters are used; shows how many are left near the limit. */
+function CountRing({ count, max }: { count: number; max: number }) {
+  const size = 34;
+  const r = 14;
+  const c = 2 * Math.PI * r;
+  const over = count > max;
+  const color = over ? colors.error : count >= max - 10 ? colors.gold : colors.accent;
+  const left = max - count;
   return (
-    <Tap onPress={onPress} accessibilityLabel={label} accessibilityHint={hint} accessibilityState={active !== undefined ? { selected: active } : undefined} style={{ minHeight: 44, justifyContent: 'center' }}>
-      <Row gap={6} style={{ height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: active ? colors.text : withAlpha(colors.white, 0.1) }}>
-        <Icon name={icon} size={15} color={active ? colors.onLight : colors.text} strokeWidth={2} />
-        <T size={13} weight={600} color={active ? colors.onLight : colors.text} numberOfLines={1}>
-          {label}
+    <View accessible accessibilityLabel={`${count} of ${max} characters`} accessibilityLiveRegion={over ? 'polite' : 'none'} style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ position: 'absolute' }}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={withAlpha(colors.white, 0.14)} strokeWidth={3} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={3}
+          fill="none"
+          strokeDasharray={`${c} ${c}`}
+          strokeDashoffset={c * (1 - Math.min(1, count / max))}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      {count >= max - 10 ? (
+        <T size={11} weight={700} color={color} style={{ fontVariant: ['tabular-nums'] }}>
+          {String(left)}
         </T>
-      </Row>
+      ) : null}
+    </View>
+  );
+}
+
+/** What your note will look like: your avatar under a speech bubble holding the text and the song. */
+function PreviewCard({ name, uri, id, text, track, empty }: { name: string; uri?: string | null; id?: string; text: string | null; track: NoteTrack | null; empty: boolean }) {
+  return (
+    <View style={{ borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: colors.glassBorder }} accessible accessibilityLabel={`Preview of your note. ${text ?? ''}${track ? ` Song: ${track.title}` : ''}`}>
+      <Gradient colors={[withAlpha(colors.accent, 0.3), withAlpha(colors.white, 0.04)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+      <View style={{ alignItems: 'center', paddingTop: 22, paddingBottom: 18, paddingHorizontal: 18, gap: 12 }}>
+        <Overline color={colors.textSecondary}>Preview</Overline>
+
+        {/* Speech bubble with a small tail pointing at the avatar */}
+        <View style={{ alignItems: 'center', maxWidth: '100%' }}>
+          <View style={{ minWidth: 120, maxWidth: '100%', paddingHorizontal: 18, paddingVertical: 12, borderRadius: 24, backgroundColor: colors.glassStrong, borderWidth: 1, borderColor: colors.glassBorder, gap: 8 }}>
+            {track ? (
+              <Row gap={10}>
+                <Cover artwork={track.artwork} id={track.id} size={36} radius={10} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <T size={13} weight={700} color={colors.accentLight} numberOfLines={1}>
+                    {`♪ ${track.title}`}
+                  </T>
+                  <T size={11} color={colors.textSecondary} numberOfLines={1}>
+                    {track.artist?.name ?? ''}
+                  </T>
+                </View>
+              </Row>
+            ) : null}
+            {text || !track ? (
+              <T size={text ? 19 : 17} weight={text ? 600 : 500} lineHeight={text ? 25 : 23} align="center" color={text ? colors.text : colors.textTertiary}>
+                {text ?? 'Share a thought…'}
+              </T>
+            ) : null}
+          </View>
+          <View style={{ width: 14, height: 14, marginTop: -7, backgroundColor: colors.glassStrong, borderRightWidth: 1, borderBottomWidth: 1, borderColor: colors.glassBorder, transform: [{ rotate: '45deg' }] }} />
+        </View>
+
+        <View style={{ opacity: empty ? 0.6 : 1 }}>
+          {uri ? <Cover uri={uri} id={id} size={AVATAR} radius={AVATAR / 2} /> : <Avatar initial={(name.trim()[0] ?? '?').toUpperCase()} art={artFor(id ?? name)} size={AVATAR} ringColor={colors.bg} />}
+        </View>
+        <T size={13} weight={600} color={colors.textSecondary}>
+          Your note
+        </T>
+
+        <Row gap={8}>
+          {[
+            { icon: 'users' as const, label: 'Mutuals' },
+            { icon: 'clock' as const, label: 'Disappears in 24 h' },
+          ].map((c) => (
+            <Row key={c.label} gap={6} style={{ height: 28, paddingHorizontal: 12, borderRadius: 14, backgroundColor: withAlpha(colors.white, 0.08) }}>
+              <Icon name={c.icon} size={13} color={colors.textSecondary} glow={false} />
+              <T size={11} weight={600} color={colors.textSecondary}>
+                {c.label}
+              </T>
+            </Row>
+          ))}
+        </Row>
+      </View>
+    </View>
+  );
+}
+
+/** Big tappable card for adding a song: icon or cover, a title and one line of hint. */
+function SongAction({ icon, cover, title, sub, onPress, active, label }: { icon?: 'music' | 'search'; cover?: NoteTrack; title: string; sub: string; onPress: () => void; active?: boolean; label: string }) {
+  return (
+    <Tap onPress={onPress} accessibilityLabel={label} accessibilityState={active !== undefined ? { selected: active } : undefined} style={{ flex: 1 }}>
+      <Glass radius={20} padding={12} style={{ gap: 10, minHeight: 112, borderColor: active ? withAlpha(colors.accent, 0.7) : undefined }}>
+        {cover ? (
+          <Cover artwork={cover.artwork} id={cover.id} size={44} radius={12} />
+        ) : (
+          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={icon ?? 'music'} size={20} color={colors.text} glow={false} />
+          </View>
+        )}
+        <View style={{ gap: 1 }}>
+          <T size={14} weight={700} numberOfLines={1}>
+            {title}
+          </T>
+          <T size={12} color={colors.textSecondary} numberOfLines={1}>
+            {sub}
+          </T>
+        </View>
+      </Glass>
     </Tap>
   );
 }
@@ -138,32 +242,30 @@ export default function NoteCompose() {
     }
   };
 
-  const previewText = clean ? clean : track ? null : 'Share a thought…';
-  const counterColor = over ? colors.error : clean.length >= NOTE_MAX - 10 ? colors.gold : colors.textSecondary;
+  const previewText = clean ? clean : null;
+  const shareLabel = busy === 'share' ? 'Sharing…' : existing ? (unchanged ? 'Share again' : 'Update note') : 'Share note';
+  const showNow = !!nowTrack && !nowIsPicked && !isLocalTrack(nowTrack);
 
   return (
-    <Screen top={4} gap={16} bottom={24} backdrop={{ pattern: 'none', mesh: 'coral' }}>
-      <ScreenHeader
-        title={existing && !startEmpty ? 'Your note' : 'New note'}
-        backIcon="close"
-        right={
-          loading || loadError ? null : (
-            <Tap
-              onPress={() => void share()}
-              disabled={!canShare}
-              accessibilityLabel={busy === 'share' ? 'Sharing' : existing ? (unchanged ? 'Share again' : 'Update note') : 'Share note'}
-              accessibilityState={{ disabled: !canShare, busy: busy === 'share' }}
-              style={{ minHeight: 44, justifyContent: 'center' }}
-            >
-              <View style={{ height: 40, paddingHorizontal: 20, borderRadius: 20, justifyContent: 'center', backgroundColor: canShare ? colors.accent : withAlpha(colors.white, 0.1) }}>
-                <T size={14} weight={700} color={canShare ? colors.onAccent : colors.textTertiary}>
-                  {busy === 'share' ? 'Sharing…' : 'Share'}
-                </T>
-              </View>
-            </Tap>
-          )
-        }
-      />
+    <Screen
+      top={4}
+      gap={18}
+      bottom={16}
+      backdrop={{ pattern: 'none', mesh: 'coral' }}
+      footer={
+        loading || loadError ? undefined : (
+          <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 8 }}>
+            {error ? (
+              <T size={13} color={colors.error} align="center" accessibilityLiveRegion="polite">
+                {error}
+              </T>
+            ) : null}
+            <Button label={shareLabel} height={52} variant={canShare ? 'primary' : 'disabled'} onPress={canShare ? () => void share() : undefined} />
+          </View>
+        )
+      }
+    >
+      <ScreenHeader title={existing && !startEmpty ? 'Edit note' : 'New note'} backIcon="close" />
 
       {loading ? (
         <View style={{ height: 200, alignItems: 'center', justifyContent: 'center' }} accessibilityRole="progressbar" accessibilityLabel="Loading your note">
@@ -173,56 +275,62 @@ export default function NoteCompose() {
         <ErrorState message={loadError} onRetry={retry} />
       ) : (
         <>
-          {/* Live preview, like the inbox strip. */}
-          <View style={{ alignItems: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <NoteFace id={me} name={profile?.display_name ?? 'You'} uri={profile?.avatar_url} note={previewText} song={track?.title} songLine={noteSongLine(track)} add={empty} muted={empty} caption="Your note" accessibilityLabel="Preview" />
+          <PreviewCard name={profile?.display_name ?? 'You'} uri={profile?.avatar_url} id={me} text={previewText} track={track} empty={empty} />
+
+          {/* Text */}
+          <View style={{ gap: 8 }}>
+            <Overline color={colors.textSecondary}>{'What’s on your mind'}</Overline>
+            <Glass radius={22} padding={0} style={{ paddingLeft: 16, paddingRight: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1.5, borderColor: over ? colors.error : withAlpha(colors.accent, 0.55) }}>
+              <TextInput
+                value={text}
+                onChangeText={(v) => {
+                  setText(v.replace(/[\r\n]+/g, ' '));
+                  setError(null);
+                }}
+                placeholder="Share a thought…"
+                placeholderTextColor={colors.textTertiary}
+                maxLength={NOTE_MAX + 20}
+                multiline
+                blurOnSubmit
+                returnKeyType="done"
+                accessibilityLabel="Note text"
+                accessibilityHint={`Up to ${NOTE_MAX} characters`}
+                style={{ flex: 1, minHeight: 28, color: colors.text, fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, textAlignVertical: 'top', padding: 0 }}
+              />
+              <CountRing count={clean.length} max={NOTE_MAX} />
+            </Glass>
           </View>
 
-          <View style={{ paddingHorizontal: 4 }}>
-            <Overline color={colors.textSecondary}>Text</Overline>
-          </View>
-          <Glass radius={32} padding={0} style={{ paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'flex-end', gap: 10, borderWidth: 1.5, borderColor: over ? colors.error : withAlpha(colors.accent, 0.6) }}>
-            <TextInput
-              value={text}
-              onChangeText={(v) => {
-                setText(v.replace(/[\r\n]+/g, ' '));
-                setError(null);
-              }}
-              placeholder="Share a thought…"
-              placeholderTextColor={colors.textTertiary}
-              maxLength={NOTE_MAX + 20}
-              multiline
-              blurOnSubmit
-              returnKeyType="done"
-              accessibilityLabel="Note text"
-              accessibilityHint={`Up to ${NOTE_MAX} characters`}
-              style={{ flex: 1, minHeight: 30, color: colors.text, fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, textAlignVertical: 'top', padding: 0 }}
-            />
-            <T size={12} weight={600} color={counterColor} accessibilityLabel={`${clean.length} of ${NOTE_MAX} characters`} accessibilityLiveRegion={over ? 'polite' : 'none'} style={{ fontVariant: ['tabular-nums'] }}>
-              {clean.length} / {NOTE_MAX}
-            </T>
-          </Glass>
-
+          {/* Song */}
           <View style={{ gap: 10 }}>
-            <View style={{ paddingHorizontal: 4 }}>
-              <Overline color={colors.textSecondary}>{clip && clip.len < 30 ? 'Song clip · whole song' : 'Song clip · 30 seconds'}</Overline>
-            </View>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Overline color={colors.textSecondary}>Add a song</Overline>
+              <T size={12} color={colors.textSecondary}>
+                {clip && clip.len < 30 ? 'Whole song' : '30-second clip'}
+              </T>
+            </Row>
+
             {track ? (
-              <Glass radius={22} padding={10} style={{ gap: 12 }}>
+              <Glass radius={22} padding={12} style={{ gap: 12 }}>
                 <Row gap={12}>
-                  <Cover artwork={track.artwork} id={track.id} size={48} radius={22} />
+                  <Cover artwork={track.artwork} id={track.id} size={60} radius={14} />
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <T size={15} weight={600} numberOfLines={1}>
+                    <T size={16} weight={700} numberOfLines={1}>
                       {track.title}
                     </T>
                     <T size={13} color={colors.textSecondary} numberOfLines={1}>
                       {track.artist?.name ?? ''}
                     </T>
                   </View>
-                  <Tap onPress={() => setPicking((p) => !p)} accessibilityLabel={`Change song, ${track.title}`} accessibilityState={{ expanded: picking }} style={{ minHeight: 44, paddingHorizontal: 6, justifyContent: 'center' }}>
-                    <T size={12} weight={700} color={colors.accentLight}>
-                      Change
-                    </T>
+                </Row>
+                <Row gap={8}>
+                  <Tap onPress={() => setPicking((p) => !p)} accessibilityLabel={`Change song, ${track.title}`} accessibilityState={{ expanded: picking }} style={{ flex: 1 }}>
+                    <Row gap={6} style={{ height: 40, borderRadius: 20, justifyContent: 'center', backgroundColor: withAlpha(colors.white, 0.1) }}>
+                      <Icon name="search" size={15} color={colors.text} glow={false} />
+                      <T size={13} weight={600}>
+                        Change
+                      </T>
+                    </Row>
                   </Tap>
                   <Tap
                     onPress={() => {
@@ -230,37 +338,39 @@ export default function NoteCompose() {
                       setTrack(null);
                     }}
                     accessibilityLabel={`Remove ${track.title} from note`}
-                    style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+                    style={{ flex: 1 }}
                   >
-                    <Icon name="close" size={18} color={colors.textSecondary} />
+                    <Row gap={6} style={{ height: 40, borderRadius: 20, justifyContent: 'center', backgroundColor: withAlpha(colors.white, 0.06), borderWidth: 1, borderColor: colors.glassBorder }}>
+                      <Icon name="close" size={15} color={colors.textSecondary} glow={false} />
+                      <T size={13} weight={600} color={colors.textSecondary}>
+                        Remove
+                      </T>
+                    </Row>
                   </Tap>
                 </Row>
               </Glass>
-            ) : null}
-            {track ? <ClipPicker key={track.id} track={track} preview={preview} onChange={changeClip} /> : null}
-            {!track || (nowTrack && !nowIsPicked && !isLocalTrack(nowTrack)) ? (
-              <Row gap={8} style={{ flexWrap: 'wrap' }}>
-                {nowTrack && !nowIsPicked && !isLocalTrack(nowTrack) ? <Pill icon="music" label="Add current song" hint={`${nowTrack.title}`} onPress={() => pickSong(nowTrack)} /> : null}
-                {!track ? <Pill icon="search" label="Pick a song" active={picking} onPress={() => setPicking((p) => !p)} /> : null}
+            ) : (
+              <Row gap={10} align="stretch">
+                {showNow && nowTrack ? <SongAction cover={nowTrack} title="Now playing" sub={nowTrack.title} label={`Add current song, ${nowTrack.title}`} onPress={() => pickSong(nowTrack)} /> : null}
+                <SongAction icon="search" title="Search songs" sub="Pick any song" active={picking} label="Pick a song" onPress={() => setPicking((p) => !p)} />
               </Row>
+            )}
+
+            {track ? <ClipPicker key={track.id} track={track} preview={preview} onChange={changeClip} /> : null}
+            {track && showNow && nowTrack ? (
+              <Tap onPress={() => pickSong(nowTrack)} accessibilityLabel={`Use the current song instead, ${nowTrack.title}`} style={{ minHeight: 44, justifyContent: 'center' }}>
+                <T size={13} weight={600} color={colors.accentLight}>
+                  Use the song playing now instead
+                </T>
+              </Tap>
             ) : null}
+
             {picking ? (
               <Glass radius={radius.card} padding={12} style={{ gap: 10 }}>
                 <SongPicker onPick={pickSong} selectedId={track?.id ?? null} maxHeight={320} />
               </Glass>
             ) : null}
           </View>
-
-          {error ? (
-            <T size={13} color={colors.error} accessibilityLiveRegion="polite">
-              {error}
-            </T>
-          ) : null}
-
-          <Glass radius={36} padding={0} style={{ paddingHorizontal: 4, paddingVertical: 4 }}>
-            <ListRow title="Visible to" subtitle="Friends who follow each other" icon="users" right={<T size={13} color={colors.textSecondary}>Mutuals</T>} />
-            <ListRow title="Disappears" subtitle="After 24 hours" icon="clock" divider right={<T size={13} color={colors.textSecondary}>24 h</T>} />
-          </Glass>
 
           {existing ? (
             <Tap
@@ -275,7 +385,6 @@ export default function NoteCompose() {
               </T>
             </Tap>
           ) : null}
-
         </>
       )}
     </Screen>

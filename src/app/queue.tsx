@@ -2,8 +2,9 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Cover, EmptyState, Glass, Icon, IconButton, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle } from '../components';
+import { Button, Cover, isWideThumb, wideWidth, EmptyState, Glass, Icon, IconButton, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle } from '../components';
 import { EqBars } from '../components/art-fx';
+import { LiveSeekBar, TransportControls } from '../components/PlayerControls';
 import { catalog, formatDuration } from '../lib/catalog';
 import { usePlayPref } from '../lib/play-prefs';
 import { useLibrary } from '../state/library';
@@ -78,10 +79,15 @@ export default function Queue() {
       gap={14}
       swipeDown="top"
       footer={
-        <Row gap={10}>
-          <Button variant="glass" icon="plus" label={busy === 'save' ? 'Saving…' : 'Save as playlist'} height={50} style={{ flex: 1 }} onPress={saveAsPlaylist} />
-          <Button icon="bolt" label={busy === 'similar' ? 'Finding…' : 'Add similar'} height={50} style={{ flex: 1 }} onPress={addSimilar} />
-        </Row>
+        <View style={{ paddingHorizontal: 16, gap: 10 }}>
+          {/* Same controls as Now Playing: seek bar (tap or drag) and shuffle / previous / play / next / repeat */}
+          <LiveSeekBar />
+          <TransportControls />
+          <Row gap={10}>
+            <Button variant="glass" icon="plus" label={busy === 'save' ? 'Saving…' : 'Save as playlist'} height={50} style={{ flex: 1 }} onPress={saveAsPlaylist} />
+            <Button icon="bolt" label={busy === 'similar' ? 'Finding…' : 'Add similar'} height={50} style={{ flex: 1 }} onPress={addSimilar} />
+          </Row>
+        </View>
       }
     >
       <Row gap={10} style={{ minHeight: 44 }}>
@@ -107,7 +113,7 @@ export default function Queue() {
       <View style={{ borderRadius: 26, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.accent, 0.5) }}>
         <LinearGradient colors={[withAlpha(colors.accent, 0.34), 'rgba(20,20,20,0.6)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ padding: 12 }}>
           <Row gap={12}>
-            <Cover artwork={track.artwork} id={track.id} size={56} radius={28} />
+            <Cover artwork={track.artwork} id={track.id} size={64} width={isWideThumb(track.artwork?.small) ? wideWidth(64) : 64} height={64} radius={isWideThumb(track.artwork?.small) ? 14 : 32} />
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
               <T size={10} weight={700} tracking={1.4} color={colors.gold}>
                 NOW PLAYING
@@ -142,7 +148,7 @@ export default function Queue() {
           upNext.map(({ t, i }, n) => (
             <Row key={`${t.id}-${i}`} gap={4} style={{ minHeight: 68, borderTopWidth: n ? 1 : 0, borderTopColor: withAlpha(colors.white, 0.07) }}>
               <Tap onPress={() => skipTo(i)} accessibilityLabel={`Play ${t.title} by ${t.artist.name}`} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingHorizontal: 4 }}>
-                <Cover artwork={t.artwork} id={t.id} size={48} radius={22} />
+                <Cover artwork={t.artwork} id={t.id} size={48} width={isWideThumb(t.artwork?.small) ? wideWidth(48) : 48} height={48} radius={isWideThumb(t.artwork?.small) ? 10 : 22} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <T size={15} weight={600} numberOfLines={1}>
                     {t.title}

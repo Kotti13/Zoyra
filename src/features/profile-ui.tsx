@@ -153,7 +153,7 @@ export function ProfileHero({
   );
   return (
     <View style={{ marginBottom: avatarSize / 2 - 8 }}>
-      <ProfileBanner banner={custom.banner_art} height={height} />
+      <ProfileBanner banner={custom.banner_art} uri={custom.banner_url} height={height} />
       <Row style={{ position: 'absolute', top: 12, left: 12, right: 12, justifyContent: 'space-between' }}>
         <View>{left}</View>
         <Row gap={8}>{right}</Row>

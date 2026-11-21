@@ -116,6 +116,68 @@ export const art = {
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type ArtName = keyof typeof art;
+
+/* ------------------------------------------------------------------ runtime theming */
+
+/** The six accents offered on Display and theme. Anything else saved (e.g. the old DB default) is ignored. */
+export const ACCENT_PRESETS = ['#FA2D48', '#FF6F91', '#FF6B81', '#FDCB6E', '#74B9FF', '#00B894'] as const;
+
+const mutableColors = colors as unknown as Record<string, string>;
+const mutableArt = art as unknown as Record<string, readonly string[]>;
+const BASE_COLORS: Record<string, string> = { ...colors };
+const BASE_ART: Record<string, readonly string[]> = Object.fromEntries(Object.entries(art).map(([k, v]) => [k, [...v]]));
+
+/** Blend `hex` toward `to` by `t` (0..1). */
+function mix(hex: string, to: string, t: number): string {
+  const a = parseInt(hex.slice(1), 16);
+  const b = parseInt(to.slice(1), 16);
+  const ch = (shift: number) => Math.round(((a >> shift) & 255) * (1 - t) + ((b >> shift) & 255) * t);
+  return `#${((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1).toUpperCase()}`;
+}
+
+/**
+ * Re-point the shared `colors` / `art` objects at the chosen theme + accent (mutates them in place, so every
+ * file that reads `colors.x` while rendering picks it up). Supports `dark` (default) and `black` (AMOLED);
+ * `light` / `auto` keep the dark palette for now. Returns a key that changes whenever the palette does, so the
+ * caller can remount the tree. Not reactive by itself: components must re-render after it runs.
+ */
+export function applyPalette(mode: string | null | undefined, accent: string | null | undefined): string {
+  Object.assign(mutableColors, BASE_COLORS);
+  for (const k of Object.keys(BASE_ART)) mutableArt[k] = BASE_ART[k];
+
+  const black = mode === 'black';
+  if (black) {
+    Object.assign(mutableColors, {
+      bg: '#000000',
+      bgSecondary: '#0A0A0A',
+      bgTertiary: '#101010',
+      surface: '#121212',
+      surfaceElevated: '#1E1E1E',
+      surface1: '#0A0A0A',
+      surface2: '#101010',
+      surface3: '#121212',
+      surface4: '#1E1E1E',
+      playerBg: '#000000',
+      track: '#1E1E1E',
+      border: '#1E1E1E',
+    });
+  }
+
+  const hex = ACCENT_PRESETS.find((a) => a.toLowerCase() === (accent ?? '').toLowerCase());
+  if (hex && hex !== ACCENT_PRESETS[0]) {
+    Object.assign(mutableColors, {
+      accent: hex,
+      red: hex,
+      accentLight: mix(hex, '#FFFFFF', 0.4),
+      accentDark: mix(hex, '#000000', 0.55),
+      accentTint: withAlpha(hex, 0.18),
+      glassTint: withAlpha(hex, 0.05),
+    });
+    const deep = mix(hex, '#000000', 0.77);
+    for (const k of ['coral', 'cyan', 'red']) mutableArt[k] = [hex, deep];
+  }
+  return `${black ? 'black' : 'dark'}:${hex ?? 'default'}`;
+}
 export const artCycle: ArtName[] = ['red', 'orange', 'rose', 'amber', 'blue', 'green'];
 
 /** Multi-stop vertical backgrounds (player, lyrics, vinyl). */

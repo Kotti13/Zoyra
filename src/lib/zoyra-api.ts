@@ -37,7 +37,9 @@ export const isZoyraId = (id: string | undefined | null): id is string => !!id &
 export const isZoyraArtistId = (id: string | undefined | null): id is string => !!id && id.startsWith(ARTIST_PREFIX);
 
 const videoId = (trackId: string) => trackId.slice(TRACK_PREFIX.length);
-const artistName = (artistId: string) => artistId.slice(ARTIST_PREFIX.length);
+/** YouTube auto-generated artist channels are named "Artist - Topic"; the real name is what artist lookups need. */
+export const cleanArtistName = (n: string) => n.replace(/\s*-\s*Topic\s*$/i, '').trim();
+const artistName = (artistId: string) => cleanArtistName(artistId.slice(ARTIST_PREFIX.length));
 
 type ApiSong = {
   id: string;
@@ -106,26 +108,59 @@ export class ZoyraNotFound extends Error {
   }
 }
 
-/** YouTube thumbnails come in fixed sizes under the same path. */
+/**
+ * YouTube thumbnails come in fixed sizes under the same path. All three are true 16:9 (no baked-in black bars,
+ * unlike hqdefault): mqdefault is 320x180, hq720 is 1280x720. hq720 is missing on some old videos; Cover falls
+ * back to mqdefault when it fails to load.
+ */
 const thumbs = (id: string) => ({
   small: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
-  medium: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-  // hq720 is true 16:9 (hqdefault has black bars top and bottom, which show on big covers).
+  medium: `https://i.ytimg.com/vi/${id}/hq720.jpg`,
   large: `https://i.ytimg.com/vi/${id}/hq720.jpg`,
 });
 
+/** Square album art from YouTube Music (…googleusercontent.com/…=w544-h544…): ask for a size that fits each slot. */
+const albumArt = (url: string | null | undefined) => {
+  if (!url || !/^https:\/\/[^/]*googleusercontent\.com\//.test(url) || !/=w\d+-h\d+/.test(url)) return null;
+  const at = (px: number) => url.replace(/=w\d+-h\d+/, `=w${px}-h${px}`);
+  return { small: at(226), medium: at(544), large: at(1080) };
+};
+
 function toTrack(s: ApiSong): CatalogTrack {
-  const name = s.artist?.trim() || 'Unknown artist';
+  const name = cleanArtistName(s.artist?.trim() || '') || 'Unknown artist';
   return {
     id: TRACK_PREFIX + s.id,
     streamUrl: zoyra.streamUrl(TRACK_PREFIX + s.id),
     title: s.title ?? 'Untitled',
     artist: { id: ARTIST_PREFIX + name, name, handle: name, verified: false },
     duration: s.duration ?? 0,
-    artwork: thumbs(s.id),
+    // Songs have square album art; plain videos fall back to the 16:9 video thumbnail.
+    artwork: albumArt(s.thumbnail) ?? thumbs(s.id),
     plays: s.views ?? 0,
     likes: 0,
     url: `https://www.youtube.com/watch?v=${s.id}`,
+  };
+}
+
+type ApiLink = { key: string; label: string; url: string; detail: string };
+type ApiArtist = { name: string; image?: string | null; banner?: string | null; description?: string | null; verified?: boolean; links?: ApiLink[] };
+
+/** Same picture at another size: YouTube image URLs carry the size in the tail (`=s160-…` or `=w120-h120-…`). */
+const sized = (url: string, px: number) => url.replace(/=w\d+-h\d+(?=-|$)/, `=w${px}-h${px}`).replace(/=s\d+(?=-|$)/, `=s${px}`);
+
+function toArtist(a: ApiArtist): Artist {
+  const name = a.name.trim();
+  const img = a.image && /^https:\/\//.test(a.image) ? a.image : null;
+  return {
+    id: ARTIST_PREFIX + name,
+    name,
+    handle: name,
+    verified: a.verified === true,
+    // YouTube's subscriber/audience figure for artists is not a follower count, so it is not shown as one.
+    followers: 0,
+    bio: a.description?.trim() || undefined,
+    image: img ? { small: sized(img, 160), medium: sized(img, 400), large: sized(img, 800) } : {},
+    cover: a.banner && /^https:\/\//.test(a.banner) ? a.banner : undefined,
   };
 }
 
@@ -167,15 +202,73 @@ export const zoyra = {
     return tracks;
   },
 
+  /** Search-as-you-type suggestions (YouTube's, via the backend). Empty when the backend is off or down. */
+  async suggest(query: string): Promise<string[]> {
+    const q = query.trim().slice(0, 100);
+    if (!q) return [];
+    const res = await get<{ suggestions?: string[] }>('/api/suggest', { q });
+    return (res.suggestions ?? []).filter((x) => typeof x === 'string' && x.trim()).slice(0, 10);
+  },
+
   async track(trackId: string): Promise<CatalogTrack> {
     const s = await get<ApiSong>(`/api/song/${videoId(trackId)}`);
     return toTrack({ ...s, id: videoId(trackId) });
   },
 
-  /** No artist pages on YouTube search; build a minimal artist from the name in the id. */
-  artist(artistId: string): Artist {
+  /** Artist page data (picture, banner, bio) from the backend; a bare artist built from the name when it is unavailable. */
+  async artist(artistId: string): Promise<Artist> {
     const name = artistName(artistId);
+    // One retry: a single slow or dropped call must not leave the page without picture and banner for the session.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const a = await get<ApiArtist>('/api/artist', { name });
+        return { ...toArtist(a), id: artistId };
+      } catch (e) {
+        if (e instanceof ZoyraNotFound) break;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 600));
+      }
+    }
     return { id: artistId, name, handle: name, verified: false, followers: 0, image: {} };
+  },
+
+  /** The artist's own links (tips, website, socials, channel) from their YouTube channel, for the Support screen. */
+  async artistLinks(artistId: string): Promise<{ name: string; image: string | null; links: ApiLink[] }> {
+    const a = await get<ApiArtist>('/api/artist', { name: artistName(artistId) });
+    const art = toArtist(a);
+    return { name: art.name, image: art.image.medium ?? art.image.small ?? null, links: (a.links ?? []).filter((l) => /^https:\/\//.test(l.url)) };
+  },
+
+  /** One artist's picture (best name match), or null. Cached by the request layer and the backend. */
+  async artistImage(name: string): Promise<string | null> {
+    const n = cleanArtistName(name);
+    if (n.length < 2) return null;
+    const found = await zoyra.searchArtists(n, 3);
+    const hit = found.find((a) => a.name.toLowerCase() === n.toLowerCase()) ?? found[0];
+    return hit?.image.medium ?? hit?.image.small ?? null;
+  },
+
+  /**
+   * Fill in missing pictures on YouTube artists (e.g. Profile's top artists, built from play history that never
+   * stored one). Fills as lookups land and gives up after `waitMs`, so a slow backend never holds a screen back.
+   */
+  async attachArtistImages<T extends { id?: string; name: string; image?: string | null }>(list: T[], waitMs = 3500): Promise<void> {
+    if (!zoyraEnabled || zoyraDown()) return;
+    const todo = list.filter((a) => !a.image && (isZoyraArtistId(a.id) || !a.id));
+    if (!todo.length) return;
+    const work = Promise.allSettled(
+      todo.map(async (a) => {
+        const img = await zoyra.artistImage(a.name);
+        if (img) a.image = img;
+      }),
+    );
+    await Promise.race([work, new Promise((r) => setTimeout(r, waitMs))]);
+  },
+
+  /** Artist search with real pictures (YouTube Music artists). */
+  async searchArtists(query: string, limit = 10): Promise<Artist[]> {
+    if (!query.trim()) return [];
+    const res = await get<{ results: ApiArtist[] }>('/api/artists', { q: query.trim(), limit });
+    return res.results.filter((a) => a.name?.trim()).map(toArtist);
   },
 
   /** "Artist tracks" = song search by the artist/channel name. */
@@ -185,6 +278,20 @@ export const zoyra = {
 
   streamUrl(trackId: string) {
     return withKey(`${API}/api/stream/${videoId(trackId)}`);
+  },
+
+  /**
+   * The song's official music video (YouTube id), or null when there is none. The song plays from an auto-generated
+   * audio upload whose "video" is only the album cover, so the real video is looked up separately.
+   */
+  async musicVideoId(track: Pick<CatalogTrack, 'title' | 'duration'> & { artist: { name: string } }): Promise<string | null> {
+    try {
+      const res = await get<{ id: string }>('/api/musicvideo', { title: track.title, artist: track.artist.name, duration: track.duration ? Math.round(track.duration) : undefined });
+      return res.id || null;
+    } catch (e) {
+      if (e instanceof ZoyraNotFound) return null;
+      throw e;
+    }
   },
 
   /** mp3 converted on the server (slower to start than streaming, but a real .mp3 file). */

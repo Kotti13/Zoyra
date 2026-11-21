@@ -1,4 +1,5 @@
 import type { CatalogTrack } from './catalog';
+import { zoyra } from './zoyra-api';
 import { CUSTOM_COLS, parseCustom, type ProfileCustom } from './profile-custom';
 import { supabase } from './supabase';
 
@@ -84,12 +85,15 @@ export async function loadOverview(uid: string): Promise<Overview> {
   }
   const lastRow = (last.data?.[0] ?? null) as { played_at: string; track: CatalogTrack } | null;
 
+  // Plays of YouTube songs never stored an artist picture: look the missing ones up (bounded wait).
+  const topArtists = [...month.values()].sort((a, b) => b.plays - a.plays).slice(0, 10);
+  await zoyra.attachArtistImages(topArtists);
   return {
     followers: followers.count ?? 0,
     following: following.count ?? 0,
     plays: total.count ?? 0,
     streak: Number(streak.data) || 0,
-    topArtists: [...month.values()].sort((a, b) => b.plays - a.plays).slice(0, 10),
+    topArtists,
     last: lastRow?.track?.id ? lastRow : null,
   };
 }
