@@ -22,6 +22,7 @@ import {
   Row,
   Screen,
   SectionHeader,
+  SkeletonRows,
   Sticker,
   T,
   Tap,
@@ -219,7 +220,14 @@ export default function Search() {
   const uid = user?.id;
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('All');
-  const debounced = useDebounced(query.trim(), 300);
+  // `committed` is the query whose results are on screen. Typing only updates `query` and shows suggestions;
+  // submitting, tapping a suggestion / recent / trending search, voice or a QR code commits it.
+  const [committed, setCommitted] = useState('');
+  const suggestFor = useDebounced(query.trim(), 200);
+  const run = (q: string) => {
+    setQuery(q);
+    setCommitted(q.trim());
+  };
   const f = useSearchFilters();
   const { note, show } = useNote();
   const [scanning, setScanning] = useState(false);
@@ -236,13 +244,13 @@ export default function Search() {
     if (!code) return false;
     setScanning(false);
     if (code.kind === 'route') router.push(code.path as Href);
-    else setQuery(code.query);
+    else run(code.query);
     return true;
   };
 
   /* ---------------- recent searches (search_history) */
   const [recentRows, setRecent] = useState<string[]>([]);
-  const recent = uid ? recentRows : [];
+  const recent = useMemo(() => (uid ? recentRows : []), [uid, recentRows]);
   const loadRecent = useCallback(() => {
     if (!uid) return Promise.resolve();
     return fetchRecent(uid)
@@ -304,7 +312,7 @@ export default function Search() {
   const voiceSearch = useVoiceSearch({
     onPartial: setQuery,
     onFinal: (text) => {
-      setQuery(text);
+      run(text);
       saveQuery(text);
     },
     onBeforeStart: () => {
@@ -318,22 +326,36 @@ export default function Search() {
 
   /* ---------------- results */
   const singleGenre = f.genres.length === 1 ? f.genres[0] : undefined;
-  const results = useAsync<Results | null>(async () => {
-    if (!debounced) return null;
-    if (filter === 'Podcasts') {
-      const tracks = await catalog.searchTracks(debounced, { genre: 'Podcasts', limit: 40 });
-      return { tracks, artists: [], collections: [] };
-    }
-    const wantTracks = filter === 'All' || filter === 'Songs';
-    const wantArtists = filter === 'All' || filter === 'Artists';
-    const wantCollections = filter === 'All' || filter === 'Albums' || filter === 'Playlists';
-    const [tracks, artists, collections] = await Promise.all([
-      wantTracks ? catalog.searchTracks(debounced, { genre: singleGenre, limit: filter === 'All' ? 25 : 40 }) : Promise.resolve([]),
-      wantArtists ? catalog.searchArtists(debounced, filter === 'All' ? 5 : 20) : Promise.resolve([]),
-      wantCollections ? catalog.searchCollections(debounced, filter === 'All' ? 10 : 25) : Promise.resolve([]),
-    ]);
-    return { tracks, artists, collections };
-  }, [debounced, filter, singleGenre], 'app/(tabs)/search:318');
+  // Songs come from the fast backend, artists/albums from Audius (about a second slower). They load separately so the
+  // songs show the moment they arrive instead of waiting for the slowest of the three; the others fill in after.
+  const podcasts = filter === 'Podcasts';
+  const wantTracks = filter === 'All' || filter === 'Songs' || podcasts;
+  const wantArtists = filter === 'All' || filter === 'Artists';
+  const wantCollections = filter === 'All' || filter === 'Albums' || filter === 'Playlists';
+  const trackRes = useAsync<CatalogTrack[]>(
+    async () => (!committed || !wantTracks ? [] : catalog.searchTracks(committed, podcasts ? { genre: 'Podcasts', limit: 40 } : { genre: singleGenre, limit: filter === 'All' ? 20 : 50 })),
+    [committed, filter, singleGenre],
+    'app/(tabs)/search:tracks',
+  );
+  // Secondary sections never block or fail the screen: a slow or failed lookup just leaves them out.
+  const artistRes = useAsync<Artist[]>(async () => (!committed || !wantArtists ? [] : catalog.searchArtists(committed, filter === 'All' ? 5 : 20).catch(() => [] as Artist[])), [committed, filter], 'app/(tabs)/search:artists');
+  const collRes = useAsync<Collection[]>(async () => (!committed || !wantCollections ? [] : catalog.searchCollections(committed, filter === 'All' ? 10 : 25).catch(() => [] as Collection[])), [committed, filter], 'app/(tabs)/search:collections');
+  const anyLoading = trackRes.loading || artistRes.loading || collRes.loading;
+  const hasAny = !!(trackRes.data?.length || artistRes.data?.length || collRes.data?.length);
+  const resultsData = useMemo(
+    () => (committed ? ({ tracks: trackRes.data ?? [], artists: artistRes.data ?? [], collections: collRes.data ?? [] } satisfies Results) : null),
+    [committed, trackRes.data, artistRes.data, collRes.data],
+  );
+  const results = {
+    data: resultsData,
+    // Songs are the main result and sit at the top: hold the screen (skeleton rows) until they have arrived, so artists
+    // and albums can never show first and then get pushed down when the songs land. They fill in below afterwards.
+    loading: (wantTracks && trackRes.loading) || (anyLoading && !hasAny),
+    settled: !anyLoading,
+    error: trackRes.error,
+    reload: () => Promise.all([trackRes.reload(), artistRes.reload(), collRes.reload()]).then(() => undefined),
+    refresh: () => Promise.all([trackRes.refresh(), artistRes.refresh(), collRes.refresh()]).then(() => undefined),
+  };
 
   // Content controls: hidden songs/artists and (kid-safe) explicit songs stay out of results.
   const { filter: hideFilter, hiddenArtists } = useContentFilter();
@@ -344,14 +366,14 @@ export default function Search() {
     const tracks = applyTrackFilters(hideFilter(r.tracks), f);
     const collections = r.collections.filter((c) => (filter === 'Albums' ? c.isAlbum : filter === 'Playlists' ? !c.isAlbum : true));
     return {
-      tracks: filter === 'All' ? tracks.slice(0, 6) : tracks,
+      tracks: filter === 'All' ? tracks.slice(0, 12) : tracks,
       artists: r.artists.filter((a) => !hiddenArtists.has(a.id)),
       collections: filter === 'All' ? collections.slice(0, 5) : collections,
     };
   }, [results.data, f, filter, hideFilter, hiddenArtists]);
 
   /* Pull to refresh: results (when searching), else trending + recent searches. */
-  const refresh = () => (debounced ? results.refresh() : Promise.all([trending.refresh(), loadRecent()]));
+  const refresh = () => (committed ? results.refresh() : Promise.all([trending.refresh(), loadRecent()]));
 
   const openArtist = (a: Artist) => {
     saveQuery(query);
@@ -368,7 +390,27 @@ export default function Search() {
   const filtersOn = searchFilters.isActive(f);
   const { width: winW } = useWindowDimensions();
   const tileW = Math.floor((winW - APPLE.side * 2 - APPLE.gap) / 2);
-  const empty = shown && !shown.tracks.length && !shown.artists.length && !shown.collections.length;
+  // Suggestions: your recent searches that match first (instant), then YouTube's, no duplicates.
+  const typing = !!query.trim() && query.trim() !== committed;
+  const remote = useAsync(() => (suggestFor ? catalog.suggest(suggestFor) : Promise.resolve([] as string[])), [suggestFor], 'app/(tabs)/search:suggest');
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const seen = new Set<string>();
+    const out: { text: string; recent: boolean }[] = [];
+    for (const r of recent) {
+      if (!r.toLowerCase().includes(q) || seen.has(r.toLowerCase())) continue;
+      seen.add(r.toLowerCase());
+      out.push({ text: r, recent: true });
+    }
+    for (const x of remote.data ?? []) {
+      if (seen.has(x.toLowerCase())) continue;
+      seen.add(x.toLowerCase());
+      out.push({ text: x, recent: false });
+    }
+    return out.slice(0, 10);
+  }, [query, recent, remote.data]);
+  const empty = shown && results.settled && !shown.tracks.length && !shown.artists.length && !shown.collections.length;
 
   return (
     <Screen tabbed gap={APPLE.section - 8} backdrop={{ pattern: 'lines', mesh: 'amber' }} onRefresh={refresh}>
@@ -380,8 +422,14 @@ export default function Search() {
         <TextInput
           accessibilityLabel="Search"
           value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={() => saveQuery(query)}
+          onChangeText={(t) => {
+            setQuery(t);
+            if (!t.trim()) setCommitted('');
+          }}
+          onSubmitEditing={() => {
+            run(query);
+            saveQuery(query);
+          }}
           placeholder="Artists, songs, lyrics and more"
           placeholderTextColor={colors.textTertiary}
           returnKeyType="search"
@@ -389,7 +437,7 @@ export default function Search() {
           style={{ flex: 1, minWidth: 0, height: 44, color: colors.text, fontFamily: fonts.regular, fontSize: 16 }}
         />
         {query ? (
-          <IconButton icon="close" label="Clear search" iconSize={18} color={colors.textSecondary} onPress={() => setQuery('')} />
+          <IconButton icon="close" label="Clear search" iconSize={18} color={colors.textSecondary} onPress={() => run('')} />
         ) : (
           <IconButton icon="qr" label="Scan QR code" onPress={() => setScanning(true)} />
         )}
@@ -420,9 +468,35 @@ export default function Search() {
 
       <ChipRow options={[...filters]} onChange={(i) => setFilter(filters[i])} />
 
-      {debounced ? null : <VideoEntryCard title="Browse videos" subtitle="Music videos, live sets and shorts" />}
+      {committed || typing ? null : <VideoEntryCard title="Browse videos" subtitle="Music videos, live sets and shorts" />}
 
-      {debounced ? (
+      {typing ? (
+        /* ---------------- suggestions while typing */
+        <View accessibilityLabel="Search suggestions">
+          {/* The typed text itself is always the first row, so Enter-less users can search it. */}
+          <Tap accessibilityLabel={`Search for ${query.trim()}`} onPress={() => { run(query); saveQuery(query); }} style={{ minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Icon name="search" size={20} color={colors.accent} />
+            <T size={16} weight={600} style={{ flex: 1 }} numberOfLines={1}>
+              {`Search "${query.trim()}"`}
+            </T>
+          </Tap>
+          {suggestions.map((sg) => (
+            <View key={sg.text} style={{ borderTopWidth: 1, borderTopColor: colors.divider }}>
+              <Row style={{ minHeight: 52 }}>
+                <Tap accessibilityLabel={`Search ${sg.text}`} onPress={() => { run(sg.text); saveQuery(sg.text); }} style={{ flex: 1, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Icon name={sg.recent ? 'clock' : 'search'} size={20} color={colors.textSecondary} />
+                  <T size={16} style={{ flex: 1 }} numberOfLines={1}>
+                    {sg.text}
+                  </T>
+                </Tap>
+                {/* Put the suggestion in the field to refine it without searching yet. */}
+                <IconButton icon="chevronRight" label={`Use ${sg.text} in the search field`} iconSize={18} color={colors.textSecondary} onPress={() => setQuery(sg.text)} />
+              </Row>
+            </View>
+          ))}
+          {remote.loading && !suggestions.length ? <Loading height={60} /> : null}
+        </View>
+      ) : committed ? (
         /* ---------------- results */
         <View style={{ gap: 8 }}>
           <Row style={{ justifyContent: 'space-between' }}>
@@ -435,17 +509,17 @@ export default function Search() {
           {unsupported ? (
             <EmptyState icon="search" title="Lyrics search is not connected" body={unsupported} />
           ) : results.loading ? (
-            <Loading label="Searching" />
+            <SkeletonRows rows={filter === 'All' ? 8 : 10} art={56} />
           ) : results.error ? (
             <ErrorState message={results.error} onRetry={results.reload} />
           ) : empty || !shown ? (
-            <EmptyState icon="search" title={`No results for "${debounced}"`} body={filtersOn ? 'Try clearing your filters.' : 'Check the spelling or try another search.'} />
+            <EmptyState icon="search" title={`No results for "${committed}"`} body={filtersOn ? 'Try clearing your filters.' : 'Check the spelling or try another search.'} />
           ) : (
             <>
               {shown.tracks.length ? (
                 <View>
                   {filter === 'All' ? <SectionHeader title="Songs" /> : null}
-                  <AppleTrackList tracks={shown.tracks} context={`Search: ${debounced}`} subtitle={(t) => `Song · ${t.artist.name}`} />
+                  <AppleTrackList tracks={shown.tracks} context={`Search: ${committed}`} subtitle={(t) => `Song · ${t.artist.name}`} />
                 </View>
               ) : null}
               {shown.artists.length ? (
@@ -504,7 +578,7 @@ export default function Search() {
               <View style={{ marginTop: -8 }}>
                 {recent.map((r) => (
                   <Row key={r} style={{ minHeight: 48 }}>
-                    <Tap accessibilityLabel={`Search ${r}`} onPress={() => setQuery(r)} style={{ flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Tap accessibilityLabel={`Search ${r}`} onPress={() => run(r)} style={{ flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                       <Icon name="clock" size={20} color={colors.textSecondary} />
                       <T size={16} style={{ flex: 1 }} numberOfLines={1}>
                         {r}
@@ -530,7 +604,7 @@ export default function Search() {
               </T>
             ) : (
               trendingList.map((t, i) => (
-                <Tap key={t.id} onPress={() => setQuery(t.title)} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Tap key={t.id} onPress={() => run(t.title)} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <T mono size={14} color={colors.textSecondary}>
                     {i + 1}
                   </T>

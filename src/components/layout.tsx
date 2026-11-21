@@ -1,11 +1,11 @@
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Animated, Easing, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, StyleSheet, View, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { usePref } from '../lib/prefs';
 import { usePlaybackProgress, usePlayerActions, usePlayerSelector } from '../state/player';
-import { colors, glow, layout, motion, radius, shadow, withAlpha, type ArtName } from '../theme/tokens';
+import { colors, layout, motion, radius, shadow, withAlpha, type ArtName } from '../theme/tokens';
 import { Backdrop, type BackdropPattern, type Glow, type MeshName } from './Backdrop';
 import { go, IconButton, LinkText, Tap, type NavTarget } from './controls';
 import type { IconName } from './icons';
@@ -73,6 +73,9 @@ const CONTENT_MAX_WIDTH = 640;
 
 export function Screen({ children, backdrop = {}, bg = colors.bg, underlay, scroll = true, gap = 24, top = 12, bottom = 24, footer, contentStyle, tabbed, stagger = true, swipeDown = false, refreshControl, onRefresh, refreshing, defer = true, footerInset = true }: ScreenProps) {
   const insets = useSafeAreaInsets();
+  // Display and theme › Compact mode: tighter gaps between sections on every screen.
+  const [compact] = usePref('compactMode', false);
+  const sectionGap = compact ? Math.round(gap * 0.7) : gap;
   const pull = useRefresh(onRefresh ?? noop);
   const ready = useAfterTransition(defer);
   const body = ready ? <Stagger enabled={stagger}>{children}</Stagger> : <SkeletonScreen />;
@@ -85,10 +88,10 @@ export function Screen({ children, backdrop = {}, bg = colors.bg, underlay, scro
     paddingTop: insets.top + top,
     paddingHorizontal: layout.gutter,
     paddingBottom: footer ? 12 : bottom + insets.bottom + (tabbed ? TAB_CHROME_HEIGHT : 0),
-    gap,
+    gap: sectionGap,
   };
   return (
-    <Animated.View {...swipe.handlers} style={{ flex: 1, backgroundColor: bg, transform: [{ translateY: swipe.y }] }}>
+    <Animated.View {...swipe.handlers} style={[{ flex: 1, backgroundColor: bg }, swipe.style, swipe.round ? { borderRadius: 28, overflow: 'hidden' } : null]}>
       {underlay}
       {backdrop ? <Backdrop {...backdrop} /> : null}
       {scroll ? (
@@ -113,9 +116,14 @@ export function Screen({ children, backdrop = {}, bg = colors.bg, underlay, scro
   );
 }
 
+/** Drag distance (px) at which the screen has fully collapsed into the mini player. */
+const GENIE_END = 360;
+
 /** Drag-down-to-dismiss for full screens that slide up from the bottom. */
 function useSwipeDownToClose(mode: boolean | 'top', safeTop: number) {
   const [y] = useState(() => new Animated.Value(0));
+  // Only while a drag or the close animation is running: rounds the corners of the shrinking card.
+  const [collapsing, setCollapsing] = useState(false);
   const state = useRef({ atTop: true, mode, zone: safeTop + 180 });
   useEffect(() => {
     state.current.mode = mode;
@@ -125,7 +133,8 @@ function useSwipeDownToClose(mode: boolean | 'top', safeTop: number) {
   // The ref is only read inside gesture callbacks (never while rendering); the compiler rule can't tell.
   // eslint-disable-next-line react-hooks/refs
   const [handlers] = useState(() => {
-    const settle = () => Animated.spring(y, { toValue: 0, damping: 20, stiffness: 240, useNativeDriver: true }).start();
+    const settle = () =>
+      Animated.spring(y, { toValue: 0, damping: 20, stiffness: 240, useNativeDriver: true }).start(() => setCollapsing(false));
     return PanResponder.create({
       // Capture so it wins over buttons/rows, but only for a clear downward drag at the top of the page.
       onMoveShouldSetPanResponderCapture: (_e, g) => {
@@ -135,10 +144,15 @@ function useSwipeDownToClose(mode: boolean | 'top', safeTop: number) {
         return g.dy > 12 && g.dy > Math.abs(g.dx) * 1.6;
       },
       onPanResponderTerminationRequest: () => false,
-      onPanResponderMove: (_e, g) => y.setValue(Math.max(0, g.dy)),
+      onPanResponderMove: (_e, g) => {
+        if (state.current.mode === true) setCollapsing(true);
+        y.setValue(Math.max(0, g.dy));
+      },
       onPanResponderRelease: (_e, g) => {
         if (g.dy > 110 || g.vy > 1) {
-          Animated.timing(y, { toValue: 900, duration: 180, easing: Easing.in(Easing.quad), useNativeDriver: true }).start(() => go('back'));
+          // The full player folds into the mini player underneath; other sheets keep sliding off the bottom.
+          const genie = state.current.mode === true;
+          Animated.timing(y, genie ? { toValue: GENIE_END, duration: 300, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: true } : { toValue: 900, duration: 180, easing: Easing.in(Easing.quad), useNativeDriver: true }).start(() => go('back'));
         } else settle();
       },
       onPanResponderTerminate: settle,
@@ -149,7 +163,21 @@ function useSwipeDownToClose(mode: boolean | 'top', safeTop: number) {
     state.current.atTop = e.nativeEvent.contentOffset.y <= 2;
   }, []);
 
-  return { y, handlers: mode ? handlers : {}, onScroll };
+  // Full player (`true`): shrink toward the bottom edge where the mini player sits, narrowing a little and fading out
+  // at the end. Native-driven (transform + opacity), so it stays smooth. Other modes just slide down.
+  const style =
+    mode === true
+      ? {
+          transformOrigin: '50% 100%',
+          opacity: y.interpolate({ inputRange: [0, GENIE_END * 0.75, GENIE_END], outputRange: [1, 1, 0], extrapolate: 'clamp' }),
+          transform: [
+            { scaleX: y.interpolate({ inputRange: [0, GENIE_END], outputRange: [1, 0.9], extrapolate: 'clamp' }) },
+            { scaleY: y.interpolate({ inputRange: [0, GENIE_END * 0.33, GENIE_END], outputRange: [1, 0.8, 0.1], extrapolate: 'clamp' }) },
+          ],
+        }
+      : { transform: [{ translateY: y }] };
+
+  return { y, style, round: mode === true && collapsing, handlers: mode ? handlers : {}, onScroll };
 }
 
 /* ------------------------------------------------------------------ headers */
@@ -265,7 +293,7 @@ export function ListRow({
   onPress,
   right,
   divider,
-  minHeight = 68,
+  minHeight: minHeightProp = 68,
   titleColor = colors.text,
   leading,
 }: {
@@ -282,6 +310,9 @@ export function ListRow({
   titleColor?: string;
   leading?: ReactNode;
 }) {
+  const [compact] = usePref('compactMode', false);
+  // Compact mode trims rows but never below a comfortable 48 px touch target.
+  const minHeight = compact ? Math.max(48, Math.round(minHeightProp * 0.82)) : minHeightProp;
   const body = (
     <Row style={[{ minHeight, paddingHorizontal: 12 }, divider && { borderTopWidth: 1, borderTopColor: colors.divider }]}>
       {leading ??
@@ -402,7 +433,7 @@ export function ModalCard({ children, gap = 16, onDismiss }: { children: ReactNo
       <Animated.View style={[styles.modal, shadow.float, { gap, opacity: fade, transform: [{ scale }] }]}>
         {Platform.OS === 'ios' ? <BlurView tint="dark" intensity={50} style={StyleSheet.absoluteFill} /> : null}
         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.sheet }]} />
-        <TopHighlight radius={32} color={withAlpha(colors.white, 0.26)} />
+        <TopHighlight radius={34} color={withAlpha(colors.white, 0.26)} />
         {children}
       </Animated.View>
     </View>
@@ -420,7 +451,7 @@ export const MiniPlayer = memo(function MiniPlayer({ accent = colors.accent }: {
   const track = usePlayerSelector((s) => s.track);
   const playing = usePlayerSelector((s) => s.playing);
   const buffering = usePlayerSelector((s) => s.buffering);
-  const { toggle, next } = usePlayerActions();
+  const { toggle, next, previous } = usePlayerActions();
   const live = playing && !buffering;
   if (!track) return null;
   return (
@@ -447,6 +478,7 @@ export const MiniPlayer = memo(function MiniPlayer({ accent = colors.accent }: {
               </View>
             </Row>
           </Tap>
+          <IconButton icon="prev" label="Previous track" iconSize={22} onPress={previous} />
           <IconButton icon={playing ? 'pause' : 'play'} label={playing ? 'Pause' : 'Play'} iconSize={24} onPress={toggle} />
           <IconButton icon="next" label="Next track" iconSize={22} onPress={next} />
         </Row>
@@ -473,103 +505,61 @@ const tabs: { key: TabKey; label: string; icon: IconName; href: NavTarget }[] = 
   { key: 'profile', label: 'Profile', icon: 'user', href: '/profile' },
 ];
 
-const TAB_GAP = 4;
-const TAB_PAD = 6;
-const ORB = 52;
-const ORB_GLOSS = [withAlpha(colors.white, 0.3), withAlpha(colors.white, 0)] as const;
-const ORB_GLOSS_AT = [0, 0.55] as const;
+const BAR_HEIGHT = 56;
 
 /**
- * Cinematic dock: four icon-only tabs in a dark frosted pill. The active tab sits in a 52 px glowing
- * accent circle that glides to the tapped tab (200 ms, native driver; instant with Reduce Motion).
+ * Flat bottom bar: four tabs, each an icon over a label. The active tab shows a solid accent icon and accent label. Solid fill, hairline top border, no blur / shadow / animation: it costs almost
+ * nothing to draw, so switching tabs stays smooth. Full width and sits on the bottom safe area.
  */
 export const TabBar = memo(function TabBar({ active, onSelect, accent = colors.accent }: { active: TabKey; onSelect?: (k: TabKey) => void; accent?: string }) {
   const insets = useSafeAreaInsets();
-  const reduce = useReduceMotion();
-  const [inner, setInner] = useState(0);
-  const index = Math.max(0, tabs.findIndex((t) => t.key === active));
-  const unit = (inner - TAB_GAP * (tabs.length - 1)) / tabs.length;
-  const target = index * (unit + TAB_GAP) + (unit - ORB) / 2;
-  const x = useState(() => new Animated.Value(0))[0];
-  const placed = useRef(false);
-
-  useEffect(() => {
-    if (inner <= 0) return;
-    if (!placed.current || reduce) {
-      placed.current = true;
-      x.setValue(target);
-      return;
-    }
-    Animated.timing(x, { toValue: target, duration: motion.fast, easing: decelerate, useNativeDriver: true }).start();
-  }, [target, inner, reduce, x]);
-
-  const onLayout = (e: LayoutChangeEvent) => setInner(e.nativeEvent.layout.width - TAB_PAD * 2);
-
   return (
     <View
-      style={[
-        { marginHorizontal: 16, marginBottom: Math.max(20, insets.bottom), height: 64, borderRadius: 32 },
-        shadow.float,
-        { shadowOpacity: 0.55, shadowRadius: 19, shadowOffset: { width: 0, height: 14 } },
-      ]}
+      accessibilityRole="tablist"
+      style={{
+        flexDirection: 'row',
+        height: BAR_HEIGHT + insets.bottom,
+        paddingBottom: insets.bottom,
+        backgroundColor: colors.bgSecondary,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: withAlpha(colors.white, 0.14),
+      }}
     >
-      <View
-        accessibilityRole="tablist"
-        onLayout={onLayout}
-        style={[styles.chrome, { borderColor: withAlpha(colors.white, 0.18), padding: TAB_PAD, flexDirection: 'row', gap: TAB_GAP }]}
-      >
-        {Platform.OS === 'ios' ? <BlurView tint="dark" intensity={50} style={StyleSheet.absoluteFill} /> : null}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glassStrong }]} />
-        <TopHighlight radius={32} color={withAlpha(colors.white, 0.26)} />
-        {inner > 0 ? (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              { position: 'absolute', top: TAB_PAD, left: TAB_PAD, width: ORB, height: ORB, borderRadius: ORB / 2 },
-              glow(accent, 14, 0.55),
-              { transform: [{ translateX: x }] },
-            ]}
-          >
-            <View style={[StyleSheet.absoluteFill, { borderRadius: ORB / 2, backgroundColor: accent, overflow: 'hidden' }]}>
-              <LinearGradient colors={ORB_GLOSS} locations={ORB_GLOSS_AT} style={StyleSheet.absoluteFill} />
-              <TopHighlight radius={ORB / 2} color={withAlpha(colors.white, 0.5)} />
-            </View>
-          </Animated.View>
-        ) : null}
-        {tabs.map((t) => (
-          <TabButton key={t.key} tab={t} on={t.key === active} placed={inner > 0} accent={accent} onSelect={onSelect} />
-        ))}
-      </View>
+      {tabs.map((t) => (
+        <TabButton key={t.key} tab={t} on={t.key === active} accent={accent} onSelect={onSelect} />
+      ))}
     </View>
   );
 });
 
-/** One dock button. Memoized: a tab switch re-renders only the two buttons whose `on` flipped. */
+/** One tab. Memoized: a tab switch re-renders only the two buttons whose `on` flipped. */
 const TabButton = memo(function TabButton({
   tab: t,
   on,
-  placed,
   accent,
   onSelect,
 }: {
   tab: (typeof tabs)[number];
   on: boolean;
-  placed: boolean;
   accent: string;
   onSelect?: (k: TabKey) => void;
 }) {
   const onPress = useCallback(() => (onSelect ? onSelect(t.key) : go(t.href)), [onSelect, t]);
   return (
-    <Tap
-      accessibilityRole="tab"
-      accessibilityLabel={t.label}
-      accessibilityState={{ selected: on }}
-      onPress={onPress}
-      style={styles.tab}
-    >
-      <View style={[styles.tabIcon, { backgroundColor: on && !placed ? accent : undefined }]}>
-        <Icon name={t.icon} size={24} color={on ? colors.onAccent : colors.textSecondary} glow={false} />
+    <Tap accessibilityRole="tab" accessibilityLabel={t.label} accessibilityState={{ selected: on }} onPress={onPress} style={styles.tab}>
+      <View style={styles.tabIcon}>
+        <Icon
+          name={t.icon}
+          size={24}
+          color={on ? accent : colors.textSecondary}
+          fill={on ? accent : undefined}
+          strokeWidth={on ? 2 : 1.6}
+          glow={false}
+        />
       </View>
+      <T size={11} weight={on ? 700 : 500} color={on ? accent : colors.textSecondary} numberOfLines={1}>
+        {t.label}
+      </T>
     </Tap>
   );
 });
@@ -593,12 +583,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: withAlpha(colors.white, 0.18),
   },
-  tab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  tabIcon: { width: ORB, height: ORB, borderRadius: ORB / 2, alignItems: 'center', justifyContent: 'center' },
+  tab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  tabIcon: { width: 56, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   /** Floating chrome (mini player, tab bar): rgba(20,20,20,.82–.88) + blur 24. */
   chrome: {
     flex: 1,
-    borderRadius: 32,
+    borderRadius: 34,
     overflow: 'hidden',
     borderWidth: 1,
   },

@@ -1,8 +1,10 @@
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { Art, Cover, Glass, Icon, LinkText, ListRow, Row, Screen, ScreenHeader, SectionHeader, T, Tap, Toggle } from '../components';
+import { uploadBanner } from '../lib/avatar';
 import { bannerUnlockLevel, frameUnlockLevel, useProgress } from '../lib/levels';
 import {
   FRAMES,
@@ -60,13 +62,33 @@ export default function CustomizeProfile() {
         await updateSettings({ privacy: { ...settings.privacy, listening_activity: nowPlaying } });
       }
       if (JSON.stringify(draft) !== JSON.stringify(custom)) {
-        await save({ banner_art: draft.banner_art, avatar_frame: draft.avatar_frame, showcase: draft.showcase, pinned_tracks: draft.pinned_tracks });
+        await save({ banner_art: draft.banner_art, banner_url: draft.banner_url, avatar_frame: draft.avatar_frame, showcase: draft.showcase, pinned_tracks: draft.pinned_tracks });
       }
       router.back();
     } catch (e) {
       setNote({ text: e instanceof Error ? e.message : 'Could not save your changes', error: true });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const [uploading, setUploading] = useState(false);
+  // Pick a wide photo, upload it to the public avatars bucket, stage it in the draft (saved with Done).
+  const pickBanner = async () => {
+    if (!user || uploading) return;
+    setUploading(true);
+    setNote(null);
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) throw new Error('Allow photo access in Settings to pick a banner.');
+      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [16, 9], quality: 0.8 });
+      if (res.canceled || !res.assets[0]) return;
+      const url = await uploadBanner(user.id, res.assets[0].uri, res.assets[0].mimeType);
+      setDraft((d) => ({ ...d, banner_url: url }));
+    } catch (e) {
+      setNote({ text: e instanceof Error ? e.message : 'Could not upload your banner', error: true });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -87,7 +109,7 @@ export default function CustomizeProfile() {
 
       {/* Banner + avatar */}
       <View style={{ marginBottom: 20 }}>
-        <ProfileBanner banner={draft.banner_art} />
+        <ProfileBanner banner={draft.banner_art} uri={draft.banner_url} />
         <View style={{ position: 'absolute', left: 16, bottom: -30 }}>
           <FramedAvatar
             uri={profile?.avatar_url}
@@ -125,6 +147,22 @@ export default function CustomizeProfile() {
       {/* Banner */}
       <SectionHeader title="Banner" action="Perks" href="/level-perks" />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, flexGrow: 0 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
+        <Tap
+          onPress={() => void pickBanner()}
+          accessibilityLabel={uploading ? 'Uploading banner photo' : 'Upload banner photo'}
+          style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: draft.banner_url ? colors.accent : colors.chipOutline, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.iconGhost }}
+        >
+          {uploading ? <ActivityIndicator color={colors.accent} /> : <Icon name="camera" size={22} color={colors.text} glow={false} />}
+        </Tap>
+        {draft.banner_url ? (
+          <Tap
+            onPress={() => setDraft((d) => ({ ...d, banner_url: null }))}
+            accessibilityLabel="Remove banner photo"
+            style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 2, borderColor: colors.chipOutline, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.iconGhost }}
+          >
+            <Icon name="close" size={20} color={colors.text} glow={false} />
+          </Tap>
+        ) : null}
         {PRESET_ARTS.map((a: PresetArt) => {
           const need = bannerUnlockLevel(a);
           const lock = locked(need);

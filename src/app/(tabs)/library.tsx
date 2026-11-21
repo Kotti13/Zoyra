@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 
-import { APPLE, AppleNavRow, AppleSeparator, AppleTitle, EmptyState, Icon, IconButton, Row, Screen, Shelf, ShelfCard, ShelfHeader, Sticker, T, Tap, go } from '../../components';
-import type { NavTarget } from '../../components';
+import { APPLE, AppleTitle, Chip, Cover, EmptyState, Glass, Gradient, Icon, IconButton, Row, Screen, Shelf, ShelfCard, ShelfHeader, Sticker, T, Tap, go, useAsync } from '../../components';
+import type { IconName, NavTarget } from '../../components';
 import type { Artwork } from '../../lib/catalog';
+import { usePref } from '../../lib/prefs';
+import { loadSmartCovers } from '../../lib/smart-covers';
 import { useAuth } from '../../state/auth';
 import { useLibrary, type UserPlaylist } from '../../state/library';
-import { colors, type ArtName } from '../../theme/tokens';
+import { colors, withAlpha, type ArtName } from '../../theme/tokens';
 
 type Filter = 'All' | 'Playlists' | 'Albums' | 'Artists';
 
@@ -29,13 +31,45 @@ function playlistSub(p: UserPlaylist) {
   return `Playlist · ${n} ${n === 1 ? 'song' : 'songs'}`;
 }
 
+const FILTERS: Filter[] = ['All', 'Playlists', 'Albums', 'Artists'];
+
+/** Glass quick-access tile: round icon, title, optional one-line hint. */
+function QuickTile({ icon, title, sub, href, width }: { icon: IconName; title: string; sub?: string; href: NavTarget; width: number }) {
+  return (
+    <Tap href={href} accessibilityLabel={sub ? `${title}. ${sub}` : title} style={{ width }}>
+      <Glass radius={18} padding={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 }}>
+        <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={icon} size={18} color={colors.text} glow={false} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <T size={14} weight={700} numberOfLines={1}>
+            {title}
+          </T>
+          {sub ? (
+            <T size={11} color={colors.textSecondary} numberOfLines={1}>
+              {sub}
+            </T>
+          ) : null}
+        </View>
+      </Glass>
+    </Tap>
+  );
+}
+
 export default function Library() {
   const { user } = useAuth();
   const { liked, playlists, followedArtists, reload } = useLibrary();
   const [filter, setFilter] = useState<Filter>('All');
   const [alpha, setAlpha] = useState(false);
+  // Grid (3 small covers across) or compact list; remembered on this device.
+  const [view, setView] = usePref<'grid' | 'list'>('library.view', 'grid');
   const { width: winW } = useWindowDimensions();
-  const cardW = Math.floor((winW - APPLE.side * 2 - APPLE.gap) / 2);
+  const inner = winW - APPLE.side * 2;
+  const tileW = Math.floor((inner - 10) / 2); // quick tiles: 2 across
+  const gridW = Math.floor((inner - 10 * 2) / 3); // collection grid: 3 across
+  const uid = user?.id;
+  const likedKey = liked.length;
+  const covers = useAsync(() => (uid ? loadSmartCovers(uid, liked) : Promise.resolve({})), [uid, likedKey], 'app/(tabs)/library:smartcovers');
 
   const items = useMemo(() => {
     const pls: Item[] = playlists.map((p, i) => ({
@@ -80,35 +114,43 @@ export default function Library() {
 
   return (
     <Screen tabbed gap={APPLE.section} backdrop={{ pattern: 'dots', mesh: 'rose' }} onRefresh={user ? reload : undefined}>
-      <AppleTitle title={filter === 'All' ? 'Library' : filter} right={<IconButton icon="plus" label="Create" bg={colors.accent} color={colors.onAccent} href="/create-playlist" />} />
+      <AppleTitle title="Library" right={<IconButton icon="plus" label="Create" bg={colors.accent} color={colors.onAccent} href="/create-playlist" />} />
 
-      {filter !== 'All' ? (
-        <Tap onPress={() => setFilter('All')} accessibilityLabel="Back to Library" style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -APPLE.section / 2 }}>
-          <Icon name="back" size={18} color={colors.accentLight} />
-          <T size={15} weight={500} color={colors.accentLight}>
-            Library
-          </T>
-        </Tap>
-      ) : null}
+      {/* Filters: one tap between everything, playlists, albums and artists */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -APPLE.side, flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingHorizontal: APPLE.side }}>
+        {FILTERS.map((f) => {
+          const n = f === 'All' ? 0 : counts[f];
+          return <Chip key={f} label={n ? `${f} · ${n}` : f} active={filter === f} onPress={() => setFilter(f)} />;
+        })}
+      </ScrollView>
 
-      {/* Category rows */}
       {filter === 'All' ? (
-        <View>
-          <AppleNavRow icon="library" title="Playlists" subtitle={plural(counts.Playlists, 'playlist', 'playlists')} onPress={() => setFilter('Playlists')} />
-          <AppleSeparator inset={46} />
-          <AppleNavRow icon="users" title="Artists" subtitle={plural(counts.Artists, 'artist', 'artists')} onPress={() => setFilter('Artists')} />
-          <AppleSeparator inset={46} />
-          <AppleNavRow icon="music" title="Albums" subtitle={plural(counts.Albums, 'album', 'albums')} onPress={() => setFilter('Albums')} />
-          <AppleSeparator inset={46} />
-          <AppleNavRow icon="heart" title="Liked songs" subtitle={likedSub} href={{ pathname: '/playlist', params: { liked: '1' } }} />
-          <AppleSeparator inset={46} />
-          <AppleNavRow icon="download" title="Downloaded" href="/downloads" />
-          <AppleSeparator inset={46} />
-          <AppleNavRow icon="clock" title="Recently played" href="/recent" />
-          <AppleSeparator inset={46} />
-          <AppleNavRow icon="phone" title="Local files" subtitle="Songs saved on this device" href="/local-music" />
-          <AppleSeparator inset={46} />
-          <AppleNavRow icon="arrowRight" title="Import playlists" subtitle="From Spotify, Apple Music or YouTube Music" href="/import" />
+        <View style={{ gap: 10 }}>
+          {/* Liked songs: the one you open most */}
+          <Tap href={{ pathname: '/playlist', params: { liked: '1' } }} accessibilityLabel={`Liked songs. ${likedSub}`}>
+            <View style={{ height: 68, borderRadius: 20, overflow: 'hidden', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Gradient colors={[colors.accent, colors.accentDark]} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+              <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: withAlpha(colors.white, 0.2), alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="heart" size={22} color={colors.white} filled />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <T size={16} weight={800} tracking={-0.3} color={colors.white}>
+                  Liked songs
+                </T>
+                <T size={13} color={withAlpha(colors.white, 0.85)}>
+                  {likedSub}
+                </T>
+              </View>
+              <Icon name="chevronRight" size={20} color={colors.white} glow={false} />
+            </View>
+          </Tap>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            <QuickTile icon="download" title="Downloaded" sub="Play offline" href="/downloads" width={tileW} />
+            <QuickTile icon="clock" title="Recently played" sub="Your history" href="/recent" width={tileW} />
+            <QuickTile icon="phone" title="Local files" sub="Saved on this device" href="/local-music" width={tileW} />
+            <QuickTile icon="arrowRight" title="Import" sub="Spotify, Apple, YouTube" href="/import" width={tileW} />
+          </View>
         </View>
       ) : null}
 
@@ -118,12 +160,17 @@ export default function Library() {
           <ShelfHeader title="Smart playlists" />
           <Shelf
             data={smart}
+            itemWidth={118}
             keyExtractor={(x) => x.key}
-            renderItem={({ item: x }) => (
-              <ShelfCard title={x.title} id={x.key} art={x.art} onPress={() => go({ pathname: '/playlist', params: { smart: x.key } })}>
-                <Sticker label="SMART" rotate={-6} style={{ position: 'absolute', left: 8, top: 8 }} />
-              </ShelfCard>
-            )}
+            renderItem={({ item: x }) => {
+              // The cover of the first song in that list; the colored tile until one is known.
+              const artwork = (covers.data as Partial<Record<string, Artwork>> | undefined)?.[x.key];
+              return (
+                <ShelfCard title={x.title} id={x.key} size={118} radius={14} artwork={artwork} art={artwork ? undefined : x.art} onPress={() => go({ pathname: '/playlist', params: { smart: x.key } })}>
+                  <Sticker label="SMART" rotate={-6} style={{ position: 'absolute', left: 6, top: 6, height: 20, paddingHorizontal: 8 }} />
+                </ShelfCard>
+              );
+            }}
           />
         </View>
       ) : null}
@@ -132,14 +179,17 @@ export default function Library() {
       <View style={{ gap: 12 }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <T size={22} weight={700} tracking={-0.4} accessibilityRole="header">
-            {alpha ? 'Alphabetical' : 'Recently added'}
+            {filter === 'All' ? (alpha ? 'Alphabetical' : 'Recently added') : filter}
           </T>
-          <Tap onPress={() => setAlpha((v) => !v)} accessibilityLabel={`Sort: ${alpha ? 'Alphabetical' : 'Recently added'}`} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Icon name="sort" size={18} color={colors.accentLight} />
-            <T size={14} weight={500} color={colors.accentLight}>
-              Sort
-            </T>
-          </Tap>
+          <Row gap={2}>
+            <Tap onPress={() => setAlpha((v) => !v)} accessibilityLabel={`Sort: ${alpha ? 'Alphabetical' : 'Recently added'}`} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 6 }}>
+              <Icon name="sort" size={18} color={colors.accentLight} />
+              <T size={14} weight={500} color={colors.accentLight}>
+                Sort
+              </T>
+            </Tap>
+            <IconButton icon={view === 'grid' ? 'queue' : 'grid'} label={view === 'grid' ? 'Show as list' : 'Show as grid'} size={44} iconSize={20} color={colors.accentLight} onPress={() => setView(view === 'grid' ? 'list' : 'grid')} />
+          </Row>
         </Row>
 
         {items.length === 0 ? (
@@ -153,11 +203,30 @@ export default function Library() {
             <EmptyState title="Your library is empty" body="Create a playlist or follow an artist to get started." action="Create playlist" href="/create-playlist" />
           )
         ) : (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: APPLE.gap, rowGap: 20 }}>
-            {items.map((it) => (
-              <ShelfCard key={it.key} title={it.title} subtitle={it.sub} artwork={it.artwork} uri={it.uri} id={it.id} size={cardW} round={it.round} onPress={() => go(it.href)} />
-            ))}
-          </View>
+          view === 'list' ? (
+            <View>
+              {items.map((it, i) => (
+                <Tap key={it.key} onPress={() => go(it.href)} accessibilityLabel={`${it.title}. ${it.sub}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, borderTopWidth: i ? 1 : 0, borderTopColor: colors.divider }}>
+                  <Cover artwork={it.artwork} uri={it.uri} id={it.id} size={46} radius={it.round ? 23 : 8} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <T size={15} weight={600} numberOfLines={1}>
+                      {it.title}
+                    </T>
+                    <T size={12} color={colors.textSecondary} numberOfLines={1}>
+                      {it.sub}
+                    </T>
+                  </View>
+                  <Icon name="chevronRight" size={16} color={colors.textTertiary} glow={false} />
+                </Tap>
+              ))}
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 10, rowGap: 14 }}>
+              {items.map((it) => (
+                <ShelfCard key={it.key} title={it.title} subtitle={it.sub} artwork={it.artwork} uri={it.uri} id={it.id} size={gridW} radius={12} round={it.round} onPress={() => go(it.href)} />
+              ))}
+            </View>
+          )
         )}
       </View>
     </Screen>
