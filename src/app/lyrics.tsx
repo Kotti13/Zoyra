@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -7,37 +6,16 @@ import { Cover, EmptyState, ErrorState, Glass, Icon, IconButton, LinkText, Loadi
 import { GlowBackdrop } from '../components/art-fx';
 import { displaySynced, LyricsView, PlayRing, useTrackLyrics, type LyricsHighlight } from '../components/LyricsView';
 import { LyricSyncControl } from '../components/lyric-sync';
-import { formatDuration } from '../lib/catalog';
+import { TouchSeekBar } from '../components/SeekBar';
 import { LYRICS_SIZES, usePlayPref, type LyricsSizePref } from '../lib/play-prefs';
 import type { Lyrics as LyricsData, LyricsView as LyricsMode } from '../lib/lyrics';
 import { useAuth } from '../state/auth';
-import { usePlaybackProgress, usePlayerPick } from '../state/player';
+import { usePlayerPick } from '../state/player';
 import { setSheetTrack } from '../state/selection';
 import { colors, withAlpha } from '../theme/tokens';
 
 
 /* ------------------------------------------------------------------ small pieces */
-
-/** Live progress (isolated so only this re-renders every tick). */
-function Progress() {
-  const { position, duration, progress } = usePlaybackProgress();
-  const pct = `${Math.max(0, Math.min(1, progress)) * 100}%` as const;
-  return (
-    <View style={{ gap: 6 }} accessible accessibilityRole="progressbar" accessibilityLabel={`${formatDuration(position)} of ${formatDuration(duration)}`}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <T mono size={11} color={colors.peach}>
-          {formatDuration(position)}
-        </T>
-        <T mono size={11} color={colors.textSecondary}>
-          / {formatDuration(duration)}
-        </T>
-      </Row>
-      <View style={{ height: 4, borderRadius: 2, backgroundColor: colors.chipOutline, overflow: 'hidden' }}>
-        <LinearGradient colors={[colors.accent, colors.white]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ width: pct, height: 4, borderRadius: 2 }} />
-      </View>
-    </View>
-  );
-}
 
 /** Pill used for the FILL / WAVE / WORD style switch (accent when selected). */
 function ModePill({ label, active, onPress, hint }: { label: string; active?: boolean; onPress: () => void; hint: string }) {
@@ -256,7 +234,7 @@ export default function Lyrics() {
           ) : null}
           {synced ? <LyricSyncControl trackId={track.id} /> : null}
           <Glass radius={34} padding={12} style={{ gap: 8 }}>
-            <Progress />
+            <TouchSeekBar />
             <Row style={{ justifyContent: 'space-between', paddingHorizontal: 28 }}>
               <IconButton icon="prev" label="Previous track" size={48} iconSize={26} onPress={previous} />
               <PlayRing />

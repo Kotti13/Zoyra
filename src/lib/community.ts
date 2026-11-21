@@ -1,6 +1,7 @@
 /**
  * Community fan feed: `community_posts`, `community_likes`, `community_comments`
- * (migration 20261114161000_games_community.sql). Blocked users are filtered by RLS.
+ * (migration 20261114161000_games_community.sql). Blocked users are filtered by RLS. Editing your own post / reply and
+ * nested replies need migration 20261122110000_community_replies_edit.sql (without it they say so).
  */
 import type { CatalogTrack } from './catalog';
 import { supabase } from './supabase';
@@ -23,14 +24,18 @@ export type Post = {
   like_count: number;
   comment_count: number;
   created_at: string;
+  edited_at?: string | null;
   author: Author | null;
 };
 
-export type Comment = { id: string; post_id: string; user_id: string; body: string; created_at: string; author: Author | null };
+/** A reply to a post. `parent_id` is set on a nested reply (it hangs under a top-level reply, one level deep). */
+export type Comment = { id: string; post_id: string; user_id: string; body: string; created_at: string; edited_at?: string | null; parent_id?: string | null; author: Author | null };
 
 const AUTHOR = 'author:profiles(id, display_name, avatar_url, username)';
 
 function friendly(e: { message: string }, fallback: string) {
+  if (/parent_id|edited_at/.test(e.message) && /does not exist|schema cache/i.test(e.message)) return 'Replies to replies and editing need the latest server update.';
+  if (/same post/i.test(e.message)) return 'That reply is no longer there.';
   if (/community_/.test(e.message) && /does not exist|schema cache/i.test(e.message)) return 'The community feed isn’t set up on the server yet.';
   return e.message || fallback;
 }
@@ -56,7 +61,7 @@ export async function loadFeed(filter: FeedFilter, before?: string): Promise<Pos
     if (!filter.ids.length) return [];
     q = q.in('user_id', filter.ids);
   } else if (filter.kind === 'mine') q = q.eq('user_id', filter.me);
-  else if (filter.kind === 'artist') q = q.eq('artist_id', filter.id);
+  else if (filter.kind === 'artist') q = filter.id.startsWith('yta_') ? q.in('artist_id', [filter.id, `${filter.id} - Topic`]) : q.eq('artist_id', filter.id);
   if (before) q = q.lt('created_at', before);
   const { data, error } = await q;
   if (error) throw new Error(friendly(error, 'Could not load the feed'));
@@ -84,7 +89,8 @@ export async function myLikes(me: string, postIds: string[]): Promise<Set<string
   return new Set(((data ?? []) as { post_id: string }[]).map((r) => r.post_id));
 }
 
-export async function createPost(body: string, track: CatalogTrack | null): Promise<Post> {
+/** `club`: the fan club the post is written in; it wins over the artist of the song attached to the post. */
+export async function createPost(body: string, track: CatalogTrack | null, club?: { id: string; name: string } | null): Promise<Post> {
   const text = body.trim();
   if (!text) throw new Error('Write something first');
   if (text.length > POST_MAX) throw new Error(`Posts can be up to ${POST_MAX} characters`);
@@ -93,8 +99,8 @@ export async function createPost(body: string, track: CatalogTrack | null): Prom
     .insert({
       body: text,
       track: track ? toPostTrack(track) : null,
-      artist_id: track?.artist.id ?? null,
-      artist_name: track?.artist.name ?? null,
+      artist_id: (club?.id ?? track?.artist.id ?? null)?.slice(0, 64) ?? null,
+      artist_name: (club?.name ?? track?.artist.name ?? null)?.slice(0, 120) ?? null,
     })
     .select(`*, ${AUTHOR}`)
     .single();
@@ -121,13 +127,36 @@ export async function loadComments(postId: string): Promise<Comment[]> {
   return (data ?? []) as unknown as Comment[];
 }
 
-export async function addComment(postId: string, body: string): Promise<Comment> {
+/** `parentId` makes it a nested reply under that top-level reply. */
+export async function addComment(postId: string, body: string, parentId?: string | null): Promise<Comment> {
   const text = body.trim();
   if (!text) throw new Error('Write a reply first');
   if (text.length > POST_MAX) throw new Error(`Replies can be up to ${POST_MAX} characters`);
-  const { data, error } = await supabase.from('community_comments').insert({ post_id: postId, body: text }).select(`*, ${AUTHOR}`).single();
+  const row: Record<string, unknown> = { post_id: postId, body: text };
+  if (parentId) row.parent_id = parentId;
+  const { data, error } = await supabase.from('community_comments').insert(row).select(`*, ${AUTHOR}`).single();
   if (error) throw new Error(friendly(error, 'Could not reply'));
   return data as unknown as Comment;
+}
+
+/** Change the text of your own post (the server marks it edited). */
+export async function editPost(id: string, body: string): Promise<{ body: string; edited_at: string }> {
+  const text = body.trim();
+  if (!text) throw new Error('Write something first');
+  if (text.length > POST_MAX) throw new Error(`Posts can be up to ${POST_MAX} characters`);
+  const { data, error } = await supabase.from('community_posts').update({ body: text }).eq('id', id).select('body, edited_at').single();
+  if (error) throw new Error(friendly(error, 'Could not save your change'));
+  return data as { body: string; edited_at: string };
+}
+
+/** Change the text of your own reply. */
+export async function editComment(id: string, body: string): Promise<{ body: string; edited_at: string }> {
+  const text = body.trim();
+  if (!text) throw new Error('Write a reply first');
+  if (text.length > POST_MAX) throw new Error(`Replies can be up to ${POST_MAX} characters`);
+  const { data, error } = await supabase.from('community_comments').update({ body: text }).eq('id', id).select('body, edited_at').single();
+  if (error) throw new Error(friendly(error, 'Could not save your change'));
+  return data as { body: string; edited_at: string };
 }
 
 export async function deleteComment(id: string): Promise<void> {

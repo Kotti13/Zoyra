@@ -4,6 +4,7 @@ import { TextInput, View } from 'react-native';
 
 import { Button, Cover, EmptyState, ErrorState, Glass, Icon, LinkText, Loading, Row, Screen, T, Tap, useAsync, useDebounced } from '../components';
 import { catalog, type Artist, type CatalogTrack } from '../lib/catalog';
+import { artistsForLanguages } from '../lib/onboarding-picks';
 import { permissionsPending } from '../lib/permissions';
 import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
@@ -107,7 +108,16 @@ export default function Artists() {
   const [error, setError] = useState<string>();
 
   const genresKey = (settings?.genres ?? []).join('|');
-  const trending = useAsync(() => trendingArtists(settings?.genres ?? []), [genresKey], 'app/artists:110');
+  const languagesKey = (settings?.languages ?? []).join('|');
+  // Artists behind the top songs of the languages picked on the previous step (real photos); Audius charts otherwise.
+  const trending = useAsync(
+    async () => {
+      const byLanguage = await artistsForLanguages(settings?.languages ?? []).catch(() => [] as Artist[]);
+      return byLanguage.length >= 6 ? byLanguage : trendingArtists(settings?.genres ?? []);
+    },
+    [genresKey, languagesKey],
+    'app/artists:110',
+  );
   const search = useAsync(() => (q ? catalog.searchArtists(q, 12) : Promise.resolve<Artist[]>([])), [q], 'app/artists:111');
   const state = q ? search : trending;
   const list = state.data ?? [];
@@ -136,9 +146,11 @@ export default function Artists() {
       const picks = [...picked.values()];
       // Track-embedded artists lack follower counts etc.; fetch the full profile before storing a follow.
       const full = await Promise.all(picks.map((a) => (a.handle && a.followers ? Promise.resolve(a) : catalog.artist(a.id).catch(() => a))));
-      await updateSettings({ favorite_artists: full.map((a) => ({ id: a.id, name: a.name, image: a.image.small ?? a.image.medium })) });
+      // The last setup step: save the picks and finish.
+      await updateSettings({ favorite_artists: full.map((a) => ({ id: a.id, name: a.name, image: a.image.small ?? a.image.medium })), onboarded: true });
       await Promise.all(full.filter((a) => !isFollowingArtist(a.id)).map((a) => toggleFollowArtist(a)));
-      router.push('/languages');
+      // First-run permissions step (once per device), then Home.
+      router.replace(permissionsPending() ? '/permissions' : '/');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save your artists');
     } finally {
@@ -168,7 +180,7 @@ export default function Artists() {
             </T>
           ) : null}
           <Button
-            label={busy ? 'Saving…' : enough ? `Continue (${picked.size} picked)` : `Pick ${MIN_PICKS - picked.size} more`}
+            label={busy ? 'Saving…' : enough ? `Finish setup (${picked.size} picked)` : `Pick ${MIN_PICKS - picked.size} more`}
             variant={enough && !busy ? 'primary' : 'disabled'}
             onPress={() => void save()}
           />
@@ -176,7 +188,7 @@ export default function Artists() {
       }
     >
       <Row gap={16}>
-        <Steps done={2} total={3} />
+        <Steps done={3} total={3} />
         <LinkText label="Skip" onPress={() => void skip()} />
       </Row>
 
@@ -185,7 +197,7 @@ export default function Artists() {
           Follow your favorites
         </T>
         <T size={16} color={colors.textSecondary} lineHeight={23}>
-          Pick at least three. We will tune your feed to them.
+          Pick at least three, from the languages you chose. We will tune your feed to them.
         </T>
       </View>
 

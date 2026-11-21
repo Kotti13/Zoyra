@@ -24,6 +24,11 @@ export function pickArt(a: Artwork | undefined, size: number) {
   return size <= 80 ? a.small ?? a.medium : size <= 240 ? a.medium ?? a.large : a.large ?? a.medium;
 }
 
+/** YouTube thumbnails (16:9) rather than square album art. */
+export const isWideThumb = (uri: string | null | undefined): uri is string => !!uri && uri.includes('i.ytimg.com/');
+/** Width a 16:9 thumbnail needs to fill a slot of this height without cropping. */
+export const wideWidth = (height: number) => Math.round((height * 16) / 9);
+
 /** Real artwork (cached by expo-image) over the design's gradient placeholder. */
 export function Cover({
   artwork,
@@ -35,6 +40,8 @@ export function Cover({
   radius: r = radius.sm,
   rotate,
   sticker,
+  fit = 'cover',
+  adapt,
   style,
   children,
 }: {
@@ -47,14 +54,48 @@ export function Cover({
   radius?: number;
   rotate?: number;
   sticker?: boolean;
+  /** `auto`: small cards/rows show a 16:9 thumbnail whole; big/full-bleed slots crop as before. `cover` always crops. `contain` always shows the whole image (blurred copy behind any spare space). */
+  fit?: 'auto' | 'cover' | 'contain';
+  /**
+   * Fit the card to the image instead of the image to the card: keep `height` (or `width`) and take the other side
+   * from the picture's real aspect ratio once it has loaded (16:9 for a video thumbnail and square for album art until
+   * then), so the image fills the card exactly, never cropped, zoomed or barred.
+   */
+  adapt?: 'width' | 'height';
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
 }) {
-  const src = uri ?? pickArt(artwork, Math.max(width ?? size, height ?? size));
+  // Real ratio of the loaded image, remembered per source so a new picture starts from its expected shape again.
+  const [natural, setNatural] = useState<{ src: string; ratio: number } | null>(null);
+  // Not every video has an hq720 image: when it fails, retry once with the always-present 320x180 one.
+  const [failed, setFailed] = useState<string | null>(null);
+  const picked = uri ?? pickArt(artwork, Math.max(width ?? size, height ?? size));
+  const src = picked && failed === picked ? picked.replace(/\/(hq720|hqdefault|sddefault|maxresdefault)\.jpg/, '/mqdefault.jpg') : picked;
+  // A 16:9 thumbnail in a small slot of another shape (a square card or row) is shown whole on a blurred copy of
+  // itself instead of being cropped. Hero and full-screen slots (over 240 px) keep the edge-to-edge crop.
+  const wide = isWideThumb(src);
+  let slotW = width ?? size;
+  let slotH = height ?? size;
+  if (adapt) {
+    const ratio = Math.min(2.4, Math.max(0.5, natural && natural.src === src ? natural.ratio : wide ? 16 / 9 : 1));
+    if (adapt === 'height') slotH = Math.round(slotW / ratio);
+    else slotW = Math.round(slotH * ratio);
+  }
+  // `contain` keeps any image whole: a square cover in a 16:9 card (or a 16:9 thumbnail in a square one) sits on a
+  // blurred copy of itself instead of being zoomed in. Source ratio: 16:9 for YouTube video thumbs, else square.
+  const slotRatio = slotW / slotH;
+  const letterbox = !adapt && !!src && (fit === 'contain' ? Math.abs(slotRatio - (wide ? 16 / 9 : 1)) > 0.08 : fit === 'auto' && wide && Math.max(slotW, slotH) <= 240 && Math.abs(slotRatio - 16 / 9) > 0.25);
+  const fill = { position: 'absolute', inset: 0 } as const;
   return (
-    <Art art={artFor(id)} size={size} width={width} height={height} radius={r} rotate={rotate} sticker={sticker} style={[{ overflow: 'hidden' }, style]}>
-      {src ? (
-        <Image source={{ uri: src }} style={{ position: 'absolute', inset: 0 }} contentFit="cover" transition={200} cachePolicy="memory-disk" accessibilityIgnoresInvertColors />
+    <Art art={artFor(id)} size={size} width={adapt ? slotW : width} height={adapt ? slotH : height} radius={r} rotate={rotate} sticker={sticker} style={[{ overflow: 'hidden' }, style]}>
+      {src && letterbox ? (
+        <>
+          <Image source={{ uri: src }} style={fill} contentFit="cover" blurRadius={24} cachePolicy="memory-disk" accessibilityIgnoresInvertColors />
+          <View style={[fill, { backgroundColor: 'rgba(0,0,0,0.3)' }]} />
+          <Image source={{ uri: src }} style={fill} contentFit="contain" transition={200} cachePolicy="memory-disk" onError={() => setFailed(picked ?? null)} accessibilityIgnoresInvertColors />
+        </>
+      ) : src ? (
+        <Image source={{ uri: src }} style={fill} contentFit={fit === 'contain' ? 'contain' : 'cover'} transition={200} cachePolicy="memory-disk" onLoad={adapt ? (e) => e.source.width > 0 && e.source.height > 0 && setNatural({ src, ratio: e.source.width / e.source.height }) : undefined} onError={() => setFailed(picked ?? null)} accessibilityIgnoresInvertColors />
       ) : null}
       {children}
     </Art>
@@ -75,6 +116,7 @@ export const TrackItem = memo(function TrackItem({
   showDuration = true,
   artSize = 48,
   artRadius = radius.sm,
+  artFit,
   subtitle,
 }: {
   track: CatalogTrack;
@@ -86,6 +128,7 @@ export const TrackItem = memo(function TrackItem({
   showDuration?: boolean;
   artSize?: number;
   artRadius?: number;
+  artFit?: 'auto' | 'cover' | 'contain';
   subtitle?: string;
 }) {
   const { playTracks } = usePlayerActions();
@@ -108,7 +151,7 @@ export const TrackItem = memo(function TrackItem({
             {index + 1}
           </T>
         ) : null}
-        <Cover artwork={track.artwork} id={track.id} size={artSize} radius={artRadius}>
+        <Cover artwork={track.artwork} id={track.id} size={artSize} height={artSize} radius={artRadius} fit={artFit}>
           {active ? (
             <View style={{ position: 'absolute', inset: 0, backgroundColor: colors.shade, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name={playing ? 'pause' : 'play'} size={20} color={colors.white} />

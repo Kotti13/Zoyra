@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { Avatar, Cover, Glass, Icon, IconButton, LinkText, ListGroup, ListRow, Row, Screen, ScreenHeader, T, Tap, artFor } from '../components';
 import type { IconName, NavTarget } from '../components';
+import { confirmDialog } from '../lib/dialog';
 import { useAuth, type Profile } from '../state/auth';
 import { colors, withAlpha } from '../theme/tokens';
 
@@ -35,6 +36,9 @@ export default function Settings() {
 
   const logOut = async () => {
     if (busy) return;
+    // Ask first: Cancel keeps you signed in, Log out signs out (popup is the app's glass confirm dialog).
+    const ok = await confirmDialog(`Log out of ${name}?`, 'You can sign back in any time.', 'Log out');
+    if (!ok) return;
     setBusy(true);
     setError(undefined);
     try {

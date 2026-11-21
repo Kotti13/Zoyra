@@ -7,6 +7,7 @@ import {
   type AudioPlaylistLoopMode,
 } from 'expo-audio';
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { AppState } from 'react-native';
 
 import { getPlayPref, playPrefsReady, setPlayPref, type LastSession } from '../lib/play-prefs';
@@ -23,6 +24,8 @@ import { usage } from '../lib/usage';
 import { zoyra } from '../lib/zoyra-api';
 import { useAuth } from './auth';
 import { useLibrary } from './library';
+
+const IN_EXPO_GO = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 export type RepeatMode = 'off' | 'all' | 'one';
 export type SleepTimer = ({ endsAt: number; minutes: number } | { endOfTrack: true }) & { fadeOut?: boolean } | null;
@@ -491,7 +494,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   /* ---------- lock screen metadata */
   const updateLockScreen = useCallback(
     (t: CatalogTrack | undefined) => {
-      if (!t) return;
+      // Expo Go has no media-playback service (config plugins don't apply there): activating lock screen controls
+      // only logs a red error. Songs still play; use a development build for lock screen / background controls.
+      if (!t || IN_EXPO_GO) return;
       const meta = lockMetaFor(t, hideMetaRef.current);
       if (!lockActive.current) {
         playlist.setActiveForLockScreen(true, meta, lockScreenOptions);

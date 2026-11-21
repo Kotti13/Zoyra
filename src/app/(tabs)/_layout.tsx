@@ -8,11 +8,12 @@ import { MiniPlayer, TabBar, type TabKey } from '../../components';
 const keys: TabKey[] = ['home', 'search', 'library', 'profile'];
 
 /**
- * 'shift' is driven by the native animation driver in js-tabs (opacity + 50 px translateX, 150 ms), so
- * it never waits on the JS thread. Options are a module constant so the navigator never sees new
- * screenOptions between renders.
+ * 'fade' is an opacity-only cross-fade driven by the native animation driver in js-tabs, so it never
+ * waits on the JS thread. It replaced 'shift' (opacity + 50 px translateX), which re-rasterized the
+ * whole scene every frame and stuttered on the heavier tabs. Revert to 'shift' if you prefer the slide.
+ * Options are a module constant so the navigator never sees new screenOptions between renders.
  */
-const screenOptions = { headerShown: false, sceneStyle: { backgroundColor: 'transparent' }, animation: 'shift' } as const;
+const screenOptions = { headerShown: false, sceneStyle: { backgroundColor: 'transparent' }, animation: 'fade' } as const;
 
 /** Tabs that are mounted in the background once Home has settled, so a first tap shows a ready screen. */
 const PRELOAD = ['/search', '/library', '/profile'] as const;
