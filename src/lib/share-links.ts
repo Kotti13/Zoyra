@@ -57,6 +57,18 @@ export const albumShareUrl = (album: { id: string } | string) => link('a', typeo
 
 export const artistShareUrl = (artist: { id: string } | string) => link('ar', typeof artist === 'string' ? artist : artist.id);
 
+/** Live room (session uuid): opens the room in the app, or a "live now" card on the web. */
+export const liveShareUrl = (id: string) => link('lv', id);
+
+/** Group listening room / party, by its join code. The kind is part of the id: `group-ABC123` or `party-ABC123`. */
+export const roomShareUrl = (kind: 'group' | 'party', code: string) => link('rm', `${kind}-${code}`);
+
+/** Family plan invite code. */
+export const familyShareUrl = (code: string) => link('fam', code);
+
+/** Collaborative playlist invite (playlist uuid). */
+export const inviteShareUrl = (playlistId: string) => link('inv', playlistId);
+
 /** Stats / run / badge snapshot page (token from `createShareSnapshot`, see lib/share-snapshots.ts). */
 export const snapshotShareUrl = (token: string) => link('s', token);
 
@@ -67,16 +79,15 @@ export function profileShareUrl(p: { id: string; username?: string | null } | st
 }
 
 /**
- * Open the system share sheet with a link that unfurls into a rich card.
- * iOS: `url` is passed on its own so Messages / WhatsApp build the preview card from it.
- * Android: one text payload, "title\nurl" (apps unfurl the first link they find).
+ * Open the system share sheet with the LINK only, so it arrives as a tappable link that unfurls into a rich card
+ * (not as a line of text with a link buried in it). `title` is only the sheet's heading.
+ * iOS: `url` alone, so Messages / WhatsApp build the preview card from it.
+ * Android: the link as the whole message (apps unfurl the link they find).
+ * `message` is accepted for older callers and ignored.
  */
-export async function shareContent({ url, title, message }: { url: string; title?: string; message?: string }) {
-  const text = message ?? title ?? '';
-  if (Platform.OS === 'ios') {
-    return Share.share({ url, message: text || undefined, title }, { subject: title });
-  }
-  return Share.share({ message: text ? `${text}\n${url}` : url, title }, { dialogTitle: title ?? 'Share' });
+export async function shareContent({ url, title }: { url: string; title?: string; message?: string }) {
+  if (Platform.OS === 'ios') return Share.share({ url }, { subject: title });
+  return Share.share({ message: url, title }, { dialogTitle: title ?? 'Share' });
 }
 
 /* ------------------------------------------------------------------ incoming links */
@@ -111,7 +122,7 @@ export function appPathFromShareUrl(input: string | null | undefined): string | 
     else if (v.startsWith('/')) rest = v;
     else return null;
   }
-  const m = /^\/(t|l|p|a|ar|u|s)\/([^/?#]+)\/?(?:[?#].*)?$/.exec(rest);
+  const m = /^\/(t|l|p|a|ar|u|s|lv|rm|fam|inv)\/([^/?#]+)\/?(?:[?#].*)?$/.exec(rest);
   if (!m) return null;
   const id = decode(m[2]);
   if (!id || id.length > 200) return null;
@@ -127,6 +138,16 @@ export function appPathFromShareUrl(input: string | null | undefined): string | 
       return `/artist?id=${q(id)}`;
     case 's':
       return /^[a-f0-9]{14}$/.test(id) ? `/shared?token=${q(id)}` : null;
+    case 'lv':
+      return UUID.test(id) ? `/live-room?id=${q(id)}` : null;
+    case 'rm': {
+      const r = /^(group|party)-([A-Za-z0-9]{3,24})$/.exec(id);
+      return r ? `${r[1] === 'party' ? '/party' : '/group-listening'}?code=${q(r[2])}` : null;
+    }
+    case 'fam':
+      return /^[A-Za-z0-9]{3,24}$/.test(id) ? `/join-family?code=${q(id)}` : null;
+    case 'inv':
+      return UUID.test(id) ? `/invite?playlist=${q(id)}` : null;
     case 'u':
       return UUID.test(id) ? `/public-profile?id=${q(id)}` : `/public-profile?username=${q(id.replace(/^@/, '').toLowerCase())}`;
     default:

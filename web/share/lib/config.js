@@ -46,4 +46,4 @@ export function readConfig(env = process.env) {
 }
 
 /** Paths the app claims as Universal Links / App Links (must match app.config.js SHARE_PATHS). */
-export const APP_PATHS = ['/t/*', '/p/*', '/a/*', '/ar/*', '/u/*', '/l/*', '/s/*'];
+export const APP_PATHS = ['/t/*', '/p/*', '/a/*', '/ar/*', '/u/*', '/l/*', '/s/*', '/lv/*', '/rm/*', '/fam/*', '/inv/*'];

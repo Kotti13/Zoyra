@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
-import { Linking, Share } from 'react-native';
+import { Linking } from 'react-native';
 
 import { ServiceNotConfiguredError } from './concerts';
 import { getPlayPref, playPrefsReady } from './play-prefs';
 import { supabase } from './supabase';
 import { FLASH, flash } from './flash';
+import { shareContent } from './share-links';
 
 /**
  * Music videos via the `youtube` edge function (YouTube Data API v3 on the server; the key never
@@ -215,7 +216,7 @@ export const openOnYouTube = (id: string, t?: number) =>
 
 export async function shareVideo(v: Pick<YouTubeVideo, 'id' | 'title' | 'channel'>): Promise<void> {
   const url = youtubeUrl(v.id);
-  await Share.share({ message: `${v.title} · ${v.channel}\n${url}`, url, title: v.title });
+  await shareContent({ url, title: v.title });
 }
 
 export const REPORT_EMAIL = 'support@zoyra.app';
