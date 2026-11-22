@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { ARTICLES } from './src/data/articles.mjs';
 import { GROUPS, HIGHLIGHTS, NUMBERS, SITE, STACK, STEPS } from './src/data/features.mjs';
-import { DEV, NAME } from './src/data/about.mjs';
+import { DEV, NAME, NUMBERS as DEV_NUMBERS, PRINCIPLES, PROJECTS, STACK_CHIPS, TIMELINE } from './src/data/about.mjs';
 import { FOREVER } from './src/data/forever.mjs';
 import { esc, icon, page, phone } from './src/layout.mjs';
 
@@ -247,11 +247,64 @@ write(
   page({
     path: '/about',
     title: 'About',
-    description: 'Why the app is called Zoyra (Zoya + Aura), and who builds it.',
+    description: 'The story behind Zoyra, the person who builds it, and why the name is Zoya + Aura.',
     body: `
-<section class="wrap page-head">
-  <p class="eyebrow">About</p>
-  <h1>The name, and the person</h1>
+<section class="about-hero">
+  <div class="wrap ah-in">
+    <div class="ah-copy">
+      <p class="eyebrow">About</p>
+      <h1>${esc(DEV.headline)}</h1>
+      <p class="lead">${esc(DEV.intro)}</p>
+      <div class="cta">
+        <a class="btn primary" href="${DEV.github}" rel="noopener">${icon('github', 18)} GitHub</a>
+        <a class="btn" href="${DEV.portfolio}" rel="noopener">${icon('link', 18)} Portfolio</a>
+      </div>
+    </div>
+    <figure class="ah-photo">
+      <img src="${DEV.photo}" alt="${esc(DEV.name)}" width="460" height="460">
+      <figcaption><b>${esc(DEV.name)}</b><span>${esc(DEV.role)} · ${esc(DEV.place)}</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="wrap sec">
+  <div class="story">
+    <div class="story-copy">
+      <h2 class="h2">The story</h2>
+      ${DEV.story.map((t) => `<p>${esc(t)}</p>`).join('')}
+    </div>
+    <ul class="facts">${DEV.facts.map((f) => `<li><span>${esc(f.k)}</span><b>${esc(f.v)}</b></li>`).join('')}</ul>
+  </div>
+</section>
+
+<section class="wrap sec">
+  <h2 class="h2">The road here</h2>
+  <ol class="timeline">${TIMELINE.map((t) => `<li><span class="when">${esc(t.when)}</span><div><h3>${esc(t.title)}</h3><p>${esc(t.text)}</p></div></li>`).join('')}</ol>
+</section>
+
+<section class="wrap sec">
+  <div class="split">
+    <div>
+      <h2 class="h2">What Zoyra took</h2>
+      <p class="lead2">One person, every layer. This is the size of it, and what it is made of.</p>
+      <ul class="chips2">${STACK_CHIPS.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
+    </div>
+    <div class="stats">${DEV_NUMBERS.map((n) => `<div><b>${esc(n.value)}</b><span>${esc(n.label)}</span></div>`).join('')}</div>
+  </div>
+</section>
+
+<section class="wrap sec">
+  <h2 class="h2">How I build</h2>
+  <div class="grid4">${PRINCIPLES.map(card).join('')}</div>
+</section>
+
+<section class="wrap sec">
+  <div class="head-row"><h2 class="h2">Things I have built</h2><a class="more" href="${DEV.github}?tab=repositories" rel="noopener">All repositories ${icon('arrow', 16)}</a></div>
+  <div class="grid3">${PROJECTS.map(
+    (p) => `<article class="card proj"><span class="tag">${esc(p.tag)}</span><h3>${esc(p.name)}</h3><p class="muted">${esc(p.lang)}</p><div class="proj-links">${
+      p.live ? `<a href="${esc(p.live)}" rel="noopener">Live site ${icon('arrow', 14)}</a>` : ''
+    }<a href="${DEV.github}/${esc(p.repo)}" rel="noopener">Code ${icon('github', 14)}</a></div></article>`,
+  ).join('')}</div>
 </section>
 
 <section class="wrap sec">
@@ -267,27 +320,19 @@ write(
 </section>
 
 <section class="wrap sec">
-  <div class="dev">
-    <div class="dev-card">
-      <div class="avatar" aria-hidden="true">KS</div>
-      <h2>${esc(DEV.name)}</h2>
-      <p class="muted">${esc(DEV.role)}</p>
-      <ul class="facts">${DEV.facts.map((f) => `<li><span>${esc(f.k)}</span><b>${esc(f.v)}</b></li>`).join('')}</ul>
-      <div class="cta">
-        <a class="btn" href="${DEV.github}" rel="noopener">${icon('github', 18)} GitHub</a>
-        <a class="btn" href="${DEV.portfolio}" rel="noopener">${icon('link', 18)} Portfolio</a>
-      </div>
+  <div class="band">
+    <div>
+      <h2 class="h2">Say hello, or send a fix</h2>
+      <p class="lead2">The code is public. Open an issue, send an idea, or just have a look around.</p>
     </div>
-    <div class="dev-copy">
-      <h2 class="h2">Hi, I am ${esc(DEV.name)}</h2>
-      ${DEV.bio.map((t) => `<p>${esc(t)}</p>`).join('')}
-      <p><a class="more" href="/open-source">See how it is built ${icon('arrow', 16)}</a></p>
+    <div class="cta" style="margin:0">
+      <a class="btn primary" href="${SITE.github}/issues" rel="noopener">${icon('chat', 18)} Open an issue</a>
+      <a class="btn" href="${DEV.portfolio}" rel="noopener">${icon('user', 18)} My portfolio</a>
     </div>
   </div>
 </section>`,
   }),
 );
-
 
 // ------------------------------------------------------------------ download
 const APK = `${SITE.github}/releases/latest/download/zoyra.apk`;
