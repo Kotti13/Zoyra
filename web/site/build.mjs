@@ -368,9 +368,24 @@ write(
   <ol class="steps four">
     <li><span class="n">1</span><h3>Download</h3><p>Tap the button above on your Android phone. Your browser may warn that APK files can be harmful. That is normal for apps outside the Play Store.</p></li>
     <li><span class="n">2</span><h3>Allow the install</h3><p>When asked, allow your browser to “install unknown apps” for this one install. You can turn it off again afterwards.</p></li>
-    <li><span class="n">3</span><h3>Open the file</h3><p>Tap the downloaded file, then <b>Install</b>.</p></li>
+    <li><span class="n">3</span><h3>Open the file</h3><p>Tap the downloaded <b>zoyra.apk</b>, then <b>Install</b>. If your phone warns about it, see the box below.</p></li>
     <li><span class="n">4</span><h3>Sign up and play</h3><p>Pick your genres, languages and artists, then search a song. To update later, download the newest build again.</p></li>
   </ol>
+</section>
+
+<section class="wrap sec">
+  <div class="warn">
+    <div class="ico">${icon('shield')}</div>
+    <div>
+      <h2>“This app may be harmful” or “Blocked by Play Protect”?</h2>
+      <p>Android shows this for <b>every</b> app that does not come from the Play Store, especially a new one that few people have installed yet. It does not mean the file is infected. Zoyra is built from the public code in this repository by GitHub and Expo’s build service, and you can read all of it.</p>
+      <ol>
+        <li>On the warning, tap <b>More details</b>, then <b>Install anyway</b>.</li>
+        <li>If Play Protect offers to <b>Scan app</b>, you can let it scan first, then choose <b>Install anyway</b>.</li>
+        <li>If you are not comfortable installing it, do not install it. Wait for an official store version instead.</li>
+      </ol>
+    </div>
+  </div>
 </section>
 
 <section class="wrap sec">
