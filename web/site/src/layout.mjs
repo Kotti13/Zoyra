@@ -44,7 +44,9 @@ export const icon = (name, size = 22) =>
 
 const NAV = [
   ['/features', 'Features'],
+  ['/forever', 'Forever'],
   ['/articles', 'Articles'],
+  ['/about', 'About'],
   ['/open-source', 'Open source'],
   ['/privacy', 'Privacy'],
 ];
@@ -95,7 +97,9 @@ ${body}
     </div>
     <nav aria-label="Footer" class="foot-links">
       <a href="/features">Features</a>
+      <a href="/forever">Forever</a>
       <a href="/articles">Articles</a>
+      <a href="/about">About</a>
       <a href="/open-source">Open source</a>
       <a href="/privacy">Privacy</a>
       <a href="${SITE.github}" rel="noopener">GitHub</a>
