@@ -6,7 +6,8 @@ import { bedtimeActive, checkPin, clockLabel, kidsRouteVerdict, PIN_LENGTH, read
 import { useAuth } from '../state/auth';
 import { usePlayerPick } from '../state/player';
 import { colors, fonts, withAlpha } from '../theme/tokens';
-import { Button, Icon, T } from '.';
+import { Button, T } from '.';
+import { IconBadge } from './IconBadge';
 
 /** Parent PIN entry (modal). `onSubmit` resolves an error message, or null when the PIN was accepted. */
 export function PinModal({ visible, title, subtitle, onSubmit, onCancel }: { visible: boolean; title: string; subtitle?: string; onSubmit: (pin: string) => Promise<string | null>; onCancel: () => void }) {
@@ -33,9 +34,7 @@ export function PinModal({ visible, title, subtitle, onSubmit, onCancel }: { vis
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onCancel}>
       <View accessibilityViewIsModal style={{ flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <View style={{ width: '100%', maxWidth: 360, padding: 24, gap: 14, borderRadius: 32, alignItems: 'center', backgroundColor: withAlpha(colors.bgTertiary, 0.98), borderWidth: 1, borderColor: withAlpha(colors.white, 0.14) }}>
-          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="lock" size={24} color={colors.accentLight} />
-          </View>
+          <IconBadge icon="lock" size={52} />
           <T size={18} weight={600} align="center" accessibilityRole="header">
             {title}
           </T>
@@ -148,9 +147,7 @@ export function KidsGuardHost() {
       <Modal visible={!!show && active} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShow(null)}>
         <View accessibilityViewIsModal style={{ flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <View style={{ width: '100%', maxWidth: 360, padding: 24, gap: 14, borderRadius: 32, alignItems: 'center', backgroundColor: withAlpha(colors.bgTertiary, 0.98), borderWidth: 1, borderColor: withAlpha(colors.white, 0.14) }}>
-            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={show === 'bedtime' ? 'moon' : 'timer'} size={26} color={colors.accentLight} />
-            </View>
+            <IconBadge icon={show === 'bedtime' ? 'moon' : 'timer'} size={56} />
             <T size={20} weight={600} align="center" accessibilityRole="header">
               {title}
             </T>

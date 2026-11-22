@@ -1,0 +1,22 @@
+# Docker build context for the backend image (root Dockerfile): keep out everything the backend does not need.
+node_modules
+.git
+.expo
+.github
+android
+ios
+assets
+design
+web
+supabase
+src
+patches
+plugins
+**/__pycache__
+**/.venv
+**/build
+**/.gradle
+**/.env
+**/.env.*
+!**/.env.example
+*.log

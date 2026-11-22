@@ -3,7 +3,7 @@ import { APP_PATHS, readConfig } from './config.js';
 import { UpstreamError, loadCard } from './data.js';
 import { CSP, renderCard, renderMessage } from './render.js';
 
-export const KINDS = ['t', 'p', 'a', 'ar', 'u', 'l', 's'];
+export const KINDS = ['t', 'p', 'a', 'ar', 'u', 'l', 's', 'lv', 'rm', 'fam', 'inv'];
 
 const CACHE = {
   // Catalogue data barely changes.
@@ -46,7 +46,7 @@ export async function handleShare({ kind, id }, env = process.env, fetchImpl = f
   try {
     const card = await loadCard(safeKind, String(id), cfg, fetchImpl);
     if (!card) {
-      const what = { t: 'song', l: 'song', p: 'playlist', a: 'album', ar: 'artist', u: 'profile', s: 'shared item' }[safeKind];
+      const what = { t: 'song', l: 'song', p: 'playlist', a: 'album', ar: 'artist', u: 'profile', s: 'shared item', lv: 'live room', rm: 'listening room', fam: 'invite', inv: 'invite' }[safeKind];
       const body =
         safeKind === 'p'
           ? 'This playlist is private or no longer exists.'

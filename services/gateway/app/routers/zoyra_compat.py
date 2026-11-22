@@ -99,15 +99,29 @@ async def prefetch(request: Request, vid: str, _rl=Depends(rate_limit("newpipe")
     return JSONResponse({"ok": True})
 
 
+def _media_ok(url: str) -> bool:
+    return url.startswith("https://") and bool(MEDIA_HOST.match(urlsplit(url).hostname or ""))
+
+
 async def _open_media(url: str, range_header: str | None) -> httpx.Response:
-    host = urlsplit(url).hostname or ""
-    if not url.startswith("https://") or not MEDIA_HOST.match(host):
+    """Open the media URL with Range. YouTube's media servers sometimes answer with a redirect to a closer server: it is
+    followed (at most 3 hops), and every hop must again be an https Google media host (never an arbitrary address)."""
+    if not _media_ok(url):
         raise GatewayError(502, "newpipe_failed", "Unexpected media host.")
     client = httpx.AsyncClient(timeout=httpx.Timeout(10.0, read=30.0), follow_redirects=False)
     # YouTube cuts a request without Range off after roughly half the file; an open-ended Range returns all of it.
     headers = {"User-Agent": UA, "Range": range_header or "bytes=0-"}
     try:
         res = await client.send(client.build_request("GET", url, headers=headers), stream=True)
+        for _ in range(3):
+            if res.status_code not in (301, 302, 303, 307, 308):
+                break
+            nxt = res.headers.get("location", "")
+            await res.aclose()
+            if not _media_ok(nxt):
+                await client.aclose()
+                raise GatewayError(502, "newpipe_failed", "Unexpected media redirect.")
+            res = await client.send(client.build_request("GET", nxt, headers=headers), stream=True)
     except httpx.HTTPError:
         await client.aclose()
         raise GatewayError(502, "newpipe_failed", "Could not reach the audio source.") from None

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Art, Button, Chip, Cover, Glass, Icon, IconButton, Row, Sheet, T, TextField, Toggle } from '../components';
+import { Art, Button, Chip, Cover, Glass, IconButton, Row, Sheet, T, TextField, Toggle, IconBadge } from '../components';
 import type { IconName } from '../components';
 import { createSession } from '../lib/live';
 import { useAuth } from '../state/auth';
@@ -24,9 +24,7 @@ const dayLabel = (d: Date, i: number) => (i === 0 ? 'Today' : i === 1 ? 'Tomorro
 function OptionRow({ icon, title, subtitle, value, onChange, divider }: { icon: IconName; title: string; subtitle: string; value: boolean; onChange: (v: boolean) => void; divider?: boolean }) {
   return (
     <Row style={[{ minHeight: 64, paddingHorizontal: 8 }, divider && { borderTopWidth: 1, borderTopColor: colors.divider }]}>
-      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name={icon} size={20} color={colors.accentLight} />
-      </View>
+      <IconBadge icon={icon} size={40} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <T size={16} weight={500}>
           {title}

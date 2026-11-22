@@ -1,34 +1,38 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 
-import { Button, Icon, LinkText, Row, Screen, T } from '../components';
+import { Button, LinkText, Row, Screen, T } from '../components';
+import { CategoryTile } from '../components/CategoryTile';
 import { GENRES } from '../lib/catalog';
 import { permissionsPending } from '../lib/permissions';
 import { useAuth } from '../state/auth';
 import { colors, tile } from '../theme/tokens';
 
 type CatalogGenre = (typeof GENRES)[number];
-type Genre = { t: string; bg: string; border: string; g: CatalogGenre };
+/** `q`: what to search for the tile's picture (the top song of that kind of music). */
+type Genre = { t: string; bg: string; border: string; g: CatalogGenre; q: string };
 
 /** Selected-state fill / border per genre (unselected tiles are bgTertiary / border); `g` is the catalogue genre the tile tunes the feed to. */
 const genres: Genre[] = [
-  { t: 'Pop', g: 'Pop', bg: tile.rose, border: colors.like },
-  { t: 'Tamil Film', g: 'World', bg: tile.coral, border: colors.accentLight },
-  { t: 'Hindi', g: 'World', bg: tile.gold, border: colors.amber },
-  { t: 'Indie', g: 'Alternative', bg: tile.bronze, border: colors.amber },
-  { t: 'Rock', g: 'Rock', bg: tile.coral, border: colors.accentLight },
-  { t: 'Hip-hop', g: 'Hip-Hop/Rap', bg: tile.blue, border: colors.info },
-  { t: 'Lo-fi', g: 'Lo-Fi', bg: tile.navy, border: colors.info },
-  { t: 'K-pop', g: 'Pop', bg: tile.rose, border: colors.like },
-  { t: 'Classical', g: 'Classical', bg: tile.green, border: colors.success },
-  { t: 'Electronic', g: 'Electronic', bg: tile.blue, border: colors.info },
-  { t: 'Jazz', g: 'Jazz', bg: tile.bronze, border: colors.amber },
-  { t: 'Devotional', g: 'World', bg: tile.gold, border: colors.amber },
+  { t: 'Pop', g: 'Pop', bg: tile.rose, border: colors.like, q: 'top pop songs' },
+  { t: 'Tamil Film', g: 'World', bg: tile.coral, border: colors.accentLight, q: 'top Tamil film songs' },
+  { t: 'Hindi', g: 'World', bg: tile.gold, border: colors.amber, q: 'top Hindi songs' },
+  { t: 'Indie', g: 'Alternative', bg: tile.bronze, border: colors.amber, q: 'top indie songs' },
+  { t: 'Rock', g: 'Rock', bg: tile.coral, border: colors.accentLight, q: 'top rock songs' },
+  { t: 'Hip-hop', g: 'Hip-Hop/Rap', bg: tile.blue, border: colors.info, q: 'top hip hop songs' },
+  { t: 'Lo-fi', g: 'Lo-Fi', bg: tile.navy, border: colors.info, q: 'lofi beats' },
+  { t: 'K-pop', g: 'Pop', bg: tile.rose, border: colors.like, q: 'top K-pop songs' },
+  { t: 'Classical', g: 'Classical', bg: tile.green, border: colors.success, q: 'classical music' },
+  { t: 'Electronic', g: 'Electronic', bg: tile.blue, border: colors.info, q: 'top electronic dance songs' },
+  { t: 'Jazz', g: 'Jazz', bg: tile.bronze, border: colors.amber, q: 'jazz classics' },
+  { t: 'Devotional', g: 'World', bg: tile.gold, border: colors.amber, q: 'top devotional songs' },
 ];
 
 export default function Onboarding() {
   const { settings, updateSettings } = useAuth();
+  const { width: winW } = useWindowDimensions();
+  const tileW = Math.floor((winW - 32 - 20) / 3); // three across
   // Re-entering onboarding: preselect the first tile for each saved catalogue genre.
   const [selected, setSelected] = useState<string[]>(() => {
     const saved = new Set(settings?.genres ?? []);
@@ -90,39 +94,20 @@ export default function Onboarding() {
         </T>
       </View>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {genres.map((g) => {
-          const on = selected.includes(g.t);
-          return (
-            <Pressable
-              key={g.t}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
-              onPress={() => toggle(g.t)}
-              style={({ pressed }) => ({
-                width: '30%',
-                flexGrow: 1,
-                height: 88,
-                borderRadius: 26,
-                padding: 12,
-                borderWidth: 2,
-                borderColor: on ? g.border : colors.border,
-                backgroundColor: on ? g.bg : colors.bgTertiary,
-                justifyContent: 'flex-end',
-                opacity: pressed ? 0.8 : 1,
-              })}
-            >
-              <T size={14} weight={600} color={colors.white}>
-                {g.t}
-              </T>
-              {on ? (
-                <View style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="checkBold" size={14} color={g.bg} strokeWidth={2.4} />
-                </View>
-              ) : null}
-            </Pressable>
-          );
-        })}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        {genres.map((g) => (
+          <CategoryTile
+            key={g.t}
+            label={g.t}
+            query={g.q}
+            bg={g.bg}
+            radius={22}
+            width={tileW}
+            height={104}
+            selected={selected.includes(g.t)}
+            onPress={() => toggle(g.t)}
+          />
+        ))}
       </View>
 
       <View style={{ flex: 1 }} />

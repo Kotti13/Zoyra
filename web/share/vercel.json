@@ -50,6 +50,22 @@
       "destination": "/api/share?kind=s&id=:id"
     },
     {
+      "source": "/lv/:id",
+      "destination": "/api/share?kind=lv&id=:id"
+    },
+    {
+      "source": "/rm/:id",
+      "destination": "/api/share?kind=rm&id=:id"
+    },
+    {
+      "source": "/fam/:id",
+      "destination": "/api/share?kind=fam&id=:id"
+    },
+    {
+      "source": "/inv/:id",
+      "destination": "/api/share?kind=inv&id=:id"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/share"
     }

@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Glass, Icon, IconButton, Loading, Row, Screen, T, Tap, Toast, useAsync } from '../components';
+import { Glass, Icon, IconButton, Loading, Row, Screen, T, Tap, Toast, useAsync, IconBadge } from '../components';
 import { loadMySettings, updateMySettings } from '../lib/chat';
 import { muteConversationFor } from '../lib/dm';
 import { useAuth } from '../state/auth';
@@ -131,9 +131,7 @@ export default function ChatNotifications() {
                 style={[{ minHeight: 56 }, i > 0 && { borderTopWidth: 1, borderTopColor: colors.divider }]}
               >
                 <Row gap={12} style={{ minHeight: 56, paddingHorizontal: 12 }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: withAlpha(colors.accent, 0.18), alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="bellOff" size={18} color={colors.accentLight} />
-                  </View>
+                  <IconBadge icon="bellOff" size={40} />
                   <T size={16} weight={500} style={{ flex: 1 }}>
                     {m.label}
                   </T>

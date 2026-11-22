@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { PinModal } from '../components/KidsGuard';
-import { Button, Glass, Icon, ListGroup, ListRow, Overline, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle, useAsync } from '../components';
+import { Button, Glass, Icon, ListGroup, ListRow, Overline, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle, useAsync, IconBadge } from '../components';
 import { checkPin, clockLabel, limitLabel, lockParent, makePin, readUsageSeconds, useKids } from '../lib/kids';
 import { useAuth } from '../state/auth';
 import { colors, withAlpha } from '../theme/tokens';
@@ -154,9 +154,7 @@ export default function KidsMode() {
 
       <Glass padding={14}>
         <Row gap={12}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="shield" size={22} color={colors.accentLight} />
-          </View>
+          <IconBadge icon="shield" size={44} />
           <View style={{ flex: 1 }}>
             <T size={16} weight={600}>
               Kids mode
