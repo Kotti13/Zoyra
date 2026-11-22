@@ -112,6 +112,35 @@ and restart Expo.
 **Limits:** if the laptop sleeps, loses power or loses internet, music stops. Home upload speed caps listeners (see Notes).
 Keep the keys private: anyone with `ZOYRA_API_KEY` can use your backend.
 
+### Fedora notes for Option C
+
+Fedora ships Podman instead of Docker. The commands are the same: use `podman` wherever Option C says `docker`.
+
+```
+sudo dnf install -y podman git
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target   # never suspend
+# closed lid: set HandleLidSwitch=ignore in /etc/systemd/logind.conf, then: sudo systemctl restart systemd-logind
+
+podman build -t zoyra-backend .
+podman run -d --name zoyra -p 8080:8080 \
+  -e ZOYRA_API_KEY=<key1> -e NEWPIPE_TOKEN=<key2> -e TRUST_PROXY=true zoyra-backend
+
+# start on boot (Podman has no --restart policy across reboots; use a systemd user unit)
+mkdir -p ~/.config/systemd/user
+podman generate systemd --new --name zoyra > ~/.config/systemd/user/zoyra.service
+systemctl --user enable --now zoyra
+loginctl enable-linger $USER        # keeps it running while logged out
+```
+
+- **Firewall:** `firewalld` blocks incoming ports. A Cloudflare tunnel connects outward, so nothing needs opening. To test
+  from another device on your network: `sudo firewall-cmd --add-port=8080/tcp --permanent && sudo firewall-cmd --reload`.
+- **SELinux:** leave it on. If the container will not start and the log shows `AVC` or permission denied, run
+  `sudo ausearch -m avc -ts recent` and fix the rule; do not disable SELinux.
+- **cloudflared:** install Cloudflare's rpm package, then `sudo cloudflared service install` for the permanent tunnel.
+- **Without containers:** `sudo dnf install java-17-openjdk-devel python3 gradle`, plus ffmpeg from RPM Fusion, then
+  Option A (`scripts/run-backend.sh`).
+- Logs: `podman logs -f zoyra` or `journalctl --user -u zoyra -f`. Update: `git pull`, rebuild, `systemctl --user restart zoyra`.
+
 ## Notes
 - Each listener uses about 128 kbps; 100 listeners is roughly 13 Mbps of upload.
 - First play of a song that was not looked up in advance takes about a second; the app looks up the top three search
