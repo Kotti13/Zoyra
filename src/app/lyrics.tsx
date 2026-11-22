@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Cover, EmptyState, ErrorState, Glass, Icon, IconButton, LinkText, Loading, Row, Screen, T, Tap, type AsyncState } from '../components';
+import { Cover, EmptyState, ErrorState, Glass, Icon, IconButton, LinkText, Loading, Row, Screen, T, Tap, type AsyncState, IconBadge } from '../components';
 import { GlowBackdrop } from '../components/art-fx';
 import { displaySynced, LyricsView, PlayRing, useTrackLyrics, type LyricsHighlight } from '../components/LyricsView';
 import { LyricSyncControl } from '../components/lyric-sync';
@@ -69,9 +69,7 @@ function syncBadge(l: LyricsData | null | undefined): { label: string; dot: stri
 function LyricsMessage({ title, body, k }: { title: string; body: string; k: number }) {
   return (
     <View style={{ alignItems: 'center', gap: 14 * k }} accessible accessibilityLabel={`${title}. ${body}`}>
-      <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name="file" size={26} color={colors.accentLight} />
-      </View>
+      <IconBadge icon="file" size={56} />
       <T variant="headlineLight" size={26 * k} align="center" lineHeight={Math.round(26 * k * 1.25)}>
         {title}
       </T>

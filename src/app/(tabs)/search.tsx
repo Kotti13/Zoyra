@@ -13,7 +13,6 @@ import {
   AppleTitle,
   AppleTrackList,
   APPLE,
-  Art,
   Gradient,
   Icon,
   IconButton,
@@ -29,6 +28,7 @@ import {
   Toast,
   useAsync,
   useDebounced,
+  IconBadge,
 } from '../../components';
 import type { IconName } from '../../components';
 import { MOOD_MAP, catalog, formatCount, type Artist, type CatalogTrack, type Collection } from '../../lib/catalog';
@@ -39,7 +39,8 @@ import { VideoEntryCard } from '../../lib/video-ui';
 import { useVoiceSearch } from '../../lib/voice';
 import { useAuth } from '../../state/auth';
 import { usePlayerActions, usePlayerSelector } from '../../state/player';
-import { art, artCycle, colors, fonts, shadow, tile, withAlpha } from '../../theme/tokens';
+import { CategoryTile } from '../../components/CategoryTile';
+import { art, colors, fonts, shadow, tile } from '../../theme/tokens';
 import { searchFilters, useSearchFilters, type SearchFilterState } from '../filter-sort';
 
 const filters = ['All', 'Songs', 'Artists', 'Albums', 'Playlists', 'Lyrics', 'Podcasts'] as const;
@@ -556,9 +557,7 @@ export default function Search() {
             style={[{ borderRadius: 20 }, shadow.sticker]}
           >
             <Gradient colors={art.orange} style={{ borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: withAlpha(colors.white, 0.22), alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="mic" size={26} color={colors.white} />
-              </View>
+              <IconBadge icon="mic" size={52} />
               <View style={{ flex: 1, gap: 2 }}>
                 <T size={18} weight={700} color={colors.white}>
                   What is playing?
@@ -626,22 +625,15 @@ export default function Search() {
               <LinkText label={filtersOn ? 'Filters on' : 'Filters'} icon="filter" size={13} href="/filter-sort" />
             </Row>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: APPLE.gap }}>
-              {genres.map((g, i) => (
-                <Tap
+              {genres.map((g) => (
+                <CategoryTile
                   key={g.label}
-                  accessibilityLabel={g.label}
+                  label={g.label}
+                  bg={g.bg}
+                  width={tileW}
+                  height={Math.round(tileW / 1.78)}
                   onPress={() => router.push({ pathname: '/genre', params: { name: g.label } })}
-                  style={{ width: tileW, height: Math.round(tileW / 1.78), borderRadius: 14, padding: 12, backgroundColor: g.bg, overflow: 'hidden', justifyContent: 'flex-end' }}
-                >
-                  <View pointerEvents="none" style={{ position: 'absolute', right: -10, bottom: -8, transform: [{ rotate: i % 2 ? '-18deg' : '18deg' }] }}>
-                    <Art art={artCycle[i % artCycle.length]} size={64} radius={8} style={{ alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={g.icon} size={28} color={colors.white} filled={g.filled} />
-                    </Art>
-                  </View>
-                  <T size={16} weight={700} color={colors.white} numberOfLines={2} style={{ maxWidth: tileW - 24 }}>
-                    {g.label}
-                  </T>
-                </Tap>
+                />
               ))}
             </View>
           </View>

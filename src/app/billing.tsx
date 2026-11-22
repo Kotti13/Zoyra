@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import type { CustomerInfo, PurchasesEntitlementInfo } from 'react-native-purchases';
 
-import { EmptyState, Glass, Gradient, Icon, LinkText, Loading, Row, Screen, ScreenHeader, SectionHeader, Sticker, T, Toast, useAsync } from '../components';
+import { EmptyState, Glass, Gradient, LinkText, Loading, Row, Screen, ScreenHeader, SectionHeader, Sticker, T, Toast, useAsync, IconBadge } from '../components';
 import { PAYMENTS_UNAVAILABLE, getCustomerInfo, manageSubscription, paymentsAvailable } from '../lib/payments';
 import { useAuth } from '../state/auth';
 import { colors } from '../theme/tokens';
@@ -99,9 +99,7 @@ export default function Billing() {
       <SectionHeader title="Payment method" />
       <Glass padding={4}>
         <Row gap={12} style={{ minHeight: 68, paddingHorizontal: 8 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="lock" size={20} color={colors.accentLight} />
-          </View>
+          <IconBadge icon="lock" size={40} />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <T size={16} weight={500}>
               {ent ? storeName(ent.store) : Platform.OS === 'ios' ? 'App Store' : 'Google Play'}

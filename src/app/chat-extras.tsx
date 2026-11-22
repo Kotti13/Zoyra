@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Chip, go, Icon, ListRow, Row, Sheet, T, Tap, useAsync } from '../components';
+import { Button, Chip, go, Icon, ListRow, Row, Sheet, T, Tap, useAsync, IconBadge } from '../components';
 import type { IconName } from '../components/icons';
 import { chatError, DISAPPEAR_OPTIONS, disappearLabel, setDisappearing } from '../lib/chat';
 import { routeIfSetupRequired } from '../lib/chat-e2ee';
@@ -150,9 +150,7 @@ export default function ChatExtras() {
             accessibilityLabel={`${r.title}. ${r.body}`}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64, paddingVertical: 12, paddingHorizontal: 4, borderTopWidth: i ? 1 : 0, borderTopColor: withAlpha(colors.white, 0.07) }}
           >
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: withAlpha(colors.white, 0.08), alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={r.icon} size={20} color={colors.text} />
-            </View>
+            <IconBadge icon={r.icon} size={40} />
             <View style={{ flex: 1 }}>
               <T size={15} weight={600}>
                 {r.title}

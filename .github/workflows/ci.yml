@@ -1,0 +1,76 @@
+# Runs on every push to main and on every pull request: the app's typecheck, the backend tests, the Java service
+# build and a syntax check of the database migrations.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (typecheck + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      # Lint still has older errors in a few screens (not part of recent work). Shown in the log, not blocking yet:
+      # once they are fixed, delete `continue-on-error` so lint becomes a required check.
+      - name: Lint
+        run: npx expo lint
+        continue-on-error: true
+
+  gateway:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/gateway/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      # The mp3 download test runs a real ffmpeg when one is installed.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+        working-directory: .
+      - run: python -m pytest -q
+
+  newpipe:
+    name: NewPipe service (compile)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/newpipe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: gradle --no-daemon -q compileJava
+
+  migrations:
+    name: Database migrations (syntax)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pglast
+      - run: python scripts/check-migrations.py

@@ -2,7 +2,7 @@ import { router, type Href } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Art, Avatar, Cover, ErrorState, Glass, Icon, IconButton, Loading, Row, Screen, T, Tap, artFor, useAsync, type IconName } from '../components';
+import { Avatar, Cover, ErrorState, Glass, Icon, IconBadge, IconButton, Loading, Row, Screen, T, Tap, artFor, useAsync, type IconName } from '../components';
 import { supabase } from '../lib/supabase';
 import { StoriesRail } from '../lib/stories-ui';
 import { useAuth } from '../state/auth';
@@ -162,9 +162,7 @@ export default function Discover() {
           {picks.map((p) => (
             <Tap key={p.title} onPress={() => router.push(p.href)} accessibilityLabel={`${p.title}. ${p.body}`}>
               <Glass radius={26} padding={12} style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                <Art art={p.art} size={52} radius={17} style={{ alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={p.icon} size={22} color={colors.white} />
-                </Art>
+                <IconBadge icon={p.icon} size={52} tone={p.art} />
                 <View style={{ flex: 1, gap: 2 }}>
                   <T size={16} weight={500}>
                     {p.title}
@@ -180,9 +178,7 @@ export default function Discover() {
           <Row gap={8} align="flex-start">
             {more.map((m) => (
               <Tap key={m.label} href={m.href} accessibilityLabel={m.label} style={{ flex: 1, alignItems: 'center', gap: 6, minWidth: 0 }}>
-                <Glass radius={26} style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={m.icon} size={22} color={colors.accentLight} />
-                </Glass>
+                <IconBadge icon={m.icon} size={52} />
                 <T size={12} weight={500} align="center" numberOfLines={1}>
                   {m.label}
                 </T>

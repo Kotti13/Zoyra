@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, View, useWindowDimensions } from 'react-native';
 
-import { APPLE, AppleTitle, Chip, Cover, EmptyState, Glass, Gradient, Icon, IconButton, Row, Screen, Shelf, ShelfCard, ShelfHeader, Sticker, T, Tap, go, useAsync } from '../../components';
+import { APPLE, AppleTitle, Chip, Cover, EmptyState, Glass, Gradient, Icon, IconButton, Row, Screen, Shelf, ShelfCard, ShelfHeader, Sticker, T, Tap, go, useAsync, IconBadge } from '../../components';
 import type { IconName, NavTarget } from '../../components';
 import type { Artwork } from '../../lib/catalog';
 import { usePref } from '../../lib/prefs';
@@ -130,9 +130,7 @@ export default function Library() {
           <Tap href={{ pathname: '/playlist', params: { liked: '1' } }} accessibilityLabel={`Liked songs. ${likedSub}`}>
             <View style={{ height: 68, borderRadius: 20, overflow: 'hidden', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Gradient colors={[colors.accent, colors.accentDark]} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
-              <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: withAlpha(colors.white, 0.2), alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="heart" size={22} color={colors.white} filled />
-              </View>
+              <IconBadge icon="heart" size={42} filled />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <T size={16} weight={800} tracking={-0.3} color={colors.white}>
                   Liked songs

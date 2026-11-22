@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { Cover, Icon, IconButton, Row, Screen, T, Toast } from '../components';
+import { Cover, IconBadge, IconButton, Row, Screen, T, Toast } from '../components';
 import { IconChip, Panel, PanelRow, SectionLabel } from '../components/settings-ui';
 import { useConnection } from '../lib/network';
 import { usePlayerPick } from '../state/player';
@@ -56,9 +56,7 @@ export default function DevicesConnect() {
       <View style={{ borderRadius: 32, borderWidth: 1, borderColor: withAlpha(colors.accent, 0.55), overflow: 'hidden' }}>
         <LinearGradient colors={[withAlpha(colors.accent, 0.3), 'rgba(20,20,20,0.6)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <Row gap={14} style={{ padding: 14 }}>
-          <View style={{ width: 46, height: 46, borderRadius: 26, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="phone" size={22} color={colors.onAccent} />
-          </View>
+          <IconBadge icon="phone" size={46} tone="coral" />
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
             <T size={16} weight={600} numberOfLines={1}>
               {deviceName()}

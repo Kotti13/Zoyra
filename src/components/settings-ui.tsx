@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { colors, withAlpha } from '../theme/tokens';
 import { IconButton, Tap, type NavTarget } from './controls';
+import { IconBadge } from './IconBadge';
 import type { IconName } from './icons';
 import { Icon, Row, T } from './primitives';
 
@@ -30,11 +31,15 @@ export function SectionLabel({ children, size = 12, tracking = 0.5, color = colo
   );
 }
 
-/** Round (or rounded-square) tinted icon chip: rgba(250,45,72,.18) + #FF7A8C glyph. */
-export function IconChip({ icon, size = 40, radius, tint = colors.accent, alpha = 0.18, color = colors.accentLight, filled, bg }: { icon: IconName; size?: number; radius?: number; tint?: string; alpha?: number; color?: string; filled?: boolean; bg?: string }) {
+/**
+ * Icon chip for Panel rows. With no colours given it is the gradient `IconBadge` (colour follows the icon); a caller
+ * that passes `tint`, `bg` or `color` explicitly keeps the plain tinted chip it asked for.
+ */
+export function IconChip({ icon, size = 40, radius, tint, alpha = 0.18, color, filled, bg }: { icon: IconName; size?: number; radius?: number; tint?: string; alpha?: number; color?: string; filled?: boolean; bg?: string }) {
+  if (tint === undefined && bg === undefined && color === undefined) return <IconBadge icon={icon} size={size} radius={radius} filled={filled} />;
   return (
-    <View style={{ width: size, height: size, borderRadius: radius ?? size / 2, backgroundColor: bg ?? withAlpha(tint, alpha), alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <Icon name={icon} size={Math.round(size * 0.5)} color={color} filled={filled} />
+    <View style={{ width: size, height: size, borderRadius: radius ?? size / 2, backgroundColor: bg ?? withAlpha(tint ?? colors.accent, alpha), alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <Icon name={icon} size={Math.round(size * 0.5)} color={color ?? colors.accentLight} filled={filled} />
     </View>
   );
 }

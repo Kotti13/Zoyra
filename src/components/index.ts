@@ -11,3 +11,4 @@ export * from './flash';
 export * from './SignInBanner';
 export * from './SongPicker';
 export * from './apple-shelf';
+export * from './IconBadge';

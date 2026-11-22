@@ -2,7 +2,7 @@ import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { Art, Avatar, ChipRow, Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, Sticker, T, Tap, Toast, artFor, useAsync, SignInBanner, useFocusEffectAfterTransition, AppleTitle, Shelf, ShelfCard, ShelfHeader as H2, AppleTrackList, APPLE } from '../../components';
+import { Art, Avatar, Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, Sticker, T, Tap, Toast, artFor, useAsync, SignInBanner, useFocusEffectAfterTransition, AppleTitle, Shelf, ShelfCard, ShelfHeader as H2, AppleTrackList, APPLE, IconBadge } from '../../components';
 import { loadHub } from '../../lib/live';
 import { useConnection } from '../../lib/network';
 import { isZoyraId, zoyra, zoyraEnabled } from '../../lib/zoyra-api';
@@ -19,7 +19,8 @@ import { supabase } from '../../lib/supabase';
 import { MemoryCard } from '../../lib/memories-ui';
 import { useAuth } from '../../state/auth';
 import { usePlayerActions } from '../../state/player';
-import { colors, withAlpha, type ArtName } from '../../theme/tokens';
+import { CategoryTile } from '../../components/CategoryTile';
+import { colors, tile, withAlpha, type ArtName } from '../../theme/tokens';
 
 function StatCard({ label, sub, value, unit, href }: { label: string; sub: string; value: string; unit: string; href: Href }) {
   return (
@@ -52,13 +53,11 @@ function StatCard({ label, sub, value, unit, href }: { label: string; sub: strin
 }
 
 /** Board entry card: glass pill-card with a 52px round icon, title, subtitle and chevron. */
-function EntryCard({ title, subtitle, href, color, glow }: { title: string; subtitle: string; href: Href; color: string; glow?: boolean }) {
+function EntryCard({ title, subtitle, href, icon, tone, glow }: { title: string; subtitle: string; href: Href; icon: IconName; tone: ArtName; glow?: boolean }) {
   return (
     <Tap href={href} accessibilityLabel={`${title}. ${subtitle}`}>
       <Glass radius={20} padding={16} style={[{ flexDirection: 'row', alignItems: 'center', gap: 14 }, glow ? { shadowColor: colors.accent, shadowOpacity: 0.25, shadowRadius: 28, shadowOffset: { width: 0, height: 0 } } : null]}>
-        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="play" size={24} color={colors.onAccent} filled />
-        </View>
+        <IconBadge icon={icon} size={52} tone={tone} filled={icon === 'play'} />
         <View style={{ flex: 1, gap: 2 }}>
           <T size={18} weight={700}>
             {title}
@@ -92,7 +91,15 @@ const releaseBadge = (d?: string) => {
 };
 const fmtHours = (m: number) => (m >= 60 ? { value: (m / 60).toFixed(1).replace(/\.0$/, ''), unit: 'hrs' } : { value: String(Math.round(m)), unit: 'min' });
 
-const moodChips = ['Chill', 'Focus', 'Workout', 'Sleep', 'Happy', 'Party'];
+/** Home mood cards: the mood to play, the search that finds its picture (the top song for it) and the colour shown until then. */
+const moodCards: { mood: string; q: string; bg: string }[] = [
+  { mood: 'Chill', q: 'chill vibes songs', bg: tile.blue },
+  { mood: 'Focus', q: 'focus study music', bg: tile.navy },
+  { mood: 'Workout', q: 'workout gym songs', bg: tile.coral },
+  { mood: 'Sleep', q: 'sleep calm music', bg: tile.green },
+  { mood: 'Happy', q: 'happy upbeat songs', bg: tile.gold },
+  { mood: 'Party', q: 'party dance hits', bg: tile.rose },
+];
 const mixArts: ArtName[] = ['coral', 'rose', 'blue', 'green', 'amber'];
 
 type FriendNow = { userId: string; name: string; avatar: string | null; track: CatalogTrack };
@@ -405,9 +412,7 @@ export default function Home() {
                     {formatReleaseDate(hero.releaseDate) ? ` · ${formatReleaseDate(hero.releaseDate)}` : ''}
                   </T>
                 </View>
-                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="play" size={20} color={colors.onAccent} filled />
-                </View>
+                <IconBadge icon="play" size={44} filled />
               </Row>
             </View>
           </Poster>
@@ -612,7 +617,12 @@ export default function Home() {
       {/* Mood chips */}
       <View style={{ gap: 8 }}>
         <H2 title="Pick a mood" action="Boards" href="/mood-boards" />
-        <ChipRow wrap options={moodChips} onChange={(i) => void playMood(moodChips[i])} />
+        <Shelf
+          data={moodCards}
+          itemWidth={132}
+          keyExtractor={(m) => m.mood}
+          renderItem={({ item: m }) => <CategoryTile label={m.mood} query={m.q} bg={m.bg} width={132} height={88} radius={16} accessibilityLabel={`Play ${m.mood} music`} onPress={() => void playMood(m.mood)} />}
+        />
       </View>
 
       {/* Trending: clean list rows */}
@@ -632,7 +642,7 @@ export default function Home() {
       {/* More to explore */}
       <View style={{ gap: 12 }}>
         <H2 title="More to explore" />
-        <EntryCard title="Music videos" subtitle="Watch, shorts and live sets" href="/videos" color={colors.accent} glow />
+        <EntryCard title="Music videos" subtitle="Watch, shorts and live sets" href="/videos" icon="play" tone="coral" glow />
         {/* Made for you: trending YouTube music videos, straight under the Music videos card */}
         {musicVideos.data?.length ? (
           <View style={shelfBase}>
@@ -663,7 +673,7 @@ export default function Home() {
         ) : musicVideos.loading ? (
           <Loading height={150} />
         ) : null}
-        <EntryCard title="Entertainment" subtitle="Games, audiobooks, radio, tickets" href="/entertain-hub" color={colors.orange} />
+        <EntryCard title="Entertainment" subtitle="Games, audiobooks, radio, tickets" href="/entertain-hub" icon="bolt" tone="orange" />
         <Row gap={12} align="stretch">
           <Tap href="/live-hub" accessibilityLabel="Live hub: listening sessions happening now" style={{ flex: 1 }}>
             <Glass radius={20} padding={14} style={{ gap: 10, minHeight: 112 }}>

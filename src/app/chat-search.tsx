@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 
-import { Cover, EmptyState, ErrorState, Icon, IconButton, Loading, Row, Screen, T, Tap, useDebounced } from '../components';
+import { Cover, EmptyState, ErrorState, Icon, IconButton, Loading, Row, Screen, T, Tap, useDebounced, IconBadge } from '../components';
 import { PhotoViewer, type ViewerPhoto } from '../components/PhotoViewer';
 import type { CatalogTrack } from '../lib/catalog';
 import { chatPeerParams, formatMs, useChatMediaUrl } from '../lib/chat';
@@ -193,9 +193,7 @@ function IconRow({ h, q, icon, title, sub }: { h: ChatSearchHit; q: string; icon
   return (
     <Tap onPress={() => openHit(h, q)} pressScale={0.98} accessibilityLabel={`${title}. ${sub}. Open in chat`}>
       <Row gap={12} style={{ paddingVertical: 10, paddingHorizontal: 4 }}>
-        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: withAlpha(colors.accent, 0.16), alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={icon} size={20} color={colors.accentLight} />
-        </View>
+        <IconBadge icon={icon} size={44} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           {icon === 'mic' ? (
             <T size={15} weight={600} numberOfLines={1}>
