@@ -47,6 +47,7 @@ const NAV = [
   ['/forever', 'Forever'],
   ['/articles', 'Articles'],
   ['/about', 'About'],
+  ['/download', 'Download'],
   ['/open-source', 'Open source'],
   ['/privacy', 'Privacy'],
 ];
@@ -100,6 +101,7 @@ ${body}
       <a href="/forever">Forever</a>
       <a href="/articles">Articles</a>
       <a href="/about">About</a>
+      <a href="/download">Download</a>
       <a href="/open-source">Open source</a>
       <a href="/privacy">Privacy</a>
       <a href="${SITE.github}" rel="noopener">GitHub</a>
