@@ -28,12 +28,28 @@ launchctl unload ~/Library/LaunchAgents/com.zoyra.backend.plist   # to stop it
 ```
 Log: `/tmp/zoyra-backend.log`. The Mac must stay on and awake (System Settings > Battery/Energy).
 
-## Option B: a small server with Docker
+## Which folder to host
 
-`cd services/gateway && docker compose up -d --build` starts Redis, the NewPipe service (not exposed) and the gateway
-on port 8080. Put HTTPS in front (for example Caddy) and use a region near your listeners. Set `TRUST_PROXY=true`
-behind a proxy. Test that YouTube answers from that server before relying on it: cloud addresses are sometimes blocked.
-(The Docker images have not been built or run by the author; the services themselves were tested directly.)
+The backend is **two folders**: `services/gateway` (Python) and `services/newpipe` (Java). Both must run together, on the
+same machine. You don't have to pick between them:
+
+- **One deploy from the repo root.** The root `Dockerfile` builds both into one container (the gateway, plus the NewPipe
+  service when `NEWPIPE_TOKEN` is set). Point any host that builds a Dockerfile at the **repository root**
+  (build context `.`, Dockerfile `./Dockerfile`) and set `ZOYRA_API_KEY` and `NEWPIPE_TOKEN`. Container port: `$PORT`
+  (default 8080). Memory: allow at least 1 GB.
+- **Docker Compose** (`services/gateway/docker-compose.yml`) runs them as separate containers, plus Redis.
+- The database, accounts and server functions live on **Supabase**, which is already hosted; `web/share` is the share-link
+  page and deploys separately (Vercel). Neither is part of this backend.
+
+## Option B: a server with Docker (no platform limits: you pay only for the server and its bandwidth)
+
+On a Linux VPS: `git clone` the repo, then
+`docker build -t zoyra-backend .` and
+`docker run -d --restart unless-stopped -p 8080:8080 -e ZOYRA_API_KEY=... -e NEWPIPE_TOKEN=... -e TRUST_PROXY=true zoyra-backend`
+Put HTTPS in front (for example Caddy) and use a region near your listeners. Test that YouTube answers from that server
+before relying on it: cloud addresses are sometimes blocked.
+(The Docker image has not been built by the author, because Docker was not available; the start script and both services
+were tested directly, together.)
 
 ## Notes
 - Each listener uses about 128 kbps; 100 listeners is roughly 13 Mbps of upload.

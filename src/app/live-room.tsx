@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Share, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { Animated, KeyboardAvoidingView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle, TrackItem, go, useAsync, useDebounced, useReduceMotion, ToggleBurst, IconBadge } from '../components';
@@ -12,7 +12,6 @@ import {
   formatCount,
   formatWhen,
   friendlyLiveError,
-  liveLink,
   loadFollowing,
   loadTracks,
   reminderCount,
@@ -32,6 +31,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../state/auth';
 import { usePlayer } from '../state/player';
 import { colors, fonts, withAlpha } from '../theme/tokens';
+import { liveShareUrl, shareContent } from '../lib/share-links';
 
 const REACTIONS: { icon: IconName; label: string; color: string; filled?: boolean }[] = [
   { icon: 'heart', label: 'React with heart', color: colors.like, filled: true },
@@ -124,7 +124,8 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
   };
 
   const share = async () => {
-    await Share.share({ message: `${api.isHost ? 'I’m' : `${host?.display_name ?? 'Someone'} is`} live on Zoyra: “${session.title}”. Listen along\n${liveLink(session.id)}` }).catch(() => undefined);
+    // The link alone: it unfurls into a "live now" card and opens the room in the app.
+    await shareContent({ url: liveShareUrl(session.id), title: session.title }).catch(() => undefined);
   };
 
   const send = async () => {

@@ -2,7 +2,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Share, TextInput, View } from 'react-native';
+import { Animated, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import {
@@ -37,6 +37,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../state/auth';
 import { usePlaybackProgress, usePlayer } from '../state/player';
 import { colors, fonts } from '../theme/tokens';
+import { roomShareUrl, shareContent } from '../lib/share-links';
 
 /* ================================================================== shared room logic (also used by /party) */
 
@@ -360,8 +361,7 @@ export function useRoom(id: string | undefined) {
   /* ---------------- membership */
   const share = useCallback(async () => {
     if (!room) return;
-    const what = room.kind === 'party' ? 'party' : 'listening room';
-    await Share.share({ message: `Join my ${what} “${room.name}” on Zoyra — code ${room.code}\n${roomJoinLink(room.kind, room.code)}` }).catch(() => undefined);
+    await shareContent({ url: roomShareUrl(room.kind, room.code), title: room.name }).catch(() => undefined);
   }, [room]);
 
   const copyCode = useCallback(async () => {
@@ -710,7 +710,7 @@ export function RoomQR({ kind, code, onPress }: { kind: RoomKind; code: string; 
   return (
     <Tap onPress={onPress} accessibilityLabel={`QR code to join, code ${code}. Tap to copy the code`}>
       <View style={{ width: 168, height: 168, padding: 12, borderRadius: 26, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }}>
-        <QRCode value={roomJoinLink(kind, code)} size={144} color={colors.bg} backgroundColor={colors.white} ecl="M" />
+        <QRCode value={roomShareUrl(kind, code)} size={144} color={colors.bg} backgroundColor={colors.white} ecl="M" />
       </View>
     </Tap>
   );

@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
-import { Share, View } from 'react-native';
+import { View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Avatar, Button, Cover, EmptyState, ErrorState, Glass, Icon, LinkText, ListRow, Loading, Row, Screen, ScreenHeader, Spacer, T, Toast, go, useAsync } from '../components';
@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
 import { colors, shadow } from '../theme/tokens';
+import { inviteShareUrl, shareContent } from '../lib/share-links';
 
 type Owner = { id: string; display_name: string; avatar_url: string | null };
 type PlaylistInfo = {
@@ -87,7 +88,7 @@ export default function Invite() {
   const shareInvite = async () => {
     if (!pl) return;
     if (!(await ensureCollaborative())) return;
-    await Share.share({ message: `Join my playlist “${pl.title}” on Zoyra: ${link}\nInvite code: ${pl.id}` }).catch(() => undefined);
+    await shareContent({ url: inviteShareUrl(pl.id), title: pl.title }).catch(() => undefined);
     res.reload();
   };
 

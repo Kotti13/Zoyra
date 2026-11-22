@@ -154,6 +154,9 @@ export function cleanId(kind, raw) {
     return name.length >= 1 && name.length <= 120 && !/[\u0000-\u001f<>]/.test(name) ? id : null;
   }
   if (kind === 's') return /^[a-f0-9]{14}$/.test(id) ? id : null;
+  if (kind === 'lv' || kind === 'inv') return UUID.test(id) ? id : null;
+  if (kind === 'rm') return /^(group|party)-[A-Za-z0-9]{3,24}$/.test(id) ? id : null;
+  if (kind === 'fam') return /^[A-Za-z0-9]{3,24}$/.test(id) ? id : null;
   if (kind === 'u') return /^@?[A-Za-z0-9_.]{3,30}$/.test(id) || UUID.test(id) ? id.replace(/^@/, '') : null;
   return ID_RE.test(id) ? id : null;
 }
@@ -310,6 +313,41 @@ export async function loadCard(kind, rawId, cfg, fetchImpl = fetch) {
         appPath: `u/${encodeURIComponent(p.username || p.id || id)}`,
         cache: 'user',
       };
+    }
+
+    case 'lv': {
+      const r = await rpc(cfg, f, 'share_live_card', { lookup: id });
+      if (!r) return null;
+      const host = txt(r.host_name, 60) || 'A Zoyra host';
+      const live = r.status === 'live';
+      const ended = r.status === 'ended';
+      const listening = live && r.listeners ? plural(r.listeners, 'listener') : '';
+      return {
+        kind,
+        ogType: 'website',
+        label: live ? 'Live now' : ended ? 'Live ended' : 'Going live',
+        title: txt(r.title, 120) || `${host} live`,
+        subtitle: host,
+        description: live ? `${host} is live on Zoyra${listening ? ` with ${listening}` : ''}. Listen along.` : ended ? `${host}'s live session has ended. Open Zoyra to find more.` : `${host} is going live on Zoyra. Open the link to listen along.`,
+        image: https(r.avatar_url) ? { url: r.avatar_url, alt: `${host} on Zoyra` } : null,
+        meta: listening ? [listening] : [],
+        extraMeta: [],
+        noindex: true,
+        appPath: `lv/${encodeURIComponent(id)}`,
+        cache: 'user',
+      };
+    }
+
+    // Join links carry only a code, so their cards say nothing about the room, plan or playlist itself.
+    case 'rm':
+    case 'fam':
+    case 'inv': {
+      const t = {
+        rm: ['Listening room', 'Join the listening room', 'A friend invited you to listen together on Zoyra. Open the link in Zoyra to join.'],
+        fam: ['Family plan', 'Join a Zoyra Family plan', 'You’ve been invited to a Zoyra Family plan. Open the link in Zoyra to join.'],
+        inv: ['Playlist invite', 'Join a playlist on Zoyra', 'You’ve been invited to add songs to a playlist on Zoyra. Open the link in Zoyra to join.'],
+      }[kind];
+      return { kind, ogType: 'website', label: t[0], title: t[1], subtitle: 'Zoyra', description: t[2], image: null, meta: [], extraMeta: [], noindex: true, appPath: `${kind}/${encodeURIComponent(id)}`, cache: 'user' };
     }
 
     case 's': {

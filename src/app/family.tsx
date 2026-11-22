@@ -1,13 +1,14 @@
 import * as Clipboard from 'expo-clipboard';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Share, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Button, Cover, ErrorState, Glass, IconButton, LinkText, Loading, Row, Screen, ScreenHeader, SectionHeader, Spacer, Sticker, T, Toast, Toggle, useAsync, IconBadge } from '../components';
 import { confirmDialog } from '../lib/dialog';
 import { manageSubscription } from '../lib/payments';
-import { FAMILY_SEATS, createFamilyInvite, familyInviteLink, leaveFamily, loadFamily, removeFamilyMember, type FamilyMember } from '../lib/social';
+import { familyShareUrl, shareContent } from '../lib/share-links';
+import { FAMILY_SEATS, createFamilyInvite, leaveFamily, loadFamily, removeFamilyMember, type FamilyMember } from '../lib/social';
 import { useAuth } from '../state/auth';
 import { colors } from '../theme/tokens';
 
@@ -123,7 +124,7 @@ export default function Family() {
     const c = await ensureCode();
     if (!c) return;
     try {
-      await Clipboard.setStringAsync(familyInviteLink(c));
+      await Clipboard.setStringAsync(familyShareUrl(c));
       setNote({ ok: true, text: 'Invite link copied' });
     } catch {
       setNote({ ok: false, text: `Could not copy. Share the code ${c} instead.` });
@@ -134,7 +135,7 @@ export default function Family() {
     const c = await ensureCode();
     if (!c) return;
     try {
-      await Share.share({ title: 'Join my Zoyra Family plan', message: `Join my Zoyra Family plan: ${familyInviteLink(c)}\nOr enter code ${c} in Zoyra → Family plan.` });
+      await shareContent({ url: familyShareUrl(c), title: 'Join my Zoyra Family plan' });
     } catch {
       setNote({ ok: false, text: 'Could not open the share sheet' });
     }
@@ -264,7 +265,7 @@ export default function Family() {
                 {showQr && inviteCode ? (
                   <View style={{ alignItems: 'center', gap: 6 }}>
                     <View style={{ width: 168, height: 168, padding: 12, borderRadius: 26, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' }} accessibilityLabel="QR code of the family invite link">
-                      <QRCode value={familyInviteLink(inviteCode)} size={144} color={colors.bg} backgroundColor={colors.white} ecl="M" />
+                      <QRCode value={familyShareUrl(inviteCode)} size={144} color={colors.bg} backgroundColor={colors.white} ecl="M" />
                     </View>
                     <T size={12} tracking={0.2} color={colors.textSecondary}>
                       Family scan this with their camera to join
