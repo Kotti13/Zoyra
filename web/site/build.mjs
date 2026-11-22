@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { ARTICLES } from './src/data/articles.mjs';
 import { GROUPS, HIGHLIGHTS, NUMBERS, SITE, STACK, STEPS } from './src/data/features.mjs';
+import { DEV, NAME } from './src/data/about.mjs';
+import { FOREVER } from './src/data/forever.mjs';
 import { esc, icon, page, phone } from './src/layout.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -58,6 +60,26 @@ write(
 
 <section class="wrap sec">
   <div class="grid3">${HIGHLIGHTS.map(card).join('')}</div>
+</section>
+
+<section class="wrap sec">
+  <div class="name-strip">
+    <p class="eyebrow">The name</p>
+    <p class="name-line"><span>Zoya</span> <i>+</i> <span>Aura</span> <i>=</i> <b>Zoyra</b></p>
+    <p class="muted">${esc(NAME.together)} <a class="more inline" href="/articles/why-zoyra">The story ${icon('arrow', 14)}</a></p>
+  </div>
+</section>
+
+<section class="wrap sec">
+  <div class="forever-band">
+    <div>
+      <p class="eyebrow gold">Forever</p>
+      <h2 class="h2">A promise between two people<span class="inf"> ∞</span></h2>
+      <p class="lead2">For the one or two people you never want to lose touch with. A gold ring, a shared vault, calls that always get through, and a reminder when it has been a year.</p>
+      <a class="btn gold" href="/forever">Meet Forever ${icon('arrow', 18)}</a>
+    </div>
+    <div class="ring" aria-hidden="true"><span>∞</span></div>
+  </div>
 </section>
 
 <section class="wrap sec">
@@ -171,6 +193,99 @@ ARTICLES.forEach((a, i) => {
     }),
   );
 });
+
+
+// ------------------------------------------------------------------ forever
+write(
+  '/forever',
+  page({
+    path: '/forever',
+    title: 'Forever',
+    description: 'Forever is Zoyra’s feature for love: a promise between two people, with a gold ring, a shared vault and calls that always get through.',
+    body: `
+<section class="forever-hero">
+  <div class="wrap fh-in">
+    <p class="eyebrow gold">Forever</p>
+    <h1>${esc(FOREVER.tagline)} <span class="inf">∞</span></h1>
+    <p class="lead">${esc(FOREVER.lead)}</p>
+    <div class="cta"><a class="btn gold" href="/articles/forever-a-promise-in-an-app">Read why we made it ${icon('arrow', 18)}</a><a class="btn" href="/features">All features</a></div>
+  </div>
+</section>
+
+<section class="wrap sec">
+  <h2 class="h2">What you get</h2>
+  <div class="grid3 gold-cards">${FOREVER.perks.map(card).join('')}</div>
+</section>
+
+<section class="wrap sec">
+  <h2 class="h2">How it works</h2>
+  <ol class="steps four gold-steps">${FOREVER.steps.map((s) => `<li><span class="n">${s.n}</span><h3>${esc(s.title)}</h3><p>${esc(s.text)}</p></li>`).join('')}</ol>
+</section>
+
+<section class="wrap sec">
+  <div class="quote"><p>“A song is the message. The person who gets it is the point.”</p></div>
+</section>
+
+<section class="wrap sec">
+  <h2 class="h2">Good to know</h2>
+  <div class="faq">${FOREVER.faq.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('')}</div>
+</section>
+
+<section class="wrap sec">
+  <div class="forever-band">
+    <div><h2 class="h2">Say it with a song</h2><p class="lead2">Forever lives inside Zoyra, next to the player, the lyrics and your chats.</p></div>
+    <a class="btn gold" href="/features">Explore the app ${icon('arrow', 18)}</a>
+  </div>
+</section>`,
+  }),
+);
+
+// ------------------------------------------------------------------ about
+write(
+  '/about',
+  page({
+    path: '/about',
+    title: 'About',
+    description: 'Why the app is called Zoyra (Zoya + Aura), and who builds it.',
+    body: `
+<section class="wrap page-head">
+  <p class="eyebrow">About</p>
+  <h1>The name, and the person</h1>
+</section>
+
+<section class="wrap sec">
+  <div class="name-strip big">
+    <p class="eyebrow">The name</p>
+    <p class="name-line"><span>Zoya</span> <i>+</i> <span>Aura</span> <i>=</i> <b>Zoyra</b></p>
+    <div class="name-cols">
+      <div><h3>Zoya</h3><p class="muted">${esc(NAME.zoya)}</p></div>
+      <div><h3>Aura</h3><p class="muted">${esc(NAME.aura)}</p></div>
+      <div><h3>Zoyra</h3><p class="muted">${esc(NAME.together)}</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap sec">
+  <div class="dev">
+    <div class="dev-card">
+      <div class="avatar" aria-hidden="true">KS</div>
+      <h2>${esc(DEV.name)}</h2>
+      <p class="muted">${esc(DEV.role)}</p>
+      <ul class="facts">${DEV.facts.map((f) => `<li><span>${esc(f.k)}</span><b>${esc(f.v)}</b></li>`).join('')}</ul>
+      <div class="cta">
+        <a class="btn" href="${DEV.github}" rel="noopener">${icon('github', 18)} GitHub</a>
+        <a class="btn" href="${DEV.portfolio}" rel="noopener">${icon('link', 18)} Portfolio</a>
+      </div>
+    </div>
+    <div class="dev-copy">
+      <h2 class="h2">Hi, I am ${esc(DEV.name)}</h2>
+      ${DEV.bio.map((t) => `<p>${esc(t)}</p>`).join('')}
+      <p><a class="more" href="/open-source">See how it is built ${icon('arrow', 16)}</a></p>
+    </div>
+  </div>
+</section>`,
+  }),
+);
 
 // ------------------------------------------------------------------ open source
 write(
