@@ -230,12 +230,15 @@ function AuthGate({ children }: { children: ReactNode }) {
   syncNavTheme();
 
   return (
-    <View key={paletteKey} style={{ flex: 1, backgroundColor: colors.bg }}>
-      {ready ? children : null}
-      {/* Incoming calls open /call (signed in, past 2FA); a minimized call shows "Return to call". */}
-      {ready ? <CallHost me={session && mfa === false ? session.user.id : null} /> : null}
-      {/* Kids mode: closes social / settings screens and enforces the daily limit and bedtime. */}
-      {ready && session ? <KidsGuardHost /> : null}
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View key={paletteKey} style={{ flex: 1, backgroundColor: colors.bg }}>
+        {ready ? children : null}
+        {/* Incoming calls open /call (signed in, past 2FA); a minimized call shows "Return to call". */}
+        {ready ? <CallHost me={session && mfa === false ? session.user.id : null} /> : null}
+        {/* Kids mode: closes social / settings screens and enforces the daily limit and bedtime. */}
+        {ready && session ? <KidsGuardHost /> : null}
+      </View>
+      {/* Outside the keyed view on purpose: a theme change remounts the tree above, and the splash must play once. */}
       <LaunchSplash ready={ready} />
     </View>
   );
@@ -249,19 +252,27 @@ function Scrobbler() {
   return null;
 }
 
-/** Animated launch splash over the app until the session is restored (min 0.9 s so the animation can land). */
+/** Animated launch splash over the app until the session and saved theme are restored (min 0.9 s so the animation can land). */
 function LaunchSplash({ ready }: { ready: boolean }) {
   const [minElapsed, setMinElapsed] = useState(false);
+  const [waited, setWaited] = useState(false);
   const [finished, setFinished] = useState(false);
   useEffect(() => {
-    const id = setTimeout(() => setMinElapsed(true), 900);
-    return () => clearTimeout(id);
+    const min = setTimeout(() => setMinElapsed(true), 900);
+    const cap = setTimeout(() => setWaited(true), 1500);
+    return () => {
+      clearTimeout(min);
+      clearTimeout(cap);
+    };
   }, []);
   const onReady = useCallback(() => {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
   const onFinish = useCallback(() => setFinished(true), []);
   if (finished) return null;
+  // The saved theme arrives with the session (`ready`). Drawing the splash before that plays it in the default
+  // colours, so wait for it (the native splash image stays up meanwhile), but never longer than 1.5 s.
+  if (!ready && !waited) return null;
   return <SplashView done={ready && minElapsed} onReady={onReady} onFinish={onFinish} />;
 }
 
