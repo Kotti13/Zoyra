@@ -50,6 +50,7 @@ write(
       <p class="lead">Search and play any song, follow lyrics that keep up with you, go live with friends, and share real links that open the app. Dark, fast and private by design.</p>
       <div class="cta">
         <a class="btn primary" href="/features">Explore features ${icon('arrow', 18)}</a>
+        <a class="btn" href="/download">${icon('download', 18)} Download for Android</a>
         <a class="btn" href="${SITE.github}" rel="noopener">${icon('github', 18)} View on GitHub</a>
       </div>
       <ul class="pills"><li>iPhone and Android</li><li>Synced lyrics</li><li>Live rooms</li><li>End-to-end encrypted chats</li></ul>
@@ -282,6 +283,56 @@ write(
       ${DEV.bio.map((t) => `<p>${esc(t)}</p>`).join('')}
       <p><a class="more" href="/open-source">See how it is built ${icon('arrow', 16)}</a></p>
     </div>
+  </div>
+</section>`,
+  }),
+);
+
+
+// ------------------------------------------------------------------ download
+const APK = `${SITE.github}/releases/latest/download/zoyra.apk`;
+write(
+  '/download',
+  page({
+    path: '/download',
+    title: 'Download',
+    description: 'Download the latest Zoyra Android test build (APK) and see how to install it.',
+    body: `
+<section class="wrap page-head">
+  <p class="eyebrow">Download</p>
+  <h1>Get Zoyra on Android</h1>
+  <p class="lead">This is the newest test build, published automatically every time the app changes. It is not on the Play Store yet.</p>
+</section>
+
+<section class="wrap sec">
+  <div class="dl" id="dl">
+    <div class="dl-main">
+      <div class="dl-ico"><img src="/assets/icon.png" alt="" width="72" height="72"></div>
+      <div>
+        <h2>Zoyra for Android</h2>
+        <p class="muted" id="dl-meta">Latest APK for Android phones</p>
+      </div>
+    </div>
+    <a class="btn primary big" id="dl-btn" href="${APK}" rel="noopener">${icon('download', 20)} Download APK</a>
+    <p class="small muted" id="dl-note">The download starts from GitHub Releases. If it says “not found”, the first build has not finished yet.</p>
+  </div>
+</section>
+
+<section class="wrap sec">
+  <h2 class="h2">Install in four steps</h2>
+  <ol class="steps four">
+    <li><span class="n">1</span><h3>Download</h3><p>Tap the button above on your Android phone. Your browser may warn that APK files can be harmful. That is normal for apps outside the Play Store.</p></li>
+    <li><span class="n">2</span><h3>Allow the install</h3><p>When asked, allow your browser to “install unknown apps” for this one install. You can turn it off again afterwards.</p></li>
+    <li><span class="n">3</span><h3>Open the file</h3><p>Tap the downloaded file, then <b>Install</b>.</p></li>
+    <li><span class="n">4</span><h3>Sign up and play</h3><p>Pick your genres, languages and artists, then search a song. To update later, download the newest build again.</p></li>
+  </ol>
+</section>
+
+<section class="wrap sec">
+  <div class="grid3">
+    <article class="card"><div class="ico">${icon('shield')}</div><h3>Check the source</h3><p>The app is built from the public repository, by GitHub, in the open. Anyone can read the code and the build recipe.</p></article>
+    <article class="card"><div class="ico">${icon('phone')}</div><h3>iPhone</h3><p>There is no iPhone download yet. iOS builds need Apple’s store or TestFlight, which are not set up for Zoyra.</p></article>
+    <article class="card"><div class="ico">${icon('github')}</div><h3>All builds</h3><p>Older builds and notes are on the <a href="${SITE.github}/releases" rel="noopener">releases page</a>.</p></article>
   </div>
 </section>`,
   }),
