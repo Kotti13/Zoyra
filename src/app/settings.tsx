@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { Avatar, Cover, Glass, Icon, IconButton, LinkText, ListGroup, ListRow, Row, Screen, ScreenHeader, T, Tap, artFor } from '../components';
+import { Avatar, Cover, Glass, Icon, IconButton, LinkText, ListGroup, ListRow, Row, Screen, ScreenHeader, T, Tap, artFor, IconBadge } from '../components';
 import type { IconName, NavTarget } from '../components';
 import { confirmDialog } from '../lib/dialog';
 import { useAuth, type Profile } from '../state/auth';
@@ -57,9 +57,7 @@ export default function Settings() {
         <View style={{ borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.white, 0.14), padding: 16 }}>
           <LinearGradient colors={[withAlpha(colors.accent, 0.32), 'rgba(20,20,20,0.6)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <Row gap={14}>
-            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="sliders" size={22} color={colors.white} />
-            </View>
+            <IconBadge icon="sliders" size={44} />
             <View style={{ flex: 1, gap: 2 }}>
               <T size={16} weight={700} color={colors.white}>
                 All settings
@@ -103,9 +101,7 @@ export default function Settings() {
             divider={i > 0}
             href={r.href}
             leading={
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={r.icon} size={20} color={colors.accentLight} filled={r.filled} />
-              </View>
+              <IconBadge icon={r.icon} size={40} filled />
             }
           />
         ))}

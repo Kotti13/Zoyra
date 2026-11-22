@@ -1,9 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, KeyboardAvoidingView, Share, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { Animated, KeyboardAvoidingView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle, TrackItem, go, useAsync, useDebounced, useReduceMotion, ToggleBurst } from '../components';
+import { Button, Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle, TrackItem, go, useAsync, useDebounced, useReduceMotion, ToggleBurst, IconBadge } from '../components';
 import type { IconName } from '../components';
 import { catalog, type CatalogTrack } from '../lib/catalog';
 import {
@@ -12,7 +12,6 @@ import {
   formatCount,
   formatWhen,
   friendlyLiveError,
-  liveLink,
   loadFollowing,
   loadTracks,
   reminderCount,
@@ -32,6 +31,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../state/auth';
 import { usePlayer } from '../state/player';
 import { colors, fonts, withAlpha } from '../theme/tokens';
+import { liveShareUrl, shareContent } from '../lib/share-links';
 
 const REACTIONS: { icon: IconName; label: string; color: string; filled?: boolean }[] = [
   { icon: 'heart', label: 'React with heart', color: colors.like, filled: true },
@@ -124,7 +124,8 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
   };
 
   const share = async () => {
-    await Share.share({ message: `${api.isHost ? 'I’m' : `${host?.display_name ?? 'Someone'} is`} live on Zoyra: “${session.title}”. Listen along\n${liveLink(session.id)}` }).catch(() => undefined);
+    // The link alone: it unfurls into a "live now" card and opens the room in the app.
+    await shareContent({ url: liveShareUrl(session.id), title: session.title }).catch(() => undefined);
   };
 
   const send = async () => {
@@ -269,7 +270,7 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
           <View style={{ gap: 10, marginTop: 12 }}>
             <Glass radius={36} padding={10}>
               <Row gap={12}>
-                {nowTrack ? <Cover artwork={nowTrack.artwork} id={nowTrack.id} size={44} radius={14} /> : <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: colors.chipGhost, alignItems: 'center', justifyContent: 'center' }}><Icon name="music" size={22} color={colors.textSecondary} /></View>}
+                {nowTrack ? <Cover artwork={nowTrack.artwork} id={nowTrack.id} size={44} radius={14} /> : <IconBadge icon="music" size={44} />}
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <T size={15} weight={600} numberOfLines={1}>
                     {nowTrack?.title ?? (api.isHost ? 'Play a song to start' : 'Waiting for the host…')}

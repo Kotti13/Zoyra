@@ -67,10 +67,10 @@ export function NoteSongCard({ track, preview, onFullSong, fullBusy }: { track: 
   const elapsed = active ? Math.max(0, len - preview.remaining) : 0;
   const status = active && loading ? 'Loading clip…' : `${formatDuration(elapsed)} / ${formatDuration(len)} clip${active ? '' : ` · from ${formatDuration(start)}`}`;
   return (
-    <View style={{ borderRadius: 28, backgroundColor: withAlpha(colors.white, 0.07), padding: 10 }}>
+    <View style={{ borderRadius: 22, backgroundColor: withAlpha(colors.black, 0.3), borderWidth: 1, borderColor: colors.glassBorder, padding: 10 }}>
       <Row gap={12}>
         <Tap onPress={toggle} accessibilityLabel={label} pressScale={0.98} style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <Cover artwork={track.artwork} id={track.id} size={56} radius={22} />
+          <Cover artwork={track.artwork} id={track.id} size={64} radius={14} />
           <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
             <T size={14} weight={600} numberOfLines={1}>
               {song}
@@ -396,9 +396,13 @@ export function NoteSheet({
             </Row>
 
             {note.text ? (
-              <T size={22} weight={600} lineHeight={29} style={{ paddingVertical: 4 }}>
-                {note.text}
-              </T>
+              // The note itself, as a card: accent wash, soft border, larger text.
+              <View style={{ borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: withAlpha(colors.accent, 0.4) }}>
+                <LinearGradient colors={[withAlpha(colors.accent, 0.3), withAlpha(colors.white, 0.04)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+                <T size={22} weight={700} lineHeight={29} tracking={-0.3} style={{ paddingVertical: 16, paddingHorizontal: 18 }}>
+                  {note.text}
+                </T>
+              </View>
             ) : null}
 
             {note.track ? <NoteSongCard track={note.track} preview={preview} onFullSong={mine ? undefined : () => void playFull()} fullBusy={busy === 'play'} /> : null}

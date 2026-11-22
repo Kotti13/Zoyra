@@ -5,7 +5,7 @@ import { confirmUnsendHref } from '../lib/confirm-routes';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Button, go, Icon, ListRow, Loading, Row, Sheet, T, Tap, useAsync } from '../components';
+import { Button, go, Icon, ListRow, Loading, Row, Sheet, T, Tap, useAsync, IconBadge } from '../components';
 import { EmojiPickerSheet } from '../components/EmojiPicker';
 import type { IconName } from '../components/icons';
 import {
@@ -362,9 +362,7 @@ function OptionRow({ title, subtitle, icon, onPress, divider, chevronColor = col
       pressScale={0.98}
       style={[{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68, opacity: onPress ? 1 : 0.5 }, divider ? { borderTopWidth: 1, borderTopColor: colors.divider } : null]}
     >
-      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name={icon} size={20} color={colors.accentLight} />
-      </View>
+      <IconBadge icon={icon} size={40} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <T size={16} weight={500}>
           {title}

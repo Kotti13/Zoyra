@@ -10,6 +10,7 @@ import { artCycle, colors, radius, type ArtName } from '../theme/tokens';
 import { SkeletonRows } from './Skeleton';
 import { Button, IconButton, Tap, type NavTarget } from './controls';
 import { Art, Icon, Row, T } from './primitives';
+import { IconBadge } from './IconBadge';
 
 /** Stable gradient fallback per id, so a cover without artwork keeps the same colour. */
 export function artFor(id: string | undefined): ArtName {
@@ -395,9 +396,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 export function EmptyState({ icon = 'music', title, body, action, onAction, href }: { icon?: 'music' | 'heart' | 'search' | 'users' | 'download' | 'clock' | 'mail'; title: string; body?: string; action?: string; onAction?: () => void; href?: NavTarget }) {
   return (
     <View style={{ paddingVertical: 32, alignItems: 'center', gap: 10 }}>
-      <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name={icon} size={26} color={colors.accentLight} />
-      </View>
+      <IconBadge icon={icon} size={56} />
       <T variant="bodyStrong" align="center">
         {title}
       </T>

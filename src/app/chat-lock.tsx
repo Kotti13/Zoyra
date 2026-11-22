@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Icon, Sheet, T, Toggle } from '../components';
+import { Button, Sheet, T, Toggle, IconBadge } from '../components';
 import { authenticate, canAuthenticate, setChatLock, useChatLocks } from '../lib/chat-lock';
 import { useAuth } from '../state/auth';
 import { colors, withAlpha } from '../theme/tokens';
@@ -80,9 +80,7 @@ export default function ChatLockSheet() {
         Hide this chat behind Face ID.
       </T>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 24, backgroundColor: withAlpha(colors.white, 0.06), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12) }}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="lock" size={20} color={colors.accentLight} />
-        </View>
+        <IconBadge icon="lock" size={40} />
         <View style={{ flex: 1, gap: 2 }}>
           <T size={15} weight={600}>
             Face ID required

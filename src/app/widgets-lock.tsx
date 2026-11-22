@@ -1,6 +1,6 @@
 import { Platform, View } from 'react-native';
 
-import { Cover, Glass, Icon, IconButton, ListGroup, ListRow, Overline, ProgressBar, Row, Screen, ScreenHeader, Sticker, T } from '../components';
+import { Cover, Glass, Icon, IconButton, ListGroup, ListRow, Overline, ProgressBar, Row, Screen, ScreenHeader, Sticker, T, IconBadge } from '../components';
 import { formatDuration } from '../lib/catalog';
 import { usePlaybackProgress, usePlayerPick } from '../state/player';
 import { colors } from '../theme/tokens';
@@ -93,9 +93,7 @@ export default function WidgetsLock() {
         <Overline color={colors.textSecondary}>HOME SCREEN WIDGETS</Overline>
         <Glass padding={16}>
           <Row gap={12} align="flex-start">
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.iconGhost, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="home" size={20} color={colors.textSecondary} />
-            </View>
+            <IconBadge icon="home" size={40} />
             <View style={{ flex: 1, gap: 4 }}>
               <T size={15} weight={600}>
                 Not available in this version

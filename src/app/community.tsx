@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, Animated, ScrollView, TextInput, View } from 'react-native';
 
-import { Button, Chip, Cover, EmptyState, ErrorState, Gradient, Icon, IconButton, Loading, PopRing, Row, Screen, ScreenHeader, T, Tap, usePop } from '../components';
+import { Button, Chip, Cover, EmptyState, ErrorState, Gradient, Icon, IconButton, Loading, PopRing, Row, Screen, ScreenHeader, T, Tap, usePop, IconBadge } from '../components';
 import {
   addComment,
   createPost,
@@ -422,9 +422,7 @@ function PostCard({
                   {post.track.artist.name}
                 </T>
               </View>
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={isCurrent ? 'speaker' : 'play'} size={18} color={colors.onAccent} filled={!isCurrent} />
-              </View>
+              <IconBadge icon={isCurrent ? 'speaker' : 'play'} size={40} filled />
             </Row>
           </Tap>
         ) : null}

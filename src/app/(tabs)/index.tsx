@@ -2,7 +2,7 @@ import { router, type Href } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 
-import { Art, Avatar, ChipRow, Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, Sticker, T, Tap, Toast, artFor, useAsync, SignInBanner, useFocusEffectAfterTransition, AppleTitle, Shelf, ShelfCard, ShelfHeader as H2, AppleTrackList, APPLE } from '../../components';
+import { Art, Cover, EmptyState, ErrorState, Glass, Gradient, Icon, IconButton, Loading, Row, Screen, Sticker, T, Tap, Toast, useAsync, SignInBanner, useFocusEffectAfterTransition, AppleTitle, Shelf, ShelfCard, ShelfHeader as H2, AppleTrackList, APPLE, IconBadge } from '../../components';
 import { loadHub } from '../../lib/live';
 import { useConnection } from '../../lib/network';
 import { isZoyraId, zoyra, zoyraEnabled } from '../../lib/zoyra-api';
@@ -19,7 +19,8 @@ import { supabase } from '../../lib/supabase';
 import { MemoryCard } from '../../lib/memories-ui';
 import { useAuth } from '../../state/auth';
 import { usePlayerActions } from '../../state/player';
-import { colors, withAlpha, type ArtName } from '../../theme/tokens';
+import { CategoryTile } from '../../components/CategoryTile';
+import { colors, tile, withAlpha, type ArtName } from '../../theme/tokens';
 
 function StatCard({ label, sub, value, unit, href }: { label: string; sub: string; value: string; unit: string; href: Href }) {
   return (
@@ -52,13 +53,11 @@ function StatCard({ label, sub, value, unit, href }: { label: string; sub: strin
 }
 
 /** Board entry card: glass pill-card with a 52px round icon, title, subtitle and chevron. */
-function EntryCard({ title, subtitle, href, color, glow }: { title: string; subtitle: string; href: Href; color: string; glow?: boolean }) {
+function EntryCard({ title, subtitle, href, icon, tone, glow }: { title: string; subtitle: string; href: Href; icon: IconName; tone: ArtName; glow?: boolean }) {
   return (
     <Tap href={href} accessibilityLabel={`${title}. ${subtitle}`}>
       <Glass radius={20} padding={16} style={[{ flexDirection: 'row', alignItems: 'center', gap: 14 }, glow ? { shadowColor: colors.accent, shadowOpacity: 0.25, shadowRadius: 28, shadowOffset: { width: 0, height: 0 } } : null]}>
-        <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="play" size={24} color={colors.onAccent} filled />
-        </View>
+        <IconBadge icon={icon} size={52} tone={tone} filled={icon === 'play'} />
         <View style={{ flex: 1, gap: 2 }}>
           <T size={18} weight={700}>
             {title}
@@ -84,6 +83,67 @@ const quickActions: { label: string; icon: IconName; art: ArtName; href: Href }[
   { label: 'Car mode', icon: 'car', art: 'blue', href: '/car-mode' },
 ];
 
+/** A person in the stories row: rounded-square picture with a ring (red for live hosts), a green dot, and the name. */
+function StoryRing({ name, uri, id, live, onPress, label }: { name: string; uri?: string | null; id: string; live?: boolean; onPress: () => void; label: string }) {
+  return (
+    <Tap onPress={onPress} accessibilityLabel={label} style={{ width: 76, alignItems: 'center', gap: 6 }}>
+      <View style={{ width: 70, height: 70, borderRadius: 24, padding: 3, overflow: 'hidden' }}>
+        <Gradient colors={live ? [colors.accent, colors.gold] : [withAlpha(colors.white, 0.35), withAlpha(colors.white, 0.1)]} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+        <View style={{ flex: 1, borderRadius: 21, overflow: 'hidden', borderWidth: 2, borderColor: colors.bg }}>
+          <Cover uri={uri ?? null} id={id} width={60} height={60} radius={0} fit="cover" style={{ alignItems: 'center', justifyContent: 'center' }}>
+            {uri ? null : (
+              <T size={20} weight={700} color={colors.white}>
+                {(name[0] ?? '?').toUpperCase()}
+              </T>
+            )}
+          </Cover>
+        </View>
+      </View>
+      <View style={{ position: 'absolute', right: 4, top: 52, width: 16, height: 16, borderRadius: 8, backgroundColor: live ? colors.live : colors.success, borderWidth: 3, borderColor: colors.bg }} />
+      <T size={12} weight={600} color={colors.textSecondary} numberOfLines={1} align="center">
+        {name}
+      </T>
+    </Tap>
+  );
+}
+
+/** A live room as a tall picture card: host chip on top, LIVE badge, listener count and the title over the picture. */
+function LiveCard({ title, host, uri, id, listeners, onPress }: { title: string; host: string; uri?: string | null; id: string; listeners: number; onPress: () => void }) {
+  return (
+    <Tap onPress={onPress} accessibilityLabel={`${title} by ${host}, live, ${listeners} listening. Open`} style={{ width: 204 }}>
+      <View style={{ height: 258, borderRadius: 26, overflow: 'hidden', backgroundColor: colors.bgTertiary }}>
+        <Cover uri={uri ?? null} id={id} width={204} height={258} radius={0} fit="cover" />
+        <Gradient colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.82)']} angle={180} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+        <View style={{ position: 'absolute', left: 10, top: 10, right: 10, height: 34, borderRadius: 17, backgroundColor: withAlpha(colors.black, 0.45), borderWidth: 1, borderColor: withAlpha(colors.white, 0.16), flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4, paddingRight: 12 }}>
+          <Cover uri={uri ?? null} id={id} size={26} radius={13} />
+          <T size={12} weight={700} color={colors.white} numberOfLines={1} style={{ flex: 1 }}>
+            {host}
+          </T>
+        </View>
+        <View style={{ position: 'absolute', left: 14, right: 14, bottom: 14, gap: 8 }}>
+          <T size={24} weight={800} tracking={-0.5} lineHeight={27} color={colors.white} numberOfLines={3} style={{ textTransform: 'uppercase' }}>
+            {title}
+          </T>
+          <Row gap={10}>
+            <View style={{ height: 22, paddingHorizontal: 9, borderRadius: 11, backgroundColor: colors.live, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: colors.white }} />
+              <T size={10} weight={800} tracking={0.6} color={colors.white}>
+                LIVE
+              </T>
+            </View>
+            <Row gap={5}>
+              <Icon name="users" size={13} color={withAlpha(colors.white, 0.85)} glow={false} />
+              <T size={12} weight={600} color={withAlpha(colors.white, 0.9)}>
+                {formatCount(listeners)}
+              </T>
+            </Row>
+          </Row>
+        </View>
+      </View>
+    </Tap>
+  );
+}
+
 const WEEKDAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 /** "FRIDAY RELEASE" from the real release date; "NEW RELEASE" when the date is unknown. */
 const releaseBadge = (d?: string) => {
@@ -92,7 +152,15 @@ const releaseBadge = (d?: string) => {
 };
 const fmtHours = (m: number) => (m >= 60 ? { value: (m / 60).toFixed(1).replace(/\.0$/, ''), unit: 'hrs' } : { value: String(Math.round(m)), unit: 'min' });
 
-const moodChips = ['Chill', 'Focus', 'Workout', 'Sleep', 'Happy', 'Party'];
+/** Home mood cards: the mood to play, the search that finds its picture (the top song for it) and the colour shown until then. */
+const moodCards: { mood: string; q: string; bg: string }[] = [
+  { mood: 'Chill', q: 'chill vibes songs', bg: tile.blue },
+  { mood: 'Focus', q: 'focus study music', bg: tile.navy },
+  { mood: 'Workout', q: 'workout gym songs', bg: tile.coral },
+  { mood: 'Sleep', q: 'sleep calm music', bg: tile.green },
+  { mood: 'Happy', q: 'happy upbeat songs', bg: tile.gold },
+  { mood: 'Party', q: 'party dance hits', bg: tile.rose },
+];
 const mixArts: ArtName[] = ['coral', 'rose', 'blue', 'green', 'amber'];
 
 type FriendNow = { userId: string; name: string; avatar: string | null; track: CatalogTrack };
@@ -383,6 +451,22 @@ export default function Home() {
 
       {note ? <Toast icon="info" iconColor={colors.amber} message={note} /> : null}
 
+      {/* Stories: live hosts first (red ring), then friends who are listening right now */}
+      {(liveNow.data?.length ?? 0) + (friends.data?.length ?? 0) > 0 ? (
+        <View style={shelfBase}>
+          <H2 title="Friends and live" action="Activity" href="/friends" />
+          <Shelf
+            data={[
+              ...(liveNow.data ?? []).slice(0, 6).map((l) => ({ key: `l-${l.id}`, name: l.host?.display_name ?? 'Live', uri: l.host?.avatar_url ?? null, id: l.host?.id ?? l.id, live: true, label: `${l.host?.display_name ?? 'A host'} is live: ${l.title}. Open`, go: () => router.push({ pathname: '/live-room', params: { id: l.id } }) })),
+              ...(friends.data ?? []).map((f) => ({ key: `f-${f.userId}`, name: f.name, uri: f.avatar ?? null, id: f.userId, live: false, label: `${f.name} is listening to ${f.track.title}. Tap to play it`, go: () => playTrack(f.track, `${f.name} is listening`) })),
+            ]}
+            itemWidth={76}
+            keyExtractor={(x) => x.key}
+            renderItem={({ item: x }) => <StoryRing name={x.name} uri={x.uri} id={x.id} live={x.live} label={x.label} onPress={x.go} />}
+          />
+        </View>
+      ) : null}
+
       {/* Featured card: the newest big release (real Audius data), ~16:10 */}
       {premieres.loading && !premieres.data ? (
         <Loading height={Math.round(heroW / 1.6)} label="Loading premieres" />
@@ -405,9 +489,7 @@ export default function Home() {
                     {formatReleaseDate(hero.releaseDate) ? ` · ${formatReleaseDate(hero.releaseDate)}` : ''}
                   </T>
                 </View>
-                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="play" size={20} color={colors.onAccent} filled />
-                </View>
+                <IconBadge icon="play" size={44} filled />
               </Row>
             </View>
           </Poster>
@@ -502,29 +584,16 @@ export default function Home() {
         </View>
       ) : null}
 
-      {/* Live now: hosts on air right now */}
+      {/* Live now: hosts on air right now, as picture cards */}
       {liveNow.data?.length ? (
         <View style={shelfBase}>
           <H2 title="Live now" action="Live hub" href="/live-hub" />
           <Shelf
             data={liveNow.data.slice(0, 8)}
+            itemWidth={204}
             keyExtractor={(l) => l.id}
             renderItem={({ item: l }) => (
-              <ShelfCard
-                title={l.title}
-                subtitle={`${l.host?.display_name ?? 'Live'} · ${formatCount(l.listeners)} listening`}
-                uri={l.host?.avatar_url ?? null}
-                id={l.id}
-                accessibilityLabel={`${l.title}${l.host ? ` by ${l.host.display_name}` : ''}, live. Open`}
-                onPress={() => router.push({ pathname: '/live-room', params: { id: l.id } })}
-              >
-                <View style={{ position: 'absolute', top: 8, left: 8, height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: colors.live, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: colors.white }} />
-                  <T size={10} weight={800} tracking={0.6} color={colors.white}>
-                    LIVE
-                  </T>
-                </View>
-              </ShelfCard>
+              <LiveCard title={l.title} host={l.host?.display_name ?? 'Live'} uri={l.host?.avatar_url ?? null} id={l.id} listeners={l.listeners} onPress={() => router.push({ pathname: '/live-room', params: { id: l.id } })} />
             )}
           />
         </View>
@@ -562,9 +631,7 @@ export default function Home() {
           keyExtractor={(a) => a.label}
           renderItem={({ item: a }) => (
             <Tap href={a.href} accessibilityLabel={a.label} style={{ width: 68, alignItems: 'center', gap: 8 }}>
-              <Art art={a.art} size={60} radius={18} style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={a.icon} size={26} color={colors.white} />
-              </Art>
+              <IconBadge icon={a.icon} size={60} radius={20} tone={a.art} />
               <T size={12} weight={600} align="center" lineHeight={15} numberOfLines={1}>
                 {a.label}
               </T>
@@ -573,46 +640,15 @@ export default function Home() {
         />
       </View>
 
-      {/* Friends listening */}
-      <View style={shelfBase}>
-        <H2 title="Friends listening now" action="Activity" href="/friends" />
-        {friends.loading && !friends.data ? (
-          <Loading height={80} />
-        ) : friends.error ? (
-          <ErrorState message={friends.error} onRetry={friends.reload} />
-        ) : !friends.data?.length ? (
-          <T size={14} color={colors.textSecondary}>
-            None of the people you follow are listening right now.
-          </T>
-        ) : (
-          <Shelf
-            data={friends.data}
-            itemWidth={64}
-            keyExtractor={(f) => f.userId}
-            renderItem={({ item: f }) => (
-              <Tap
-                accessibilityLabel={`${f.name} is listening to ${f.track.title}. Tap to play it`}
-                onPress={() => playTrack(f.track, `${f.name} is listening`)}
-                style={{ width: 64, alignItems: 'center', gap: 6 }}
-              >
-                <View>
-                  <Avatar initial={f.name[0]?.toUpperCase()} art={artFor(f.userId)} online />
-                  {f.avatar ? <Cover uri={f.avatar} id={f.userId} size={56} radius={28} style={{ position: 'absolute', left: 0, top: 0 }} /> : null}
-                  {f.avatar ? <View style={{ position: 'absolute', right: 0, bottom: 0, width: 16, height: 16, borderRadius: 8, backgroundColor: colors.success, borderWidth: 3, borderColor: colors.bg }} /> : null}
-                </View>
-                <T size={12} color={colors.textSecondary} numberOfLines={1}>
-                  {f.name}
-                </T>
-              </Tap>
-            )}
-          />
-        )}
-      </View>
-
       {/* Mood chips */}
       <View style={{ gap: 8 }}>
         <H2 title="Pick a mood" action="Boards" href="/mood-boards" />
-        <ChipRow wrap options={moodChips} onChange={(i) => void playMood(moodChips[i])} />
+        <Shelf
+          data={moodCards}
+          itemWidth={132}
+          keyExtractor={(m) => m.mood}
+          renderItem={({ item: m }) => <CategoryTile label={m.mood} query={m.q} bg={m.bg} width={132} height={88} radius={16} accessibilityLabel={`Play ${m.mood} music`} onPress={() => void playMood(m.mood)} />}
+        />
       </View>
 
       {/* Trending: clean list rows */}
@@ -632,7 +668,7 @@ export default function Home() {
       {/* More to explore */}
       <View style={{ gap: 12 }}>
         <H2 title="More to explore" />
-        <EntryCard title="Music videos" subtitle="Watch, shorts and live sets" href="/videos" color={colors.accent} glow />
+        <EntryCard title="Music videos" subtitle="Watch, shorts and live sets" href="/videos" icon="play" tone="coral" glow />
         {/* Made for you: trending YouTube music videos, straight under the Music videos card */}
         {musicVideos.data?.length ? (
           <View style={shelfBase}>
@@ -663,7 +699,7 @@ export default function Home() {
         ) : musicVideos.loading ? (
           <Loading height={150} />
         ) : null}
-        <EntryCard title="Entertainment" subtitle="Games, audiobooks, radio, tickets" href="/entertain-hub" color={colors.orange} />
+        <EntryCard title="Entertainment" subtitle="Games, audiobooks, radio, tickets" href="/entertain-hub" icon="bolt" tone="orange" />
         <Row gap={12} align="stretch">
           <Tap href="/live-hub" accessibilityLabel="Live hub: listening sessions happening now" style={{ flex: 1 }}>
             <Glass radius={20} padding={14} style={{ gap: 10, minHeight: 112 }}>

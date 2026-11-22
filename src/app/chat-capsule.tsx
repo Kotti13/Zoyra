@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { Cover, Gradient, Icon, IconButton, Row, Screen, T, Tap, Toggle, useAsync } from '../components';
+import { Cover, Gradient, Icon, IconButton, Row, Screen, T, Tap, Toggle, useAsync, IconBadge } from '../components';
 import { SongPicker } from '../components/SongPicker';
 import type { IconName } from '../components/icons';
 import type { CatalogTrack } from '../lib/catalog';
@@ -139,7 +139,7 @@ export default function ChatCapsule() {
           accessibilityLabel={track ? `Song ${track.title}. Tap to remove` : 'Add a song'}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, minHeight: 56, borderRadius: 26, backgroundColor: withAlpha(colors.white, 0.08) }}
         >
-          {track ? <Cover artwork={track.artwork} id={track.id} size={40} radius={20} /> : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: withAlpha(colors.white, 0.1), alignItems: 'center', justifyContent: 'center' }}><Icon name="music" size={18} color={colors.text} /></View>}
+          {track ? <Cover artwork={track.artwork} id={track.id} size={40} radius={20} /> : <IconBadge icon="music" size={40} />}
           <T size={13} weight={600} numberOfLines={1} style={{ flex: 1 }}>
             {track ? `${track.title}${trackArtist(track) ? ` · ${trackArtist(track)}` : ''}` : 'Add a song (optional)'}
           </T>
@@ -180,9 +180,7 @@ export default function ChatCapsule() {
       <View style={{ borderRadius: 36, paddingVertical: 4, paddingHorizontal: 16, backgroundColor: withAlpha(colors.white, 0.06), borderWidth: 1, borderColor: withAlpha(colors.white, 0.12) }}>
         {toggles.map((t, i) => (
           <Row key={t.key} gap={12} style={{ minHeight: 68, borderTopWidth: i ? 1 : 0, borderTopColor: withAlpha(colors.white, 0.06) }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: withAlpha(colors.accent, 0.18), alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={t.icon} size={18} color={colors.accentLight} />
-            </View>
+            <IconBadge icon={t.icon} size={40} />
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
               <T size={16} weight={500}>
                 {t.title}

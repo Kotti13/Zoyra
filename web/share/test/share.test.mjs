@@ -191,8 +191,8 @@ test('apple-app-site-association', () => {
   const d = JSON.parse(r.body).applinks.details[0];
   assert.deepEqual(d.appIDs, ['ABCDE12345.com.zoyra.app']);
   assert.equal(d.appID, 'ABCDE12345.com.zoyra.app');
-  assert.deepEqual(d.paths, ['/t/*', '/p/*', '/a/*', '/ar/*', '/u/*', '/l/*', '/s/*']);
-  assert.equal(d.components.length, 7);
+  assert.deepEqual(d.paths, ['/t/*', '/p/*', '/a/*', '/ar/*', '/u/*', '/l/*', '/s/*', '/lv/*', '/rm/*', '/fam/*', '/inv/*']);
+  assert.equal(d.components.length, 11);
   assert.equal(JSON.parse(appleAppSiteAssociation({}).body).applinks.details[0].appID, 'TEAMID_NOT_SET.com.zoyra.app');
 });
 
@@ -248,4 +248,59 @@ test('snapshot: private owner is never named; bad/missing tokens 404', async () 
   assert.equal((await handleShare({ kind: 's', id: 'not-a-token' }, ENV, f)).status, 404);
   assert.equal(f.calls.length, 0);
   assert.equal((await handleShare({ kind: 's', id: TOK }, ENV, mockFetch([[/share_snapshot_card/, () => json([])]]))).status, 404);
+});
+
+/* ------------------------------------------------------------------ live rooms and join links */
+
+const LIVE_ID = '3f2b8c1e-4d5a-4e6f-9a7b-1c2d3e4f5a6b';
+
+test('live: a live room renders a "Live now" card with the host and listener count', async () => {
+  const f = mockFetch([[/rpc\/share_live_card/, () => json([{ title: 'Friday <night> set', status: 'live', listeners: 1240, host_name: 'Marina', avatar_url: 'https://cdn.test/m.jpg' }])]]);
+  const r = await handleShare({ kind: 'lv', id: LIVE_ID }, ENV, f);
+  assert.equal(r.status, 200);
+  assert.match(r.body, /Live now/);
+  assert.match(r.body, /Marina/);
+  assert.match(r.body, /1\.2K listeners/);
+  assert.doesNotMatch(r.body, /<night>/); // title is escaped
+  assert.match(r.body, /noindex/);
+  assert.equal(JSON.parse(f.calls[0].init.body).lookup, LIVE_ID);
+});
+
+test('live: an ended room says so, and a private host is not named', async () => {
+  const f = mockFetch([[/rpc\/share_live_card/, () => json([{ title: 'Quiet set', status: 'ended', listeners: 3, host_name: null, avatar_url: null }])]]);
+  const r = await handleShare({ kind: 'lv', id: LIVE_ID }, ENV, f);
+  assert.equal(r.status, 200);
+  assert.match(r.body, /Live ended/);
+  assert.match(r.body, /A Zoyra host/);
+});
+
+test('live: a missing room is a 404, and a bad id never reaches the database', async () => {
+  const none = mockFetch([[/rpc\/share_live_card/, () => json([])]]);
+  assert.equal((await handleShare({ kind: 'lv', id: LIVE_ID }, ENV, none)).status, 404);
+  const bad = mockFetch([]);
+  assert.equal((await handleShare({ kind: 'lv', id: 'not-a-uuid' }, ENV, bad)).status, 404);
+  assert.equal(bad.calls.length, 0);
+});
+
+test('join links (room, family, playlist invite): generic card, no data lookup, bad codes rejected', async () => {
+  for (const [kind, id, title] of [
+    ['rm', 'group-ABC123', /Join the listening room/],
+    ['rm', 'party-ZX81', /Join the listening room/],
+    ['fam', '1A2B3C4D', /Family plan/],
+    ['inv', LIVE_ID, /Join a playlist/],
+  ]) {
+    const f = mockFetch([]);
+    const r = await handleShare({ kind, id }, ENV, f);
+    assert.equal(r.status, 200, `${kind}/${id}`);
+    assert.match(r.body, title);
+    assert.equal(f.calls.length, 0);
+  }
+  for (const [kind, id] of [['rm', 'ABC123'], ['rm', 'club-ABC123'], ['fam', 'x'], ['fam', '<script>'], ['inv', 'nope']]) {
+    assert.equal((await handleShare({ kind, id }, ENV, mockFetch([]))).status, 404, `${kind}/${id}`);
+  }
+});
+
+test('app links: the new kinds are claimed for Universal Links / App Links', () => {
+  const aasa = JSON.stringify(appleAppSiteAssociation(ENV));
+  for (const p of ['/lv/*', '/rm/*', '/fam/*', '/inv/*']) assert.ok(aasa.includes(p), p);
 });

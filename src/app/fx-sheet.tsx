@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import { Button, Icon, Sheet, T, Tap, type IconName } from '../components';
+import { Button, Icon, Sheet, T, Tap, type IconName, IconBadge } from '../components';
 import { usePlayerPick } from '../state/player';
 import { colors, withAlpha } from '../theme/tokens';
 
@@ -103,9 +103,7 @@ export default function FxSheet() {
             accessibilityLabel={`${e.title}. ${e.sub}`}
             style={[{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 4, minHeight: 62 }, i > 0 && { borderTopWidth: 1, borderTopColor: withAlpha(colors.white, 0.07) }]}
           >
-            <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: withAlpha(colors.white, 0.08), alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={e.icon} size={20} color={colors.text} />
-            </View>
+            <IconBadge icon={e.icon} size={38} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <T size={15} weight={600}>
                 {e.title}

@@ -265,3 +265,21 @@ def test_pick_music_video_skips_karaoke_covers_and_loops():
     assert pick_music_video(items, "AGAR TUM SAATH HO", "Arijit Singh", 342)["id"] == "OOOOOOOOOOO"
     # ...but when the song itself is the karaoke / live version, those are fine
     assert pick_music_video(items[:1], "Agar Tum Saath Ho (Karaoke)", "x", 342)["id"] == "KKKKKKKKKKK"
+
+
+@respx.mock
+def test_api_stream_follows_a_media_redirect_but_only_to_google_hosts():
+    respx.get(f"{BASE}/stream", params={"id": "dQw4w9WgXcQ"}).mock(return_value=httpx.Response(200, json=STREAM))
+    near = "https://rr9---sn-near.googlevideo.com/audio"
+    respx.get(MEDIA).mock(return_value=httpx.Response(302, headers={"location": near}))
+    final = respx.get(near).mock(return_value=httpx.Response(206, content=b"ok", headers={"content-type": "audio/mp4", "content-range": "bytes 0-1/10", "content-length": "2"}))
+    with api_client() as c:
+        r = c.get("/api/stream/dQw4w9WgXcQ", params={"key": "k1"}, headers={"Range": "bytes=0-1"})
+    assert r.status_code == 206 and r.content == b"ok" and final.called
+
+    # a redirect to anywhere else is refused, not followed
+    respx.get(f"{BASE}/stream", params={"id": "aaaaaaaaaaa"}).mock(return_value=httpx.Response(200, json={**STREAM, "id": "aaaaaaaaaaa"}))
+    respx.get(MEDIA).mock(return_value=httpx.Response(302, headers={"location": "https://evil.example/steal"}))
+    with api_client() as c:
+        bad = c.get("/api/stream/aaaaaaaaaaa", params={"key": "k1"})
+    assert bad.status_code == 502

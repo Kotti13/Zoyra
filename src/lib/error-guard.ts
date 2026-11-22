@@ -8,6 +8,7 @@
  * and native crashes (outside JavaScript) are not covered by this.
  * In development the normal red box is kept so real bugs stay visible.
  */
+import { reportError } from './crash-reporting';
 import { flash } from './flash';
 
 type GlobalWithHandlers = {
@@ -47,6 +48,7 @@ export function installErrorGuard() {
   try {
     g.ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
       console.error('[error-guard]', isFatal ? 'fatal' : 'error', error);
+      reportError(error, isFatal ? 'fatal' : 'uncaught');
       report(error);
     });
   } catch {
@@ -57,6 +59,7 @@ export function installErrorGuard() {
       allRejections: true,
       onUnhandled: (_id, error) => {
         console.warn('[error-guard] unhandled promise rejection', error);
+        reportError(error, 'unhandled-rejection');
         report(error);
       },
     });

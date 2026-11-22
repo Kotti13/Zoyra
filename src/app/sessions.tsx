@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { Button, ErrorState, Glass, Icon, ListRow, Loading, OutlineTag, Row, Screen, ScreenHeader, T, Tap, Toast, useAsync } from '../components';
+import { Button, ErrorState, Glass, Icon, ListRow, Loading, OutlineTag, Row, Screen, ScreenHeader, T, Tap, Toast, useAsync, IconBadge } from '../components';
 import type { IconName } from '../components';
 import { verifiedTotpFactor } from '../lib/mfa';
 import { formatAgo } from '../lib/network';
@@ -110,9 +110,7 @@ export default function Sessions() {
           <Glass padding={4}>
             {list.data?.sessions.map((s, i) => (
               <Row key={s.id} gap={12} style={[{ minHeight: 72, paddingHorizontal: 12 }, i > 0 && { borderTopWidth: 1, borderTopColor: colors.divider }]}>
-                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={s.platform ? ICON[s.platform] : 'lock'} size={20} color={colors.accentLight} />
-                </View>
+                <IconBadge icon={s.platform ? ICON[s.platform] : 'lock'} size={40} />
                 <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                   <T size={16} weight={500} numberOfLines={1}>
                     {s.name}
