@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Cover, isWideThumb, wideWidth, EmptyState, Glass, Icon, IconButton, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle } from '../components';
+import { Button, Cover, isWideThumb, wideWidth, EmptyState, Glass, IconButton, Row, Screen, ScreenHeader, T, Tap, Toast, Toggle, IconBadge } from '../components';
 import { EqBars } from '../components/art-fx';
 import { LiveSeekBar, TransportControls } from '../components/PlayerControls';
 import { catalog, formatDuration } from '../lib/catalog';
@@ -175,9 +175,7 @@ export default function Queue() {
 
       <Glass radius={26} padding={4}>
         <Row gap={14} style={{ paddingVertical: 12, paddingHorizontal: 12 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: withAlpha(colors.white, 0.08), alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="bolt" size={20} color={colors.text} />
-          </View>
+          <IconBadge icon="bolt" size={38} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <T size={15} weight={600}>
               Autoplay similar

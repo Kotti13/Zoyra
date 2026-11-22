@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Share, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-import { Button, Cover, ErrorState, Glass, Icon, IconButton, LinkText, Loading, Row, Screen, ScreenHeader, SectionHeader, Spacer, Sticker, T, Toast, Toggle, useAsync } from '../components';
+import { Button, Cover, ErrorState, Glass, IconButton, LinkText, Loading, Row, Screen, ScreenHeader, SectionHeader, Spacer, Sticker, T, Toast, Toggle, useAsync, IconBadge } from '../components';
 import { confirmDialog } from '../lib/dialog';
 import { manageSubscription } from '../lib/payments';
 import { FAMILY_SEATS, createFamilyInvite, familyInviteLink, leaveFamily, loadFamily, removeFamilyMember, type FamilyMember } from '../lib/social';
@@ -249,9 +249,7 @@ export default function Family() {
             <Glass padding={14}>
               <View style={{ gap: 12 }}>
                 <Row gap={12}>
-                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="link" size={20} color={colors.accentLight} />
-                  </View>
+                  <IconBadge icon="link" size={40} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <T size={15} weight={600}>
                       Invite link

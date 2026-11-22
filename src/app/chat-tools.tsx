@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Button, Chip, Cover, go, Icon, IconButton, ListRow, Loading, Row, Sheet, T, Tap, TextField, useAsync, useDebounced } from '../components';
+import { Button, Chip, Cover, go, Icon, IconButton, ListRow, Loading, Row, Sheet, T, Tap, TextField, useAsync, useDebounced, IconBadge } from '../components';
 import type { IconName } from '../components/icons';
 import { catalog, type CatalogTrack } from '../lib/catalog';
 import { routeIfSetupRequired } from '../lib/chat-e2ee';
@@ -337,9 +337,7 @@ export default function ChatTools() {
               pressScale={0.97}
               style={{ width: '48.5%', minHeight: 104, padding: 14, gap: 6, borderRadius: 20, backgroundColor: withAlpha(colors.white, 0.06), borderWidth: 1, borderColor: working ? colors.accent : withAlpha(colors.white, 0.12) }}
             >
-              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: withAlpha(colors.accent, 0.2), alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name={t.icon} size={20} color={colors.accentLight} />
-              </View>
+              <IconBadge icon={t.icon} size={36} />
               <T size={14} weight={600}>
                 {working ? 'Working…' : t.title}
               </T>

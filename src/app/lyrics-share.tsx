@@ -14,7 +14,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { NativeModules, Platform, Share, StyleSheet, TurboModuleRegistry, View, type TurboModule } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
-import { Art, artFor, Button, Cover, EmptyState, ErrorState, Glass, Icon, IconButton, LinkText, Loading, pickArt, Row, Screen, T, Tap, Toast, Toggle } from '../components';
+import { Art, artFor, Button, Cover, EmptyState, ErrorState, Glass, Icon, IconButton, LinkText, Loading, pickArt, Row, Screen, T, Tap, Toast, Toggle, IconBadge } from '../components';
 import { useTrackLyrics } from '../components/LyricsView';
 import { catalog, type CatalogTrack } from '../lib/catalog';
 import { lyricShareUrl, shareContent } from '../lib/share-links';
@@ -331,9 +331,7 @@ export default function LyricsShare() {
         {/* Options */}
         <Glass padding={16} style={{ gap: 14 }}>
           <Row>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="file" size={20} color={colors.accentLight} />
-            </View>
+            <IconBadge icon="file" size={40} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <T size={16} weight={500}>
                 Selected lines
@@ -372,9 +370,7 @@ export default function LyricsShare() {
             </View>
           ) : null}
           <Row>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="camera" size={20} color={colors.accentLight} />
-            </View>
+            <IconBadge icon="camera" size={40} />
             <View style={{ flex: 1 }}>
               <T size={16} weight={500}>
                 Include cover art

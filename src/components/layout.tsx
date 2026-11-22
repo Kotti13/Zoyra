@@ -9,6 +9,7 @@ import { colors, layout, motion, radius, shadow, withAlpha, type ArtName } from 
 import { Backdrop, type BackdropPattern, type Glow, type MeshName } from './Backdrop';
 import { go, IconButton, LinkText, Tap, type NavTarget } from './controls';
 import type { IconName } from './icons';
+import { IconBadge } from './IconBadge';
 import { Cover } from './media';
 import { ThemedRefreshControl, useRefresh } from './refresh';
 import { decelerate, springy, Stagger, useReduceMotion } from './motion';
@@ -287,8 +288,8 @@ export function ListRow({
   title,
   subtitle,
   icon,
-  iconColor = colors.accentLight,
-  iconBg = colors.accentTint,
+  iconColor,
+  iconBg,
   href,
   onPress,
   right,
@@ -317,9 +318,14 @@ export function ListRow({
     <Row style={[{ minHeight, paddingHorizontal: 12 }, divider && { borderTopWidth: 1, borderTopColor: colors.divider }]}>
       {leading ??
         (icon ? (
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={icon} size={20} color={iconColor} />
-          </View>
+          // Default: the gradient badge (colour follows the icon). A row that sets its own colours keeps the plain chip.
+          iconBg === undefined && iconColor === undefined ? (
+            <IconBadge icon={icon} size={40} />
+          ) : (
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: iconBg ?? colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name={icon} size={20} color={iconColor ?? colors.accentLight} />
+            </View>
+          )
         ) : null)}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <T size={16} weight={500} color={titleColor}>

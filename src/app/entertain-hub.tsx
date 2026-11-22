@@ -30,10 +30,14 @@ const FILTERS = ['For you', 'Listen', 'Play', 'Watch', 'Community'] as const;
 function Tile({ e, i }: { e: Entry; i: number }) {
   return (
     <Tap href={e.href} accessibilityLabel={`${e.title}. ${e.subtitle}`} style={{ width: '48.5%' }} pressScale={0.97}>
-      <Gradient colors={art[artCycle[i % artCycle.length]]} style={{ height: 128, borderRadius: 36, overflow: 'hidden' }}>
+      <Gradient colors={art[artCycle[i % artCycle.length]]} style={{ height: 128, borderRadius: 28, overflow: 'hidden' }}>
+        {/* Big faint glyph in the corner: gives each tile its own character */}
+        <View pointerEvents="none" style={{ position: 'absolute', right: -10, top: -8, transform: [{ rotate: '-14deg' }], opacity: 0.2 }}>
+          <Icon name={e.icon} size={92} color={colors.white} strokeWidth={1.4} glow={false} />
+        </View>
         <Gradient colors={[withAlpha(colors.bg, 0), withAlpha(colors.bg, 0.8)]} angle={180} style={{ flex: 1, justifyContent: 'flex-end', paddingLeft: 14, paddingRight: 10, paddingBottom: 12, gap: 2 }}>
-          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: withAlpha(colors.black, 0.4), alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
-            <Icon name={e.icon} size={18} color={colors.white} />
+          <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: withAlpha(colors.white, 0.22), borderWidth: 1, borderColor: withAlpha(colors.white, 0.35), alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
+            <Icon name={e.icon} size={19} color={colors.white} strokeWidth={2} glow={false} />
           </View>
           <T size={16} weight={700} numberOfLines={1}>
             {e.title}

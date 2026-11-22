@@ -7,7 +7,7 @@ import { DialogButton } from '../lib/confirm-ui';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Animated, Easing, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, TextInput, useWindowDimensions, View, type ScrollViewInstance } from 'react-native';
 
-import { Button, Cover, EmptyState, ErrorState, Gradient, Icon, IconButton, Loading, Row, Screen, SkeletonBlock, T, Tap, useReduceMotion } from '../components';
+import { Button, Cover, EmptyState, ErrorState, Gradient, Icon, IconButton, Loading, Row, Screen, SkeletonBlock, T, Tap, useReduceMotion, IconBadge } from '../components';
 import { catalog } from '../lib/catalog';
 import {
   blendMeta,
@@ -1163,9 +1163,7 @@ function ChatProScreen() {
       return card(
         mine,
         <Row gap={12}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="users" size={22} color={colors.accentLight} />
-          </View>
+          <IconBadge icon="users" size={44} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <T size={15} weight={600} numberOfLines={1}>
               {jam.name}
@@ -1214,9 +1212,7 @@ function ChatProScreen() {
       return card(
         mine,
         <Row gap={12}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="pin" size={22} color={colors.accentLight} />
-          </View>
+          <IconBadge icon="pin" size={44} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <T size={15} weight={600}>
               Location

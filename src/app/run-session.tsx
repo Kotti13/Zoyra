@@ -3,7 +3,7 @@ import { router, useLocalSearchParams, usePreventRemove } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, View } from 'react-native';
 
-import { Button, Cover, ErrorState, Glass, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, useAsync } from '../components';
+import { Button, Cover, ErrorState, Glass, Icon, IconButton, Loading, Row, Screen, ScreenHeader, T, useAsync, IconBadge } from '../components';
 import type { CatalogTrack } from '../lib/catalog';
 import { showDialog } from '../lib/dialog';
 import {
@@ -25,7 +25,7 @@ import { useAuth } from '../state/auth';
 import { useLibrary } from '../state/library';
 import { usePlayerPick } from '../state/player';
 import type { IconName } from '../components/icons';
-import { colors, radius, withAlpha } from '../theme/tokens';
+import { colors, radius } from '../theme/tokens';
 
 const CONTEXT = 'Run mode';
 
@@ -307,9 +307,7 @@ function Metric({ icon, label, value, unit }: { icon: IconName; label: string; v
       accessible
       accessibilityLabel={`${label}: ${value === '--' ? 'not available' : `${value}${unit ? ` ${unit}` : ''}`}`}
     >
-      <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: withAlpha(colors.white, 0.12), alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name={icon} size={18} />
-      </View>
+      <IconBadge icon={icon} size={38} />
       <T size={14} style={{ flex: 1 }}>
         {label}
       </T>

@@ -1,7 +1,7 @@
 import { useState, useSyncExternalStore } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Button, Cover, EmptyState, Glass, Gradient, Icon, IconButton, IconTile, ListRow, Loading, Row, Screen, T, Tap, TextField, Toast, useAsync, useDebounced } from '../components';
+import { Button, Cover, EmptyState, Glass, Gradient, Icon, IconButton, IconTile, ListRow, Loading, Row, Screen, T, Tap, TextField, Toast, useAsync, useDebounced, IconBadge } from '../components';
 import { catalog, GENRES, MOOD_MAP } from '../lib/catalog';
 import { artistStation, contextFor, genreStation, historySeeds, mixStation, moodStation, radioState, startStation, stopStation, useRadioTopUp, type Station } from '../lib/radio';
 import { useAuth } from '../state/auth';
@@ -45,9 +45,7 @@ function StationRow({ s, i, busy, on, onPress }: { s: Station; i: number; busy: 
           </T>
         </View>
         {on ? <LivePill /> : null}
-        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={busy ? 'clock' : on ? 'speaker' : 'play'} size={18} color={colors.text} />
-        </View>
+        <IconBadge icon={busy ? 'clock' : on ? 'speaker' : 'play'} size={44} />
       </View>
     </Tap>
   );

@@ -12,6 +12,7 @@ import { DialogHost } from '../components/DialogHost';
 import { FlashHost } from '../components/flash';
 import { SplashView } from '../components/SplashView';
 import { isAddingAccount, useAccountSync } from '../lib/accounts';
+import { initCrashReporting, reportError } from '../lib/crash-reporting';
 import { installErrorGuard } from '../lib/error-guard';
 import { CallHost } from '../lib/call-ui';
 import { KidsGuardHost } from '../components/KidsGuard';
@@ -265,6 +266,7 @@ function LaunchSplash({ ready }: { ready: boolean }) {
 }
 
 // Keep the app alive (and show a message) when a request or callback fails without being handled.
+initCrashReporting();
 installErrorGuard();
 
 /**
@@ -273,6 +275,10 @@ installErrorGuard();
  * it must not depend on providers, theme or fonts, which may be what failed.
  */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  // A screen that crashed while drawing: tell the crash reporter (no-op when it is off).
+  useEffect(() => {
+    reportError(error, 'screen');
+  }, [error]);
   return (
     <View style={{ flex: 1, backgroundColor: '#050505', padding: 24, paddingTop: 72 }}>
       <Text style={{ color: '#F5F5F5', fontSize: 22, fontWeight: '600' }}>Something went wrong</Text>

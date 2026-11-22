@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Linking, View } from 'react-native';
 
-import { Cover, EmptyState, ErrorState, Icon, IconButton, Loading, Row, Screen, T, Tap, useAsync } from '../components';
+import { Cover, EmptyState, ErrorState, Icon, IconButton, Loading, Row, Screen, T, Tap, useAsync, IconBadge } from '../components';
 import { PhotoViewer, type ViewerPhoto } from '../components/PhotoViewer';
 import { dayLabel, peerFromParams, photoMeta, trackArtist, useChatMediaUrl, voiceMeta, type PhotoMeta } from '../lib/chat';
 import { loadSharedMedia, monthLabel, type MediaTab, type SharedEntry } from '../lib/chat-extras';
@@ -182,9 +182,7 @@ export default function ChatMedia() {
                 accessibilityLabel={`Open ${e.link}`}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, padding: 10, borderRadius: 20, backgroundColor: withAlpha(colors.white, 0.06) }}
               >
-                <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: colors.accentTint, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="link" size={18} color={colors.accentLight} />
-                </View>
+                <IconBadge icon="link" size={40} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <T size={14} weight={500} numberOfLines={1}>
                     {(e.link ?? '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
