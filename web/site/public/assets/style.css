@@ -190,3 +190,12 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent),var(--gol
 .dev-copy p{color:#d4d4d4;font-size:1.05rem}
 @media(max-width:900px){.steps.four{grid-template-columns:repeat(2,minmax(0,1fr))}.dev{grid-template-columns:minmax(0,1fr)}.name-cols{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.steps.four{grid-template-columns:minmax(0,1fr)}.forever-band{padding:22px}.ring{width:110px;height:110px}.ring span{font-size:2.6rem}}
+
+/* download */
+.dl{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:28px;border-radius:26px;border:1px solid rgba(250,45,72,.4);background:radial-gradient(120% 140% at 0% 0%,rgba(250,45,72,.22),rgba(17,17,17,.92) 62%)}
+.dl-main{display:flex;align-items:center;gap:16px}
+.dl-main h2{margin:0 0 2px;font-size:1.4rem}.dl-main p{margin:0}
+.dl-ico img{border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.btn.big{padding:16px 26px;font-size:1.05rem}
+.dl .small{flex-basis:100%;margin:0}
+@media(max-width:600px){.dl{padding:20px}.dl .btn{width:100%;justify-content:center}}

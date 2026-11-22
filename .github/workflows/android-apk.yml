@@ -1,0 +1,65 @@
+# Builds the Android test APK in the cloud (EAS "preview" profile) and publishes it as a GitHub release, so the
+# website's Download button always points at the newest build:
+#   https://github.com/Kotti13/Zoyra/releases/latest/download/zoyra.apk
+#
+# One-time setup: create an Expo access token (expo.dev > Account settings > Access tokens) and save it as the
+# repository secret EXPO_TOKEN (GitHub > Settings > Secrets and variables > Actions).
+# The app's settings (EXPO_PUBLIC_*) come from the EAS "preview" environment, not from this file.
+#
+# Runs when app code changes on main, or by hand (Actions > Android APK > Run workflow).
+# EAS free plan has a monthly build limit, so doc/website/backend-only pushes do not trigger it.
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'assets/**'
+      - 'app.json'
+      - 'app.config.js'
+      - 'eas.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'plugins/**'
+  workflow_dispatch:
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Build and publish APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Build on EAS (waits for the build to finish)
+        run: eas build --platform android --profile preview --non-interactive --wait --json > build.json
+      - name: Publish as a GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status=$(jq -r '.[0].status' build.json)
+          [ "$status" = "FINISHED" ] || { echo "EAS build ended with status: $status"; exit 1; }
+          url=$(jq -r '.[0].artifacts.buildUrl' build.json)
+          version=$(jq -r '.[0].appVersion' build.json)
+          curl -fsSL "$url" -o zoyra.apk
+          gh release create "apk-${GITHUB_RUN_NUMBER}" zoyra.apk \
+            --title "Zoyra Android ${version} (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Android test build from commit ${GITHUB_SHA::7}. Install steps: https://zoyra.site/download" \
+            --latest
