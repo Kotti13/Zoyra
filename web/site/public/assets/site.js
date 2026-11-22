@@ -1,0 +1,14 @@
+// Progressive enhancement only: fade cards in as they scroll into view. The site works without this.
+(function () {
+  try {
+    if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.documentElement.classList.add('js');
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.card, .steps li, .stats div, .ticks li, .band').forEach(function (el) {
+      el.classList.add('reveal');
+      io.observe(el);
+    });
+  } catch (_) { /* ignore */ }
+})();
