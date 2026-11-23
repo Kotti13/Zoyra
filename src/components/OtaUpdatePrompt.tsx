@@ -1,9 +1,10 @@
 import * as Updates from 'expo-updates';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, View } from 'react-native';
+import { AppState, Linking, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { reportError } from '../lib/crash-reporting';
+import { checkForUpdate, type UpdateInfo } from '../lib/updates';
 import { colors } from '../theme/tokens';
 import { Button } from './controls';
 import { T } from './primitives';
@@ -14,7 +15,12 @@ const RECHECK_MS = 30 * 60 * 1000;
 type Phase = 'idle' | 'available' | 'downloading' | 'failed';
 
 /**
- * "Update available" prompt for over-the-air updates (the JavaScript, screens and images; native changes need a new build).
+ * "Update available" prompt. Two kinds of update, one prompt:
+ *
+ *  1. Over-the-air (JavaScript, screens, images): Update now downloads it and restarts the app.
+ *  2. A new build (`app_config.latest_version` is above the installed version, e.g. a new APK for native changes):
+ *     Update now opens the download link (`app_config.store_url`). A version below `min_version` is the blocking
+ *     /update screen instead (opened from the root layout).
  *
  * The app already downloads a published update in the background at launch (expo-updates' default). This prompt covers
  * both moments: an update that is already downloaded ("ready") and one that is only available. Tapping Update now
@@ -25,12 +31,24 @@ export function OtaUpdatePrompt() {
   const insets = useSafeAreaInsets();
   const { isUpdateAvailable, isUpdatePending } = Updates.useUpdates();
   const [phase, setPhase] = useState<Phase>('idle');
+  const [store, setStore] = useState<UpdateInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const lastCheck = useRef(0);
 
   const check = useCallback(async () => {
-    if (__DEV__ || !Updates.isEnabled) return;
+    if (__DEV__) return;
     lastCheck.current = Date.now();
+    // A newer build published in app_config (works in every build that has the update screen).
+    try {
+      const info = await checkForUpdate();
+      if (info?.status === 'available' && info.storeUrl) {
+        setStore(info);
+        setDismissed(false);
+      }
+    } catch {
+      /* offline or not set up: the prompt just stays hidden */
+    }
+    if (!Updates.isEnabled) return;
     try {
       const r = await Updates.checkForUpdateAsync();
       if (r.isAvailable) {
@@ -53,7 +71,14 @@ export function OtaUpdatePrompt() {
     return () => sub.remove();
   }, [check]);
 
+  const otaKnown = Updates.isEnabled && (phase !== 'idle' || isUpdateAvailable || isUpdatePending);
+
   const install = async () => {
+    if (!otaKnown && store?.storeUrl) {
+      // A new build: open its download link (Android asks to install it).
+      Linking.openURL(store.storeUrl).catch((e) => reportError(e, 'ota/open-store'));
+      return;
+    }
     setPhase('downloading');
     try {
       if (!isUpdatePending) {
@@ -68,13 +93,14 @@ export function OtaUpdatePrompt() {
   };
 
   // The background launch download (or the hook's own check) found one: show the prompt without waiting for ours.
-  const known = phase !== 'idle' || isUpdateAvailable || isUpdatePending;
-  if (__DEV__ || !Updates.isEnabled || dismissed || !known) return null;
+  if (__DEV__ || dismissed || !(otaKnown || store)) return null;
 
   const busy = phase === 'downloading';
   const ready = isUpdatePending;
   const text =
-    phase === 'failed'
+    !otaKnown && store
+      ? (store.notes[0] ?? `Version ${store.latest} is available.`)
+      : phase === 'failed'
       ? 'Could not install the update. Check your connection and try again.'
       : busy
         ? ready
@@ -112,7 +138,7 @@ export function OtaUpdatePrompt() {
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Button label="Later" variant="glass" height={42} style={{ flex: 1 }} onPress={() => setDismissed(true)} />
         <Button
-          label={busy ? 'Updating…' : phase === 'failed' ? 'Try again' : ready ? 'Restart now' : 'Update now'}
+          label={busy ? 'Updating…' : otaKnown && phase === 'failed' ? 'Try again' : otaKnown && ready ? 'Restart now' : 'Update now'}
           variant={busy ? 'disabled' : 'primary'}
           height={42}
           style={{ flex: 1 }}
