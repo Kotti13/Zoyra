@@ -324,7 +324,31 @@ export async function loadMySettings(cid: string, _me: string): Promise<MemberSe
   return row ? { muted: !!row.muted, read_receipts: row.read_receipts !== false, last_read_at: row.last_read_at ?? new Date(0).toISOString() } : null;
 }
 
+// Last snapshot per conversation, kept in memory so reopening a chat shows it at once while a fresh copy loads.
+// Memory only (never written to disk) and cleared at sign-out / account switch.
+const snapshots = new Map<string, ChatSnapshot>();
+const SNAPSHOTS_MAX = 12;
+
+/** The last loaded snapshot of a conversation, if this session has one. */
+export const peekChat = (cid: string): ChatSnapshot | null => snapshots.get(cid) ?? null;
+
+export function clearChatSnapshots(): void {
+  snapshots.clear();
+}
+
+function rememberSnapshot(cid: string, s: ChatSnapshot) {
+  snapshots.delete(cid);
+  snapshots.set(cid, s);
+  if (snapshots.size > SNAPSHOTS_MAX) snapshots.delete(snapshots.keys().next().value as string);
+}
+
 export async function loadChat(cid: string, me: string): Promise<ChatSnapshot> {
+  const s = await loadChatFresh(cid, me);
+  rememberSnapshot(cid, s);
+  return s;
+}
+
+async function loadChatFresh(cid: string, me: string): Promise<ChatSnapshot> {
   const [members, mine, conv, msgs, reactions, pins, votes, hidden] = await Promise.all([
     // Only ids + profiles of the other members: their read/delivered state comes from conversation_receipts.
     supabase.from('conversation_members').select('user_id, profiles(id, display_name, avatar_url, username)').eq('conversation_id', cid).neq('user_id', me),

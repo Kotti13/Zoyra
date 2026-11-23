@@ -10,7 +10,8 @@
 import { clearAsyncCache } from '../components/media';
 import { clearForeverCache } from './forever';
 import { clearDecryptedMedia, invalidateKeyCoverage } from './chat-e2ee';
-import { chatBus } from './chat';
+import { chatBus, clearChatSnapshots } from './chat';
+import { clearInboxSnapshot } from './inbox-cache';
 import { getCallSession, hangUp } from './call-session';
 import { resetE2EEMemory } from './e2ee';
 import { unregisterThisDevice } from './push';
@@ -31,4 +32,6 @@ export function clearUserMemory(): void {
   clearDecryptedMedia();
   resetE2EEMemory();
   chatBus.reset();
+  clearChatSnapshots();
+  clearInboxSnapshot();
 }
