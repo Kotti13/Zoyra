@@ -13,7 +13,7 @@
 import Constants from 'expo-constants';
 import { Platform, Share } from 'react-native';
 
-const DEFAULT_SHARE_HOST = 'https://zoyra-share.vercel.app';
+const DEFAULT_SHARE_HOST = 'https://share.zoyra.site';
 
 function normalizeHost(raw: string | undefined | null): string {
   const v = (raw ?? '').trim().replace(/\/+$/, '');
@@ -23,10 +23,10 @@ function normalizeHost(raw: string | undefined | null): string {
 
 const extraHost = (Constants.expoConfig?.extra as { shareHost?: unknown } | undefined)?.shareHost;
 
-/** e.g. `https://zoyra-share.vercel.app` (no trailing slash). */
+/** e.g. `https://share.zoyra.site` (no trailing slash). */
 export const SHARE_HOST = normalizeHost(process.env.EXPO_PUBLIC_SHARE_HOST || (typeof extraHost === 'string' ? extraHost : undefined));
 
-/** Bare hostname, e.g. `zoyra-share.vercel.app`. */
+/** Bare hostname, e.g. `share.zoyra.site`. */
 export const SHARE_HOSTNAME = SHARE_HOST.replace(/^https?:\/\//i, '').split('/')[0].toLowerCase();
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
