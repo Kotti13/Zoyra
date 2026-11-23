@@ -4,7 +4,7 @@
 // The host comes from ONE place: EXPO_PUBLIC_SHARE_HOST (.env locally, EAS env for cloud builds),
 // defaulting to the free Vercel subdomain. Changing it requires a new native build (eas build),
 // because associatedDomains / intentFilters are baked into the binary.
-const DEFAULT_SHARE_HOST = 'https://zoyra-share.vercel.app';
+const DEFAULT_SHARE_HOST = 'https://share.zoyra.site';
 const SHARE_PATHS = ['/t/', '/p/', '/a/', '/ar/', '/u/', '/l/', '/s/', '/lv/', '/rm/', '/fam/', '/inv/'];
 
 const { withAndroidManifest } = require('expo/config-plugins');

@@ -90,7 +90,7 @@
     "build:dev": "eas build --profile development --platform android",
     "update:preview": "eas update --channel preview --environment preview",
     "update:production": "eas update --channel production --environment production",
-    "share:test": "cd web/share && node --test test/*.test.mjs",
+    "share:test": "cd web/share && npm test",
     "share:deploy": "cd web/share && npx vercel@latest --prod"
   },
   "private": true,

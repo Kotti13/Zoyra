@@ -2,7 +2,7 @@
 // Environment Variables). PUBLIC_HOST is the ONE place the public domain is set on the web side;
 // the app reads the same host from EXPO_PUBLIC_SHARE_HOST.
 
-const DEFAULT_HOST = 'https://zoyra-share.vercel.app';
+const DEFAULT_HOST = 'https://share.zoyra.site';
 
 const clean = (v) => (typeof v === 'string' ? v.trim() : '');
 
