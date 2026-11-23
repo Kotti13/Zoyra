@@ -36,6 +36,7 @@ const P = {
   game: '<rect x="3" y="8" width="18" height="9" rx="4"/><path d="M8 10.5v4M6 12.5h4M16 11.5h.01M18 13.5h.01"/>',
   link: '<path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1"/>',
   github: '<path d="M12 3.5a8.5 8.5 0 0 0-2.7 16.6c.4.1.6-.2.6-.4v-1.5c-2.4.5-2.9-1-2.9-1-.4-1-1-1.3-1-1.3-.8-.6.1-.6.1-.6.9.1 1.4.9 1.4.9.8 1.4 2.1 1 2.6.8.1-.6.3-1 .6-1.2-1.9-.2-3.9-1-3.9-4.2 0-.9.3-1.7.9-2.3-.1-.2-.4-1.1.1-2.3 0 0 .7-.2 2.4.9a8.3 8.3 0 0 1 4.4 0c1.7-1.1 2.4-.9 2.4-.9.5 1.2.2 2.1.1 2.3.6.6.9 1.4.9 2.3 0 3.2-2 4-3.9 4.2.3.3.6.8.6 1.6v2.3c0 .2.2.5.6.4A8.5 8.5 0 0 0 12 3.5z"/>',
+  linkedin: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 11v5M8 8h.01M12 16v-5m0 2.5c0-1.5 1-2.5 2.2-2.5S16 12 16 13.5V16"/>',
   arrow: '<path d="M5 12h14m0 0-5-5m5 5-5 5"/>',
 };
 
@@ -46,7 +47,7 @@ const NAV = [
   ['/features', 'Features'],
   ['/forever', 'Forever'],
   ['/articles', 'Articles'],
-  ['/about', 'About'],
+  ['/developer', 'Developer'],
   ['/download', 'Download'],
   ['/open-source', 'Open source'],
   ['/privacy', 'Privacy'],
@@ -100,7 +101,7 @@ ${body}
       <a href="/features">Features</a>
       <a href="/forever">Forever</a>
       <a href="/articles">Articles</a>
-      <a href="/about">About</a>
+      <a href="/developer">Developer</a>
       <a href="/download">Download</a>
       <a href="/open-source">Open source</a>
       <a href="/privacy">Privacy</a>
