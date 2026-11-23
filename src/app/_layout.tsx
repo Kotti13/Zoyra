@@ -9,6 +9,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DialogHost } from '../components/DialogHost';
+import { OtaUpdatePrompt } from '../components/OtaUpdatePrompt';
 import { FlashHost } from '../components/flash';
 import { SplashView } from '../components/SplashView';
 import { isAddingAccount, useAccountSync } from '../lib/accounts';
@@ -379,6 +380,7 @@ export default function RootLayout() {
           </Stack>
           <FlashHost />
           <DialogHost />
+          <OtaUpdatePrompt />
           </AuthGate>
         </DownloadsProvider>
         </PlayerProvider>

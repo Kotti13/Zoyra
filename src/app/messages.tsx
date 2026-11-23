@@ -8,6 +8,7 @@ import { sortForeverFirst, useForeverIds } from '../lib/forever';
 import { Cover, EmptyState, ErrorState, Glass, Icon, IconButton, ListRow, Row, Screen, T, Tap, Toggle, type IconName } from '../components';
 import { chatPeerParams, decryptChatRows, formatMs, messagePreview, MSG_SELECT, trackArtist, updateMySettings, voiceMeta, type ChatMessage } from '../lib/chat';
 import { confirmClearHref } from '../lib/confirm-routes';
+import { getInboxSnapshot, setInboxSnapshot } from '../lib/inbox-cache';
 import { loadInbox, markDelivered, MAX_PINNED_CHATS, muteConversationFor, restrictUser, setChatArchived, setChatPinned, useRequestCount, type DmSettings, type InboxRow } from '../lib/dm';
 import { useE2EE } from '../lib/e2ee';
 import { RestoreHistoryCard } from '../lib/e2ee/ui';
@@ -514,8 +515,8 @@ export default function Messages() {
   const me = user?.id;
   const [filter, setFilter] = useState<Filter>('primary');
   const [view, setView] = useState<'inbox' | 'archived'>('inbox');
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [threads, setThreads] = useState<Thread[]>(() => getInboxSnapshot<Thread>(me) ?? []);
+  const [loading, setLoading] = useState(() => !getInboxSnapshot<Thread>(me));
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<Note | null>(null);
@@ -538,6 +539,12 @@ export default function Messages() {
   }, [me]);
 
   /** Receipt per conversation for my last message; 'read' is final for that message, so it isn't re-asked. */
+  // What is on screen now, so a reload keeps previews and read ticks it already knows instead of blanking them.
+  const threadsRef = useRef<Thread[]>([]);
+  useEffect(() => {
+    threadsRef.current = threads;
+  }, [threads]);
+
   const receiptCache = useRef(new Map<string, { mid: string; receipt: Receipt }>());
 
   const load = useCallback(
@@ -580,7 +587,21 @@ export default function Messages() {
             archived: !!r.archived_at,
           };
         });
+        // Paint the list now with what the server sent (and any receipts / previews known from before); decrypted
+        // previews and read ticks fill in as they arrive instead of holding the whole screen back.
+        const known = new Map(threadsRef.current.map((t) => [t.id, t]));
+        for (const t of list) {
+          const prev = known.get(t.id);
+          if (prev && prev.lastId === t.lastId) {
+            t.preview = prev.preview;
+            t.cover = prev.cover;
+            t.receipt = prev.receipt;
+          }
+        }
+        setThreads(list);
+        setLoading(false);
         await decryptPreviews(rows, list).catch(() => undefined);
+        setThreads([...list]);
         // Ticks only for rows whose last message is mine: one conversation_receipts call each.
         const cache = receiptCache.current;
         await Promise.all(
@@ -595,7 +616,8 @@ export default function Messages() {
             cache.set(t.id, { mid: t.lastId, receipt: t.receipt });
           }),
         );
-        setThreads(list);
+        setThreads([...list]);
+        setInboxSnapshot(me, list);
       } catch (e) {
         setError(friendlySocialError(e, 'Could not load messages'));
       } finally {
