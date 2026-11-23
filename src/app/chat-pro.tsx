@@ -55,6 +55,7 @@ import {
   type Receipt,
   type Scheduled,
   markConversationRead,
+  peekChat,
 } from '../lib/chat';
 import { cleanupViewedWhispers, loadCapsules, loadStarIds, loadWhisperViews, type CapsuleRow, type WhisperView } from '../lib/chat-extras';
 import { moodColor, useChatMood } from '../lib/chat-mood';
@@ -67,7 +68,7 @@ import { CapsuleCard, ChatAvatar, PhotoBubble, VoiceNote, WhisperCard } from '..
 import { PhotoViewer, type ViewerPhoto } from '../components/PhotoViewer';
 import { EmojiPanel, useEmojiComposer } from '../components/EmojiPicker';
 import { bigEmojiCount } from '../lib/emoji';
-import { decryptErrorOf, isNotEncrypted, newMessageId, routeIfSetupRequired } from '../lib/chat-e2ee';
+import { decryptErrorOf, isNotEncrypted, newMessageId, routeIfSetupRequired, warmSend } from '../lib/chat-e2ee';
 import { REPLY_ACTIONS, SwipeToReply, useTimeReveal } from '../lib/swipe-reply';
 import { E2EEChatNotice, NotEncryptedNote, PinnedBar, SecurityCodeRow, UnavailableBubble, useIdentityChanges } from '../lib/e2ee-chat-ui';
 import { acceptRequest, declineRequest, dmSettings, markDelivered, rateSongSwap, requestState, swapRatings, type RequestState } from '../lib/dm';
@@ -129,8 +130,9 @@ function ChatProScreen() {
   const me = user?.id;
   const dm = dmSettings(settings?.dm);
   const { track: nowPlaying, playTrack } = usePlayerPick('track');
-  const [snap, setSnap] = useState<ChatSnapshot | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Reopening a chat shows the last copy at once; the fresh one replaces it a moment later (see load).
+  const [snap, setSnap] = useState<ChatSnapshot | null>(() => (id ? peekChat(id) : null));
+  const [loading, setLoading] = useState(() => !(id && peekChat(id)));
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [note, setNote] = useState<string | null>(null);
@@ -263,6 +265,7 @@ function ChatProScreen() {
     if (!id || !me) return;
     void markDelivered().then(refreshReceipts);
     refreshReqState();
+    void warmSend(id, me);
     listScheduled(id)
       .then((rows) => setScheduled(rows.filter((r) => !r.failed)))
       .catch(() => setScheduled([]));
@@ -273,7 +276,7 @@ function ChatProScreen() {
   const load = useCallback(
     async (quiet = false) => {
       if (!id || !me) return;
-      if (!quiet) setLoading(true);
+      if (!quiet && !peekChat(id)) setLoading(true);
       setError(null);
       try {
         const s = await loadChat(id, me);

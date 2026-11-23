@@ -6,7 +6,7 @@ import { AppState } from 'react-native';
 import { useSyncExternalStore } from 'react';
 
 import { supabase } from '../supabase';
-import { cacheClear, cacheGet, cachePut, cacheResetMemory, cacheScan } from './cache';
+import { cacheClear, cacheGet, cacheGetMany, cachePut, cachePutMany, cacheResetMemory, cacheScan } from './cache';
 import {
   DEFAULT_KDF,
   E2EEError,
@@ -82,7 +82,7 @@ export type DecryptResult = E2EEPayload | DecryptError;
 export const isDecryptError = (r: DecryptResult | null | undefined): r is DecryptError => !!r && typeof (r as DecryptError).error === 'string';
 
 export type SendParams = { cid: string; messageId: string; kind: string; replyTo: string | null; sealed: Sealed };
-export type SendOptions = { messageId?: string; kind?: string; replyTo?: string | null };
+export type SendOptions = { messageId?: string; kind?: string; replyTo?: string | null; /** Skip the recipient cache (used after the server says someone's devices changed). */ fresh?: boolean };
 
 /**
  * 'needs_restore'  this phone has no current keys and the account has keys elsewhere. Non-blocking: the inbox
@@ -492,7 +492,46 @@ async function accountPubOf(userId: string): Promise<string | null> {
 }
 
 /** Active devices of every member whose certificate verifies under the member's account key (TOFU-checked). */
-async function verifiedRecipients(cid: string): Promise<Recipient[]> {
+// Recipient devices per conversation, kept briefly so a burst of messages costs one lookup, not one per message.
+// Safe against staleness: the server rejects a send whose device set changed ('e2ee_devices_changed'), and the
+// retry in sendEncryptedMessage bypasses this cache.
+const RECIPIENTS_TTL = 60_000;
+const recipientsCache = new Map<string, { at: number; list: Recipient[]; pending?: Promise<Recipient[]> }>();
+
+/** Drop the cached recipients (one chat, or all of them). */
+export function invalidateRecipients(cid?: string): void {
+  if (cid) recipientsCache.delete(cid);
+  else recipientsCache.clear();
+}
+
+async function verifiedRecipients(cid: string, fresh = false): Promise<Recipient[]> {
+  const hit = recipientsCache.get(cid);
+  if (!fresh && hit) {
+    if (hit.pending) return hit.pending.then((l) => [...l]);
+    if (Date.now() - hit.at < RECIPIENTS_TTL) return [...hit.list];
+  }
+  const pending = loadRecipients(cid);
+  recipientsCache.set(cid, { at: 0, list: [], pending });
+  try {
+    const list = await pending;
+    recipientsCache.set(cid, { at: Date.now(), list });
+    return [...list];
+  } catch (e) {
+    recipientsCache.delete(cid);
+    throw e;
+  }
+}
+
+/** Warm the recipient cache while a chat is open so the first message doesn't wait for the lookup. Never throws. */
+export async function warmRecipients(cid: string): Promise<void> {
+  try {
+    if (getE2EEStatus().status === 'ready') await verifiedRecipients(cid);
+  } catch {
+    /* the send itself will report any real problem */
+  }
+}
+
+async function loadRecipients(cid: string): Promise<Recipient[]> {
   const me = state.userId as string;
   const rows = await server.conversationDevices(cid);
   const out: Recipient[] = [];
@@ -545,7 +584,7 @@ async function resolveSenders(rows: { sender_id: string; sender_device_id: strin
 export async function encryptMessage(cid: string, payload: E2EEPayload, opts: SendOptions = {}): Promise<SendParams> {
   const { identity } = requireReady();
   const messageId = opts.messageId ?? randomUUID();
-  const recipients = await verifiedRecipients(cid);
+  const recipients = await verifiedRecipients(cid, opts.fresh === true);
   if (!recipients.some((r) => r.deviceId === identity.device.deviceId)) recipients.push({ deviceId: identity.device.deviceId, encPub: identity.device.encPub });
   const sealed = sealPayload({ conversationId: cid, messageId, sender: identity.device, recipients, plaintext: utf8(JSON.stringify(payload)) });
   return { cid, messageId, kind: opts.kind ?? 'text', replyTo: opts.replyTo ?? null, sealed };
@@ -565,7 +604,7 @@ export async function sendEncryptedMessage(cid: string, payload: E2EEPayload, op
     await server.sendSealed(params);
   } catch (e) {
     if (!isDevicesChanged(e)) throw e;
-    params = await encryptMessage(cid, payload, { ...opts, messageId: params.messageId });
+    params = await encryptMessage(cid, payload, { ...opts, messageId: params.messageId, fresh: true });
     await server.sendSealed(params);
   }
   if (state.cacheKey) await cachePut(uid, state.cacheKey, params.messageId, params.sealed.signature, cid, payload);
@@ -584,7 +623,7 @@ export async function editEncryptedMessage(cid: string, messageId: string, paylo
     await server.editSealed({ messageId, sealed });
   } catch (e) {
     if (!isDevicesChanged(e)) throw e;
-    sealed = await encryptEdit(cid, messageId, payload);
+    sealed = (await encryptMessage(cid, payload, { messageId, fresh: true })).sealed;
     await server.editSealed({ messageId, sealed });
   }
   if (state.cacheKey) await cachePut(uid, state.cacheKey, messageId, sealed.signature, cid, payload);
@@ -636,8 +675,9 @@ export async function decryptMessages(rows: E2EEMessageRow[]): Promise<Map<strin
   const uid = state.userId;
   const ck = state.cacheKey;
   const todo: E2EEMessageRow[] = [];
+  const cached = await cacheGetMany<E2EEPayload>(uid, ck, enc.map((r) => ({ id: r.id, signature: r.signature as string })));
   for (const r of enc) {
-    const hit = await cacheGet<E2EEPayload>(uid, ck, r.id, r.signature as string);
+    const hit = cached.get(r.id);
     if (hit) out.set(r.id, hit);
     else todo.push(r);
   }
@@ -652,11 +692,14 @@ export async function decryptMessages(rows: E2EEMessageRow[]): Promise<Map<strin
     ]);
     const byMsg = new Map<string, Envelope>();
     for (const e of envelopes) if (!byMsg.has(e.message_id) || e.device_id === state.identity?.device.deviceId) byMsg.set(e.message_id, e);
+    const fresh: { id: string; signature: string; cid: string; payload: E2EEPayload }[] = [];
     for (const r of todo) {
       const res = decryptOne(r, byMsg.get(r.id));
       out.set(r.id, res);
-      if (!isDecryptError(res)) await cachePut(uid, ck, r.id, r.signature as string, r.conversation_id, res);
+      if (!isDecryptError(res)) fresh.push({ id: r.id, signature: r.signature as string, cid: r.conversation_id, payload: res });
     }
+    // Save to the local cache in one batch, without making the chat wait for the disk.
+    if (fresh.length) void cachePutMany(uid, ck, fresh);
   } catch {
     todo.forEach((r) => out.set(r.id, { error: 'server' }));
   }
