@@ -25,10 +25,12 @@ import {
   encryptFile,
   getE2EEStatus,
   initE2EE,
+  invalidateRecipients,
   isEncryptedRow,
   knowsKeysOf,
   sendEncryptedMessage,
   skipRestore,
+  warmRecipients,
   type DecryptError,
   type E2EEMedia,
   type E2EEMessageRow,
@@ -127,6 +129,20 @@ const COVERAGE_TTL = 20_000;
 export function invalidateKeyCoverage(cid?: string) {
   if (cid) coverage.delete(cid);
   else coverage.clear();
+  invalidateRecipients(cid); // members / devices changed: look the recipients up again before the next send
+}
+
+/**
+ * Called when a chat opens: looks up who has keys and which devices to encrypt to now, so the first message
+ * doesn't wait for those two round trips. Best effort; never throws.
+ */
+export async function warmSend(cid: string, me: string): Promise<void> {
+  try {
+    if (getE2EEStatus().status !== 'ready') return;
+    await Promise.all([keyCoverage(cid, me), warmRecipients(cid)]);
+  } catch {
+    /* sending reports real problems */
+  }
 }
 
 /**
