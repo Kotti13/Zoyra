@@ -5,8 +5,12 @@ import { test } from 'node:test';
 import { appleAppSiteAssociation, assetLinks, handleShare } from '../lib/handler.js';
 import { validateOg } from '../scripts/check-og.mjs';
 
+// The share host comes from the environment only (PUBLIC_HOST): `npm test` loads it from .env.test.
+if (!process.env.PUBLIC_HOST) throw new Error('PUBLIC_HOST is not set. Run the tests with `npm test` (loads .env.test) or export PUBLIC_HOST.');
+const HOST = process.env.PUBLIC_HOST.replace(/\/+$/, '');
+
 const ENV = {
-  PUBLIC_HOST: 'https://zoyra-share.vercel.app',
+  PUBLIC_HOST: HOST,
   SUPABASE_URL: 'https://abc.supabase.co',
   SUPABASE_ANON_KEY: 'eyJ.anon.key',
   APPLE_TEAM_ID: 'ABCDE12345',
@@ -44,8 +48,8 @@ test('track: Audius song renders a full rich card', async () => {
   assert.equal(tags['og:title'], 'Midnight <Drive>');
   assert.equal(tags['og:image'], ART['1000x1000']);
   assert.equal(tags['og:image:width'], '1000');
-  assert.equal(tags['og:url'], 'https://zoyra-share.vercel.app/t/D7KyD');
-  assert.equal(canonical, 'https://zoyra-share.vercel.app/t/D7KyD');
+  assert.equal(tags['og:url'], `${HOST}/t/D7KyD`);
+  assert.equal(canonical, `${HOST}/t/D7KyD`);
   assert.equal(tags['twitter:card'], 'summary_large_image');
   assert.equal(tags['music:duration'], '225');
   assert.match(tags['og:description'], /Midnight <Drive> by Nova & Co · 3:45 · Electronic/);
@@ -63,7 +67,7 @@ test('lyric card: same song, framed as lyrics', async () => {
   const { tags, errors } = validateOg(r.body);
   assert.deepEqual(errors, []);
   assert.match(tags['og:description'], /^Lyric card from “Song” by A/);
-  assert.equal(tags['og:url'], 'https://zoyra-share.vercel.app/l/D7KyD');
+  assert.equal(tags['og:url'], `${HOST}/l/D7KyD`);
 });
 
 test('track: yt_ song falls back to YouTube oEmbed when the backend is not configured', async () => {
@@ -126,7 +130,7 @@ test('artist: Audius user and yta_ name-only artist', async () => {
   const y = await handleShare({ kind: 'ar', id: encodeURIComponent('yta_Arijit Singh') }, ENV, f);
   assert.equal(y.status, 200);
   assert.equal(validateOg(y.body).tags['og:title'], 'Arijit Singh');
-  assert.equal(validateOg(y.body).tags['og:image'], 'https://zoyra-share.vercel.app/og-default.png');
+  assert.equal(validateOg(y.body).tags['og:image'], `${HOST}/og-default.png`);
 });
 
 test('profile: public profile by username', async () => {
@@ -150,7 +154,7 @@ test('profile: private profile shows a minimal card and leaks nothing', async ()
   assert.deepEqual(errors, []);
   assert.equal(tags['og:title'], 'Private profile');
   for (const s of ['Secret Name', 'secret bio', 'secret.jpg']) assert.ok(!r.body.includes(s), `leaked ${s}`);
-  assert.equal(tags['og:image'], 'https://zoyra-share.vercel.app/og-default.png');
+  assert.equal(tags['og:image'], `${HOST}/og-default.png`);
 });
 
 test('bad ids are rejected without echoing them', async () => {
