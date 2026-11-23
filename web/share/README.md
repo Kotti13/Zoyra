@@ -38,7 +38,7 @@ cd web/share && npx vercel --prod
 # or, from the repo root:  npm run share:deploy
 ```
 
-On the first run, Vercel asks you to link a project. Name it `zoyra-share` so the URL is `https://zoyra-share.vercel.app`. If that name is taken, use whatever URL you get and set it as `PUBLIC_HOST` below **and** as `EXPO_PUBLIC_SHARE_HOST` in the app.
+On the first run, Vercel asks you to link a project. Name it `zoyra-share` so the URL is `https://share.zoyra.site`. If that name is taken, use whatever URL you get and set it as `PUBLIC_HOST` below **and** as `EXPO_PUBLIC_SHARE_HOST` in the app.
 
 ### Environment variables
 
@@ -46,7 +46,7 @@ Set these in Vercel → Project → Settings → Environment Variables (Producti
 
 | Name | Value |
 | --- | --- |
-| `PUBLIC_HOST` | `https://zoyra-share.vercel.app`. The ONE place the web side sets its domain. Must equal the app's `EXPO_PUBLIC_SHARE_HOST`. |
+| `PUBLIC_HOST` | `https://share.zoyra.site`. The ONE place the web side sets its domain. Must equal the app's `EXPO_PUBLIC_SHARE_HOST`. |
 | `SUPABASE_URL` | Same value as `EXPO_PUBLIC_SUPABASE_URL`. |
 | `SUPABASE_ANON_KEY` | Same value as `EXPO_PUBLIC_SUPABASE_KEY` (anon or `sb_publishable_…`). **Never the service-role key.** |
 | `APPLE_TEAM_ID` | 10-character Team ID, from developer.apple.com → Membership, or `npx eas-cli credentials -p ios`. The appID becomes `<TEAMID>.com.zoyra.app`. |
@@ -64,14 +64,14 @@ Set these in Vercel → Project → Settings → Environment Variables (Producti
 ### Checks after deploying
 
 ```bash
-curl -i https://zoyra-share.vercel.app/.well-known/apple-app-site-association   # 200, application/json, no redirect
-curl -i https://zoyra-share.vercel.app/.well-known/assetlinks.json
-node scripts/check-og.mjs https://zoyra-share.vercel.app/t/<audiusTrackId>        # validates OG/Twitter tags + image
+curl -i https://share.zoyra.site/.well-known/apple-app-site-association   # 200, application/json, no redirect
+curl -i https://share.zoyra.site/.well-known/assetlinks.json
+node scripts/check-og.mjs https://share.zoyra.site/t/<audiusTrackId>        # validates OG/Twitter tags + image
 ```
 
 You can also check with these tools:
 
-- Google's Digital Asset Links tester: `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://zoyra-share.vercel.app&relation=delegate_permission/common.handle_all_urls`
+- Google's Digital Asset Links tester: `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://share.zoyra.site&relation=delegate_permission/common.handle_all_urls`
 - An AASA validator, such as Branch's.
 - On a device, run `adb shell pm verify-app-links --re-verify com.zoyra.app`, then `adb shell pm get-app-links com.zoyra.app`.
 
