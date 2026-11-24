@@ -40,6 +40,57 @@ export async function cacheGet<P>(uid: string, key: Uint8Array, id: string, sign
   }
 }
 
+/** Many lookups at once: memory first, then ONE AsyncStorage.multiGet for the rest (not one native call per message). */
+export async function cacheGetMany<P>(uid: string, key: Uint8Array, items: { id: string; signature: string }[]): Promise<Map<string, P>> {
+  const out = new Map<string, P>();
+  const rest: { id: string; signature: string }[] = [];
+  for (const it of items) {
+    const hit = mem.get(it.id) as CacheEntry<P> | undefined;
+    if (hit) {
+      if (hit.sig === sigTag(it.signature)) out.set(it.id, hit.payload);
+    } else rest.push(it);
+  }
+  if (!rest.length) return out;
+  try {
+    const pairs = await AsyncStorage.multiGet(rest.map((it) => prefix(uid) + it.id));
+    pairs.forEach(([, raw], i) => {
+      if (!raw) return;
+      const { id, signature } = rest[i];
+      try {
+        const e = JSON.parse(fromUtf8(openLocal(key, raw, `msg:${id}`))) as CacheEntry<P>;
+        remember(id, e);
+        if (e.sig === sigTag(signature)) out.set(id, e.payload);
+      } catch {
+        // stale entry from another cache key
+      }
+    });
+  } catch {
+    // memory only
+  }
+  return out;
+}
+
+/** Many writes at once (memory is updated immediately; the disk write is a single multiSet). */
+export async function cachePutMany<P>(uid: string, key: Uint8Array, items: { id: string; signature: string; cid: string; payload: P }[]): Promise<void> {
+  const pairs: [string, string][] = [];
+  const at = new Date().toISOString();
+  for (const it of items) {
+    const e: CacheEntry<P> = { sig: sigTag(it.signature), cid: it.cid, at, payload: it.payload };
+    remember(it.id, e);
+    try {
+      pairs.push([prefix(uid) + it.id, sealLocal(key, utf8(JSON.stringify(e)), `msg:${it.id}`)]);
+    } catch {
+      // memory only
+    }
+  }
+  if (!pairs.length) return;
+  try {
+    await AsyncStorage.multiSet(pairs);
+  } catch {
+    // memory only
+  }
+}
+
 export async function cachePut<P>(uid: string, key: Uint8Array, id: string, signature: string, cid: string, payload: P): Promise<void> {
   const e: CacheEntry<P> = { sig: sigTag(signature), cid, at: new Date().toISOString(), payload };
   remember(id, e);
