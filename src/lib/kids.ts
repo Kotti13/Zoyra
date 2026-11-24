@@ -122,7 +122,7 @@ export async function writeUsageSeconds(uid: string, sec: number): Promise<void>
 export const limitLabel = (min: number) => (min <= 0 ? 'Off' : min % 60 === 0 ? `${min / 60} h` : min > 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`);
 
 /** Routes a child can't open while kids mode is on (people, messages, live). */
-const SOCIAL = new Set(['messages', 'new-message', 'new-group', 'group-chat', 'message-requests', 'dm-privacy', 'community', 'video-comments', 'live-hub', 'live-room', 'go-live', 'call', 'group-call', 'note-compose', 'note-viewers', 'friends', 'followers', 'invite', 'last-seen']);
+const SOCIAL = new Set(['messages', 'new-message', 'new-group', 'group-chat', 'message-requests', 'follow-requests', 'dm-privacy', 'community', 'video-comments', 'live-hub', 'live-room', 'go-live', 'call', 'group-call', 'note-compose', 'note-viewers', 'friends', 'followers', 'invite', 'last-seen']);
 /** Routes that change settings or money: parent PIN first. */
 const PARENT = new Set(['settings', 'settings-hub', 'settings-search', 'content-controls', 'family', 'billing', 'plans', 'gift-premium', 'privacy', 'account-switcher', 'sessions', 'connected', 'permissions', 'push-settings', 'two-factor', 'e2ee-setup', 'e2ee-restore', 'edit-profile', 'kids-mode']);
 

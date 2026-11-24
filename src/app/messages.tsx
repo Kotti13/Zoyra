@@ -876,10 +876,16 @@ export default function Messages() {
     { key: 'unread', label: 'Unread', badge: unreadChats.length || undefined },
     { key: 'groups', label: 'Groups' },
     { key: 'jams', label: 'Jams' },
+    { key: 'requests', label: 'Requests', badge: requestCount || undefined },
   ];
 
   const changeTab = (k: Filter) => {
     closeOpenSwipeRow();
+    // Requests is its own screen (new people who message you wait there), so the chip opens it instead of filtering.
+    if (k === 'requests') {
+      router.push('/message-requests');
+      return;
+    }
     setFilter(k);
   };
 

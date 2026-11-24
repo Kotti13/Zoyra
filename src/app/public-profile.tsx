@@ -37,6 +37,7 @@ import {
 } from "../lib/profile";
 import { chatPeerParams } from "../lib/chat";
 import { dmAccess, startChat, type DmAccess } from "../lib/dm";
+import { cancelFollowRequest, followUser } from "../lib/follow-requests";
 import { friendlySocialError, useBlocks } from "../lib/social";
 import { profileShareUrl, shareContent } from "../lib/share-links";
 import { supabase } from "../lib/supabase";
@@ -83,7 +84,7 @@ export default function PublicProfile() {
   );
   // Block state changed elsewhere (the options sheet) wins over the hook's snapshot.
   const [blockOverride, setBlockOverride] = useState<boolean | null>(null);
-  const [followDelta, setFollowDelta] = useState<{ on: boolean } | null>(null);
+  const [followDelta, setFollowDelta] = useState<{ on: boolean; requested: boolean } | null>(null);
 
   const res = useAsync(
     () => (id && me ? loadPublicProfile(id, me) : Promise.resolve(null)),
@@ -129,47 +130,65 @@ export default function PublicProfile() {
   if (me && id === me) return <Redirect href="/profile" />;
 
   const iFollow = followDelta ? followDelta.on : !!d?.iFollow;
+  // A private profile: I asked to follow and they haven't accepted yet (Instagram-style "Requested").
+  const iRequested = followDelta ? followDelta.requested : !!d?.iRequested;
   const iBlocked = blockOverride ?? blocked.has(id);
 
   const toggleFollow = async () => {
     if (!me || !d || busy) return;
     setBusy("follow");
     setNote(null);
-    const next = !iFollow;
-    setFollowDelta({ on: next });
-    let error: unknown = null;
+    const name = d.person.display_name;
+    // What I'm doing: unfollow, withdraw a pending request, or follow (which is only a request on a private profile).
+    const action = iFollow ? "unfollow" : iRequested ? "withdraw" : "follow";
+    setFollowDelta(
+      action === "follow"
+        ? { on: !d.person.is_private, requested: d.person.is_private }
+        : { on: false, requested: false },
+    );
     try {
-      const r = next
-        ? await supabase
-            .from("follows")
-            .insert({ follower_id: me, following_id: id })
-        : await supabase
-            .from("follows")
-            .delete()
-            .eq("follower_id", me)
-            .eq("following_id", id);
-      error = r.error;
+      if (action === "unfollow") {
+        const r = await supabase
+          .from("follows")
+          .delete()
+          .eq("follower_id", me)
+          .eq("following_id", id);
+        if (r.error) throw r.error;
+        flash(FLASH.unfollowed);
+        setNote({ text: `You unfollowed ${name}.` });
+      } else if (action === "withdraw") {
+        await cancelFollowRequest(me, id);
+        flash("Request withdrawn");
+        setNote({ text: `You withdrew your request to follow ${name}.` });
+      } else {
+        const outcome = await followUser(id);
+        setFollowDelta({
+          on: outcome === "following",
+          requested: outcome === "requested",
+        });
+        if (outcome === "requested") {
+          flash("Follow request sent");
+          setNote({
+            text: `Request sent. ${name} has to accept before you follow them.`,
+          });
+        } else {
+          flash(FLASH.followed);
+          setNote({ text: `You follow ${name}.` });
+        }
+      }
     } catch (e) {
-      error = e;
-    }
-    setBusy(null);
-    if (!error) flash(next ? FLASH.followed : FLASH.unfollowed);
-    if (error) {
       setFollowDelta(null);
       setNote({
-        text: friendlySocialError(error, "Could not update follow"),
+        text: friendlySocialError(e, "Could not update follow"),
         error: true,
       });
+      setBusy(null);
       return;
     }
-    setNote({
-      text: next
-        ? `You follow ${d.person.display_name}.`
-        : `You unfollowed ${d.person.display_name}.`,
-    });
+    setBusy(null);
     setAccessNonce((n) => n + 1);
-    // Following a private profile unlocks its content; refetch so playlists and taste appear.
-    if (d.person.is_private || !next) {
+    // Following (or unfollowing) a private profile changes what is visible; refetch so playlists and taste follow.
+    if (d.person.is_private || action !== "follow") {
       res.reload();
       setFollowDelta(null);
     }
@@ -180,7 +199,8 @@ export default function PublicProfile() {
     if (!me) return setNote({ text: "Sign in to send messages.", error: true });
     // Locked: they only accept people they follow (or mutuals). Follow first, then re-check.
     if (access.data === "locked") {
-      if (!iFollow) await toggleFollow();
+      if (iRequested) setNote({ text: `Waiting for ${d?.person.display_name ?? "them"} to accept your follow request.` });
+      else if (!iFollow) await toggleFollow();
       return;
     }
     setBusy("message");
@@ -373,12 +393,14 @@ export default function PublicProfile() {
                 ? "…"
                 : iFollow
                   ? "Following"
-                  : d.followsMe
+                  : iRequested
+                    ? "Requested"
+                    : d.followsMe
                     ? "Follow back"
                     : "Follow"
             }
-            icon={iFollow ? "check" : "plus"}
-            variant={iFollow ? "glass" : "primary"}
+            icon={iFollow ? "check" : iRequested ? "clock" : "plus"}
+            variant={iFollow || iRequested ? "glass" : "primary"}
             onPress={() => void toggleFollow()}
             style={{ flex: 1 }}
           />
@@ -390,7 +412,9 @@ export default function PublicProfile() {
                   : access.data === "locked"
                     ? iFollow
                       ? "Messages off"
-                      : "Follow to message"
+                      : iRequested
+                        ? "Follow requested"
+                        : "Follow to message"
                     : "Message"
               }
               icon={access.data === "locked" ? "lock" : "mail"}
