@@ -114,8 +114,7 @@ function OnAir({ api, me }: { api: LiveApi; me: string | undefined }) {
     if (!me || following === null || followBusy) return;
     setFollowBusy(true);
     try {
-      await setFollow(me, session.host_id, !following);
-      setFollowing(!following);
+      setFollowing(await setFollow(me, session.host_id, !following));
     } catch (e) {
       api.setNote({ ok: false, text: friendlyLiveError(e) });
     } finally {
