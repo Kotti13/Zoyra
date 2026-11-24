@@ -347,6 +347,8 @@ export type PublicProfileData = {
   following: number;
   playlistCount: number;
   iFollow: boolean;
+  /** I asked to follow this private profile and they haven't answered yet. */
+  iRequested: boolean;
   followsMe: boolean;
   blockedWith: boolean;
   /** Private profiles hide playlists, listening and taste from people who don't follow them. */
@@ -392,13 +394,15 @@ export async function loadPublicProfile(id: string, me: string): Promise<PublicP
   const person = p.data as unknown as PublicPerson;
   const custom = parseCustom(p.data);
 
-  const [followers, following, iFollow, followsMe, blocked, myFollowing] = await Promise.all([
+  const [followers, following, iFollow, followsMe, blocked, myFollowing, requested] = await Promise.all([
     supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', id),
     supabase.from('follows').select('following_id', { count: 'exact', head: true }).eq('follower_id', id),
     supabase.from('follows').select('following_id').eq('follower_id', me).eq('following_id', id).maybeSingle(),
     supabase.from('follows').select('following_id').eq('follower_id', id).eq('following_id', me).maybeSingle(),
     supabase.rpc('blocked_with', { other: id }),
     supabase.from('follows').select('following_id').eq('follower_id', me).limit(1000),
+    // Older servers have no follow_requests table: that error is ignored below (nobody has requested anything).
+    supabase.from('follow_requests').select('target_id').eq('requester_id', me).eq('target_id', id).maybeSingle(),
   ]);
   fail(followers.error ?? following.error ?? iFollow.error ?? followsMe.error ?? myFollowing.error);
   // blocked_with may be missing on an older server; treat as not blocked.
@@ -461,6 +465,7 @@ export async function loadPublicProfile(id: string, me: string): Promise<PublicP
     following: following.count ?? 0,
     playlistCount,
     iFollow: amFollowing,
+    iRequested: !amFollowing && !requested.error && !!requested.data,
     followsMe: !!followsMe.data,
     blockedWith,
     visible,

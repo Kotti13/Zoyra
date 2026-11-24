@@ -4,6 +4,7 @@ import { RefreshControl, TextInput, View } from 'react-native';
 
 import { Button, EmptyState, ErrorState, Glass, Icon, ListRow, Loading, Row, Screen, ScreenHeader, Segmented, T, Tap, useAsync, useDebounced, ToggleBurst } from '../components';
 import { PersonAvatar } from '../features/profile-ui';
+import { cancelFollowRequest, followUser, myPendingRequestIds, useFollowRequestCount } from '../lib/follow-requests';
 import { loadAvatarArts } from '../lib/profile';
 import { chatPeerParams } from '../lib/chat';
 import { startChat } from '../lib/dm';
@@ -19,11 +20,11 @@ type FollowRow = { follower: Person | null; following: Person | null };
 const PROFILE_COLS = 'id, display_name, username, avatar_url';
 const NO_ARTS = new Map<string, string>();
 
-function FollowButton({ name, on, onPress }: { name: string; on: boolean; onPress: () => void }) {
+function FollowButton({ name, on, requested, onPress }: { name: string; on: boolean; requested?: boolean; onPress: () => void }) {
   return (
     <Tap
       onPress={onPress}
-      accessibilityLabel={on ? `Unfollow ${name}` : `Follow ${name}`}
+      accessibilityLabel={on ? `Unfollow ${name}` : requested ? `Withdraw follow request to ${name}` : `Follow ${name}`}
       accessibilityState={{ selected: on }}
       style={{ height: 44, justifyContent: 'center' }}
     >
@@ -31,11 +32,11 @@ function FollowButton({ name, on, onPress }: { name: string; on: boolean; onPres
         <View
           style={[
             { height: 36, paddingHorizontal: 14, borderRadius: 18, justifyContent: 'center' },
-            on ? { borderWidth: 1, borderColor: colors.border } : { backgroundColor: colors.accent },
+            on || requested ? { borderWidth: 1, borderColor: colors.border } : { backgroundColor: colors.accent },
           ]}
         >
-          <T size={13} weight={600} color={on ? colors.text : colors.onAccent}>
-            {on ? 'Following' : 'Follow'}
+          <T size={13} weight={600} color={on || requested ? colors.text : colors.onAccent}>
+            {on ? 'Following' : requested ? 'Requested' : 'Follow'}
           </T>
         </View>
       </ToggleBurst>
@@ -56,6 +57,9 @@ export default function Followers() {
   const [followers, setFollowers] = useState<Person[]>([]);
   const [following, setFollowing] = useState<Person[]>([]);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+  /** Private profiles I asked to follow that haven't accepted yet. */
+  const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
+  const { count: requestCount } = useFollowRequestCount(me);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -120,7 +124,13 @@ export default function Followers() {
         ({ data, error: e }) => {
           if (!alive) return;
           if (e) setNote(e.message);
-          setFound({ key: q, list: e ? [] : ((data ?? []) as Person[]) });
+          const list = e ? [] : ((data ?? []) as Person[]);
+          setFound({ key: q, list });
+          if (me && list.length) {
+            void myPendingRequestIds(me, list.map((x) => x.id)).then((ids) => {
+              if (alive) setRequestedIds((prev) => new Set([...prev, ...ids]));
+            });
+          }
         },
         (e: unknown) => {
           if (!alive) return;
@@ -135,19 +145,39 @@ export default function Followers() {
 
   const toggleFollow = async (p: Person) => {
     if (!me) return;
-    const was = followingIds.has(p.id);
-    const next = new Set(followingIds);
-    if (was) next.delete(p.id);
-    else next.add(p.id);
-    setFollowingIds(next);
-    setFollowing((list) => (was ? list.filter((x) => x.id !== p.id) : [p, ...list.filter((x) => x.id !== p.id)]));
     setNote(null);
+    const was = followingIds.has(p.id);
+    const wasRequested = requestedIds.has(p.id);
     try {
-      const { error: e } = was
-        ? await supabase.from('follows').delete().eq('follower_id', me).eq('following_id', p.id)
-        : await supabase.from('follows').insert({ follower_id: me, following_id: p.id });
-      if (e) throw e;
-      flash(was ? FLASH.unfollowed : `${FLASH.followed} ${p.display_name ?? ''}`.trim());
+      if (wasRequested) {
+        // Withdraw a pending request.
+        await cancelFollowRequest(me, p.id);
+        setRequestedIds((prev) => {
+          const n = new Set(prev);
+          n.delete(p.id);
+          return n;
+        });
+        flash('Request withdrawn');
+      } else if (was) {
+        const next = new Set(followingIds);
+        next.delete(p.id);
+        setFollowingIds(next);
+        setFollowing((list) => list.filter((x) => x.id !== p.id));
+        const { error: e } = await supabase.from('follows').delete().eq('follower_id', me).eq('following_id', p.id);
+        if (e) throw e;
+        flash(FLASH.unfollowed);
+      } else {
+        // A private profile only gets a request until they accept.
+        const outcome = await followUser(p.id);
+        if (outcome === 'requested') {
+          setRequestedIds((prev) => new Set(prev).add(p.id));
+          flash('Follow request sent');
+        } else {
+          setFollowingIds((prev) => new Set(prev).add(p.id));
+          setFollowing((list) => [p, ...list.filter((x) => x.id !== p.id)]);
+          flash(`${FLASH.followed} ${p.display_name ?? ''}`.trim());
+        }
+      }
     } catch (e) {
       setNote(friendlySocialError(e, 'Could not update follow'));
       void load();
@@ -216,6 +246,15 @@ export default function Followers() {
       refreshControl={me ? <RefreshControl refreshing={pulling} onRefresh={() => void onRefresh()} tintColor={colors.accent} colors={[colors.accent]} progressBackgroundColor={colors.bgTertiary} /> : undefined}
     >
       <ScreenHeader title={profile?.display_name ?? 'People'} />
+      {me && requestCount > 0 ? (
+        <ListRow
+          title={`Follow requests · ${requestCount}`}
+          subtitle="People waiting for you to accept"
+          onPress={() => router.push('/follow-requests')}
+          leading={<Icon name="users" size={22} color={colors.accent} />}
+          right={<Icon name="chevronRight" size={18} color={colors.textSecondary} />}
+        />
+      ) : null}
       {!me ? <EmptyState icon="users" title="Sign in to see your people" body="Followers, following and people search need an account." action="Sign in" href="/login" /> : null}
       <Segmented options={[`Followers ${shownFollowers.length}`, `Following ${shownFollowing.length}`]} initial={startTab} onChange={(i) => setTab(i)} />
 
@@ -280,7 +319,7 @@ export default function Followers() {
                     <PersonAvatar id={p.id} name={p.display_name} uri={p.avatar_url} preset={arts.get(p.id)} size={48} />
                   </Tap>
                 }
-                right={blocked.has(p.id) ? false : <FollowButton name={p.display_name} on={followingIds.has(p.id)} onPress={() => void toggleFollow(p)} />}
+                right={blocked.has(p.id) ? false : <FollowButton name={p.display_name} on={followingIds.has(p.id)} requested={requestedIds.has(p.id)} onPress={() => void toggleFollow(p)} />}
               />
               {selected === p.id ? (
                 <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 8 }}>

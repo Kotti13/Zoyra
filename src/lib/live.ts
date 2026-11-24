@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { usePlaybackProgress, usePlayerPick } from '../state/player';
 import type { CatalogTrack } from './catalog';
+import { followUser } from './follow-requests';
 import { friendlySocialError } from './social';
 import { supabase } from './supabase';
 import { FLASH, flash } from './flash';
@@ -269,12 +270,20 @@ export async function setReminder(me: string, sessionId: string, on: boolean): P
   fail(error);
 }
 
-export async function setFollow(me: string, id: string, on: boolean): Promise<void> {
-  const { error } = on
-    ? await supabase.from('follows').upsert({ follower_id: me, following_id: id }, { onConflict: 'follower_id,following_id', ignoreDuplicates: true })
-    : await supabase.from('follows').delete().eq('follower_id', me).eq('following_id', id);
-  fail(error);
-  flash(on ? FLASH.followed : FLASH.unfollowed);
+/**
+ * Follow / unfollow a host. Resolves `true` only when I am now following: a private host turns a follow into a
+ * request (they have to accept), which resolves `false`.
+ */
+export async function setFollow(me: string, id: string, on: boolean): Promise<boolean> {
+  if (!on) {
+    const { error } = await supabase.from('follows').delete().eq('follower_id', me).eq('following_id', id);
+    fail(error);
+    flash(FLASH.unfollowed);
+    return false;
+  }
+  const outcome = await followUser(id);
+  flash(outcome === 'requested' ? 'Follow request sent' : FLASH.followed);
+  return outcome === 'following';
 }
 
 /* ================================================================== the live room hook */

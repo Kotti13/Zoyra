@@ -114,7 +114,9 @@ export default function LiveHub() {
     if (!me || !data) return;
     const on = !data.following.has(hostId);
     void run(`follow:${hostId}`, async () => {
-      await setFollow(me, hostId, on);
+      const now = await setFollow(me, hostId, on);
+      // A private host only gets a request: nothing changes in my following list until they accept.
+      if (on && !now) return;
       setData((d) => {
         if (!d) return d;
         const following = new Set(d.following);
@@ -123,7 +125,7 @@ export default function LiveHub() {
         const followers = { ...d.followers, [hostId]: Math.max(0, (d.followers[hostId] ?? 0) + (on ? 1 : -1)) };
         return { ...d, following, followers };
       });
-    }, on ? `Following ${name}` : undefined);
+    }, undefined);
   };
 
   const toggleReminder = (s: LiveSession) => {
