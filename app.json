@@ -154,15 +154,15 @@
         }
       },
       "eas": {
-        "projectId": "722d5252-fc7f-408d-b817-229a38213485"
+        "projectId": "6f208010-3b53-417e-b56f-dbaa924ebdc7"
       }
     },
-    "owner": "kotti2003",
+    "owner": "kottai13s-team",
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "url": "https://u.expo.dev/722d5252-fc7f-408d-b817-229a38213485"
+      "url": "https://u.expo.dev/6f208010-3b53-417e-b56f-dbaa924ebdc7"
     },
     "experiments": {
       "reactCompiler": true
