@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Validate Open Graph / Twitter card tags.
-//   node scripts/check-og.mjs https://zoyra-share.vercel.app/t/<id> [more urls…]
+//   node scripts/check-og.mjs https://share.zoyra.site/t/<id> [more urls…]
 // Also imported by the tests (validateOg).
 
 const REQUIRED_OG = ['og:title', 'og:description', 'og:image', 'og:url', 'og:type', 'og:site_name'];

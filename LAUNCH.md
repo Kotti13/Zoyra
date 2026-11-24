@@ -15,7 +15,7 @@ App (phones) ──► Supabase  (database, login, functions)          already h
 - [ ] Migration `20261122120000_share_live_card.sql` is **not applied yet** (live-room link previews need it).
 - [ ] Supabase secrets missing: `ANTHROPIC_API_KEY`, `TICKETMASTER_API_KEY`, `LASTFM_*`, `ACRCLOUD_*`, `STEMS_*`,
       `REVENUECAT_WEBHOOK_AUTH`, `PUSH_WEBHOOK_SECRET` (set: `YOUTUBE_API_KEY`, Agora, Supabase's own).
-- [x] Web share is live at `https://zoyra-share.vercel.app`.
+- [x] Web share is live at `https://share.zoyra.site`.
 - [ ] Web share has **no `APPLE_TEAM_ID`** (the iOS file says `TEAMID_NOT_SET`) and **no Android fingerprints**: shared links
       cannot open the app directly yet, only the web page.
 - [ ] Web share is the **old version**: `/lv/…` (live), `/rm/…`, `/fam/…`, `/inv/…` links return 404 until redeployed.
@@ -60,7 +60,7 @@ Redeploy so the new link types go live: `cd web/share && npx vercel --prod`.
 
 | Vercel setting (Production) | Value |
 | --- | --- |
-| `PUBLIC_HOST` | `https://zoyra-share.vercel.app` (must equal the app's `EXPO_PUBLIC_SHARE_HOST`) |
+| `PUBLIC_HOST` | `https://share.zoyra.site` (must equal the app's `EXPO_PUBLIC_SHARE_HOST`) |
 | `SUPABASE_URL` | same as the app's `EXPO_PUBLIC_SUPABASE_URL` |
 | `SUPABASE_ANON_KEY` | same as the app's `EXPO_PUBLIC_SUPABASE_KEY`. **Never the service-role key.** |
 | `APPLE_TEAM_ID` | 10 characters: developer.apple.com → Membership, or `npx eas-cli credentials -p ios` |
@@ -71,9 +71,9 @@ Redeploy so the new link types go live: `cd web/share && npx vercel --prod`.
 After deploying, check:
 
 ```
-curl -s https://zoyra-share.vercel.app/.well-known/apple-app-site-association   # must NOT say TEAMID_NOT_SET
-curl -s https://zoyra-share.vercel.app/.well-known/assetlinks.json              # fingerprints must not be []
-curl -s -o /dev/null -w "%{http_code}\n" https://zoyra-share.vercel.app/lv/<a-live-session-id>   # 200 once the migration is applied
+curl -s https://share.zoyra.site/.well-known/apple-app-site-association   # must NOT say TEAMID_NOT_SET
+curl -s https://share.zoyra.site/.well-known/assetlinks.json              # fingerprints must not be []
+curl -s -o /dev/null -w "%{http_code}\n" https://share.zoyra.site/lv/<a-live-session-id>   # 200 once the migration is applied
 ```
 
 ## 4. The app
@@ -86,7 +86,7 @@ them in EAS (`npx eas-cli env:create`, once per name, for the build profile you 
 | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` | your Supabase project |
 | `EXPO_PUBLIC_ZOYRA_API_URL` | the backend's `https://` address from step 2 |
 | `EXPO_PUBLIC_ZOYRA_API_KEY` | the same value as the backend's `ZOYRA_API_KEY` |
-| `EXPO_PUBLIC_SHARE_HOST` | `https://zoyra-share.vercel.app` (same as `PUBLIC_HOST`) |
+| `EXPO_PUBLIC_SHARE_HOST` | `https://share.zoyra.site` (same as `PUBLIC_HOST`) |
 | `EXPO_PUBLIC_SENTRY_DSN` | your Sentry project address (empty = crash reporting off) |
 | `EXPO_PUBLIC_SPOTIFY_CLIENT_ID`, `EXPO_PUBLIC_REVENUECAT_*` | already set locally; add them to EAS too |
 
