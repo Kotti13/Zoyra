@@ -52,7 +52,18 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
-    plugins: [withStopMusicOnTaskRemoved, ...(config.plugins ?? []).filter((p) => (Array.isArray(p) ? p[0] : p) !== 'expo-build-properties'), buildProps],
+    plugins: [
+      withStopMusicOnTaskRemoved,
+      ...(config.plugins ?? []).filter((p) => {
+        const name = Array.isArray(p) ? p[0] : p;
+        if (name === 'expo-build-properties') return false;
+        // FREE_BUILD=1 (unsigned iOS build for Sideloadly / free Apple ID): free Apple IDs cannot sign app extensions
+        // or App Groups, so leave out the Notification Service Extension. Normal EAS builds are unaffected.
+        if (process.env.FREE_BUILD === '1' && name === './plugins/withZoyraNSE') return false;
+        return true;
+      }),
+      buildProps,
+    ],
     ios: { ...ios, associatedDomains: [...domains, `applinks:${hostname}`] },
     android: {
       ...android,
