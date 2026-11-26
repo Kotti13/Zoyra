@@ -1,0 +1,74 @@
+# Builds an UNSIGNED iOS .ipa on a free GitHub macOS runner (no Apple Developer account, no local Xcode).
+# Sign + install it afterwards with Sideloadly or AltStore using a free Apple ID (re-sign every 7 days).
+#
+# Free Apple IDs cannot use app extensions, App Groups, push or VoIP, so this build leaves out the
+# Notification Service Extension (FREE_BUILD=1, see app.config.js). Push and incoming calls will not work.
+#
+# Setup (once): GitHub > Settings > Secrets and variables > Actions > New repository secret
+#   IOS_ENV_FILE = the full contents of your local .env (the EXPO_PUBLIC_* values the app needs).
+# Run: Actions > iOS unsigned IPA > Run workflow. Download Zoyra-unsigned-ipa from the run's Artifacts (14 days).
+name: iOS unsigned IPA
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-unsigned
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    name: Build unsigned IPA
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      FREE_BUILD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: App settings (.env)
+        env:
+          IOS_ENV_FILE: ${{ secrets.IOS_ENV_FILE }}
+        run: |
+          if [ -n "$IOS_ENV_FILE" ]; then printf '%s\n' "$IOS_ENV_FILE" > .env; else echo "::warning::IOS_ENV_FILE secret not set, building without .env"; fi
+      - run: npm ci
+      - name: Prebuild iOS
+        run: npx expo prebuild --platform ios --no-install
+      - name: Install pods
+        working-directory: ios
+        run: pod install
+      - name: Archive without signing
+        working-directory: ios
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          WORKSPACE=$(ls -d *.xcworkspace | head -1)
+          SCHEME="${WORKSPACE%.xcworkspace}"
+          xcodebuild archive \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/App.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | tee build/xcodebuild.log | tail -n 40 || { tail -n 150 build/xcodebuild.log; exit 1; }
+      - name: Package IPA
+        working-directory: ios/build
+        run: |
+          set -euo pipefail
+          mkdir Payload
+          cp -R App.xcarchive/Products/Applications/*.app Payload/
+          zip -qry Zoyra-unsigned.ipa Payload
+          ls -lh Zoyra-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Zoyra-unsigned-ipa
+          path: ios/build/Zoyra-unsigned.ipa
+          retention-days: 14
