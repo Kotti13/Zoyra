@@ -1,6 +1,7 @@
 {
   "name": "zoyra",
   "version": "1.0.0",
+  "license": "UNLICENSED",
   "main": "index.js",
   "dependencies": {
     "@config-plugins/react-native-callkeep": "^14.0.2",
