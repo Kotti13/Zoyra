@@ -1,0 +1,5 @@
+$ORIGIN zoyra.site.
+$TTL 3600
+
+www          3600  IN  CNAME  zoyra.site.
+_dmarc       3600  IN  TXT    "v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net;"
